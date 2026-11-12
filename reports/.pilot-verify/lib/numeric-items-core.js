@@ -1170,17 +1170,25 @@ exports.CORE_NUMERIC_GENS = {
         };
     },
     "analysis-tests": (r) => {
+        // A flame test identifies the METAL ION, not whether the sample is an
+        // element, a compound or a mixture. The old item asked "how many of these
+        // are TRUE" and keyed 1, but a calcium compound and a mixture containing
+        // calcium ions can both give a brick-red flame, so the count was not
+        // answerable. Ask for the ion's charge: a genuine numeric fact the test
+        // points to, with the group number as the reason.
         const tests = [
-            ["a flame test gives a lilac colour", "potassium"],
-            ["a flame test gives a brick-red colour", "calcium"],
-            ["dilute acid produces fizzing with limewater turning milky", "carbonate"],
+            { colour: "lilac", ion: "potassium", group: 1, charge: 1 },
+            { colour: "yellow", ion: "sodium", group: 1, charge: 1 },
+            { colour: "crimson", ion: "lithium", group: 1, charge: 1 },
+            { colour: "brick-red", ion: "calcium", group: 2, charge: 2 },
         ];
-        const [desc] = r.pick(tests);
+        const test = r.pick(tests);
         return {
-            prompt: `A sample ${desc}. How many of the following are TRUE: it is a pure element, it is a compound, it is a mixture?`,
-            value: 1, wrongs: ["2", "3", "0"],
-            tags: [], difficulty: 0.6,
-            explanation: `A positive test identifies ONE substance, which may be an element or a compound — exactly one of those three descriptions is the honest answer, so 1. The test narrows it; it does not tell you which category.`,
+            prompt: `A flame test on a sample gives a ${test.colour} colour. What charge does the metal ion responsible carry?`,
+            value: test.charge,
+            wrongs: test.charge === 1 ? [2, 3, 0] : [1, 3, 0],
+            tags: [], difficulty: 0.55,
+            explanation: `A ${test.colour} flame is the test for ${test.ion} ions. ${test.ion} is in Group ${test.group}, so its atom loses ${test.charge === 1 ? "one electron" : "two electrons"} to form a ${test.charge}+ ion. The flame colour identifies the metal; the group number gives the charge.`,
         };
     },
     "metallic-bonding": (r) => {

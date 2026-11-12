@@ -36,6 +36,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.isNumericQuestion = isNumericQuestion;
 exports.parseNumericInput = parseNumericInput;
 exports.gradeNumeric = gradeNumeric;
+exports.parseFractionText = parseFractionText;
+exports.parseFractionParts = parseFractionParts;
+exports.gradeFraction = gradeFraction;
+exports.parsePairText = parsePairText;
+exports.parsePairParts = parsePairParts;
+exports.gradePair = gradePair;
 exports.formatNumeric = formatNumeric;
 exports.answerDisplay = answerDisplay;
 exports.optionValueKey = optionValueKey;
@@ -124,6 +130,67 @@ function gradeNumeric(given, answer, tolerance) {
     const diff = Math.abs(given - answer);
     const slack = Math.max(abs ?? 0, rel !== undefined ? rel * Math.abs(answer) : 0);
     return diff <= slack;
+}
+/** ── A FRACTION IS TWO INTEGERS, NOT A DECIMAL ─────────────────────────────
+ *
+ *  A learner asked for 1/3 must be able to write 1/3. Parsing it into 0.333…
+ *  and comparing within a tolerance would accept 0.333 as the same answer and
+ *  reject 2/6 for looking different, when 2/6 IS the same number. So a fraction
+ *  answer is marked by CROSS-MULTIPLICATION: a/b = c/d exactly when ad = bc.
+ *
+ *  Both fields must be whole numbers. A decimal in a fraction box is refused as
+ *  input rather than silently read as another fraction, the same rule that
+ *  keeps "x + 3" out of the number box.
+ */
+function parseFractionText(text) {
+    const m = foldSigns(String(text ?? "")).trim().match(/^(-?\d+)\s*\/\s*(-?\d+)$/);
+    if (!m)
+        return null;
+    const numerator = Number(m[1]);
+    const denominator = Number(m[2]);
+    if (!Number.isInteger(numerator) || !Number.isInteger(denominator) || denominator === 0)
+        return null;
+    return { numerator, denominator };
+}
+function parseFractionParts(numerator, denominator) {
+    const n = foldSigns(String(numerator ?? "")).trim();
+    const d = foldSigns(String(denominator ?? "")).trim();
+    if (!/^-?\d+$/.test(n) || !/^-?\d+$/.test(d))
+        return null;
+    const parts = { numerator: Number(n), denominator: Number(d) };
+    if (!Number.isInteger(parts.numerator) || !Number.isInteger(parts.denominator) || parts.denominator === 0)
+        return null;
+    return parts;
+}
+/** 1/2 and 2/4 are the same answer; an unsimplified fraction is not a mistake. */
+function gradeFraction(given, answer) {
+    if (!given.denominator || !answer.denominator)
+        return false;
+    return given.numerator * answer.denominator === answer.numerator * given.denominator;
+}
+/** ── A COORDINATE PAIR IS ORDERED ────────────────────────────────────────────
+ *  (3, 5) and (5, 3) are different points, so this is never sorted the way a
+ *  pair of roots is. Decimals are allowed (a point at (2.5, −1)) and compared to
+ *  a hairline tolerance, because both sides are parsed from text. */
+function parsePairText(text) {
+    const m = foldSigns(String(text ?? "")).trim().match(/^\(\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)$/);
+    if (!m)
+        return null;
+    const x = Number(m[1]);
+    const y = Number(m[2]);
+    return Number.isFinite(x) && Number.isFinite(y) ? { x, y } : null;
+}
+function parsePairParts(xRaw, yRaw) {
+    const xs = foldSigns(String(xRaw ?? "")).trim();
+    const ys = foldSigns(String(yRaw ?? "")).trim();
+    if (!/^-?\d+(?:\.\d+)?$/.test(xs) || !/^-?\d+(?:\.\d+)?$/.test(ys))
+        return null;
+    const x = Number(xs);
+    const y = Number(ys);
+    return Number.isFinite(x) && Number.isFinite(y) ? { x, y } : null;
+}
+function gradePair(given, answer) {
+    return Math.abs(given.x - answer.x) < 1e-9 && Math.abs(given.y - answer.y) < 1e-9;
 }
 /**
  * A number as a learner should read it: no floating-point noise, no trailing

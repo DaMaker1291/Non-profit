@@ -210,7 +210,7 @@ Measured by `npm run gate:options` on the served@0.75 surface (60 draws each, 40
 attempts — the call `app/api/progress/route.ts` makes): **63 of 135 concepts are
 still above the 35% reporting line**, and **21 are repaired and asserted
 absolutely** at their served level. Bank-wide, the best of the eight strategies
-is **25.21%** against a 25% chance line, so no single strategy beats chance
+is **25.16%** against a 25% chance line, so no single strategy beats chance
 across the bank; what remains is per concept.
 
 This section replaces an earlier figure of **82 of 135**. That number was true

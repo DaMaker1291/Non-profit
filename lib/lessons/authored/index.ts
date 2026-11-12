@@ -70,6 +70,23 @@ import { MATHS_PROBABILITY_BASICS } from "./maths-probability-basics";
 import { MATHS_RATIO } from "./maths-ratio";
 import { MATHS_PROPORTION } from "./maths-proportion";
 import { MATHS_SEQUENCES } from "./maths-sequences";
+import { MATHS_STANDARD_FORM } from "./maths-standard-form";
+import { MATHS_ALGEBRA_EXPAND } from "./maths-algebra-expand";
+import { MATHS_STRAIGHT_LINES } from "./maths-straight-lines";
+import { MATHS_INEQUALITIES } from "./maths-inequalities";
+import { MATHS_SURDS } from "./maths-surds";
+import { MATHS_SIMULTANEOUS } from "./maths-simultaneous";
+import { MATHS_SIM_EQUATIONS_QUAD } from "./maths-sim-equations-quad";
+import { MATHS_FUNCTIONS } from "./maths-functions";
+import { MATHS_TRIG_RATIOS } from "./maths-trig-ratios";
+import { MATHS_TRIG_IDENTITY } from "./maths-trig-identity";
+import { MATHS_CIRCLE_THEOREMS } from "./maths-circle-theorems";
+import { MATHS_PYTHAGORAS } from "./maths-pythagoras";
+import { MATHS_VOLUME } from "./maths-volume";
+import { MATHS_TRANSFORMATIONS } from "./maths-transformations";
+import { MATHS_VECTORS } from "./maths-vectors";
+import { MATHS_TREE_DIAGRAMS } from "./maths-tree-diagrams";
+import { MATHS_SCATTER_CORRELATION } from "./maths-scatter-correlation";
 import { LESSON_TRANSLATIONS, TRANSLATED_LANGUAGES } from "./translations";
 
 // THE AUTHORED SET.
@@ -330,6 +347,64 @@ export const AUTHORED_LESSONS: readonly AuthoredLesson[] = [
   // equilibrium position or yield. The graph is read as a gradient and a
   // plateau, not as a decorative curve.
   CHEMISTRY_RATES_REACTION,
+  // Batch 52 — the first three secondary mathematics outlines after the science
+  // tranche. Standard form is place value plus a recorded point movement;
+  // expanding is the area model read forwards and factorising is the same model
+  // read backwards; a straight line is a starting value plus a constant rate.
+  MATHS_STANDARD_FORM,
+  MATHS_ALGEBRA_EXPAND,
+  MATHS_STRAIGHT_LINES,
+  MATHS_INEQUALITIES,
+  MATHS_SURDS,
+  MATHS_SIMULTANEOUS,
+  // Batch 53 — the first simultaneous system whose number of solutions is not
+  // fixed. Substitution produces a quadratic, and its discriminant decides
+  // whether the line cuts the curve twice, touches it once, or misses it.
+  MATHS_SIM_EQUATIONS_QUAD,
+  // Batch 54 — the notation lesson behind every later model: one output per
+  // input, composition as an order of machines, and an inverse verified by both
+  // compositions. Domain and range carry the restrictions that make an inverse
+  // a function rather than a relation.
+  MATHS_FUNCTIONS,
+  // Batch 55 — the right-triangle ratios. The lesson begins with similar
+  // triangles, because that is why sin, cos and tan belong to the angle rather
+  // than to one drawing. Side labels, ratio choice, rearrangement, inverse trig
+  // and calculator mode are taught as one procedure, with each common slip
+  // paired against the reasoning that corrects it.
+  MATHS_TRIG_RATIOS,
+  // Batch 56 — the identities and graphs that turn the right-triangle ratios
+  // into functions over a full turn. The unit circle explains the signs, the
+  // Pythagorean identity, the quotient identity and the tangent asymptotes in
+  // one picture; exact values are derived before they are tabulated.
+  MATHS_TRIG_IDENTITY,
+  // Batch 57 — the first circle-geometry lesson. The arc is the object: the
+  // centre–circumference, semicircle, same-segment, cyclic-quadrilateral and
+  // tangent–radius theorems are all relationships between two angles that stand
+  // on a named arc or meet at a named point of contact. Each worked calculation
+  // names the theorem as its reason.
+  MATHS_CIRCLE_THEOREMS,
+  // Batch 58 — the right-triangle distance theorem that the trig ratios and the
+  // cosine rule later generalise. The lesson makes the hypotenuse the first
+  // decision, shows the leg rearrangement as a subtraction, and treats the
+  // converse as a separate claim about the sides.
+  MATHS_PYTHAGORAS,
+  // Batch 59 — filling versus wrapping. The same three dimensions answer two
+  // different questions, and the scale factor is the dimension count.
+  MATHS_VOLUME,
+  // Batch 60 — the four moves, described completely. The coordinate rules are
+  // the test; the picture alone cannot distinguish a rotation from a reflection.
+  MATHS_TRANSFORMATIONS,
+  // Batch 61 — a displacement is not a point. Components add; one scalar tests
+  // parallelism; a midpoint vector is half the side vector it joins.
+  MATHS_VECTORS,
+  // Batch 62 — multiply along a path, add across paths, and change the second
+  // denominator when the first draw is not replaced. The spinner tree on the
+  // page is the same tree the server marks.
+  MATHS_TREE_DIAGRAMS,
+  // Batch 63 — a cloud has a direction, a strength and a line, but no cause.
+  // Predictions are interpolation only inside the observed range; an outlier is
+  // checked before it is deleted; a slope is not a mechanism.
+  MATHS_SCATTER_CORRELATION,
 ];
 
 export const AUTHORED_BY_CONCEPT: Readonly<Record<string, AuthoredLesson>> = Object.fromEntries(

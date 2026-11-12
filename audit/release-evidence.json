@@ -1,0 +1,52 @@
+{
+  "generatedBy": "scripts/autonomous-checkpoint.mjs (read-only evidence record)",
+  "recordedAt": "2026-11-12",
+  "productionCheck": {
+    "command": "npm run production-check",
+    "status": "PASS",
+    "checked": [
+      "typecheck and the engine/content-graph suite",
+      "storage conformance and environment validation",
+      "question content release gates",
+      "curriculum, paper, option-bias, content-platform and structured-marking gates",
+      "production build",
+      "standalone startup",
+      "asset integrity over HTTP",
+      "production render and external smoke",
+      "permission matrix",
+      "offline sync protocol",
+      "end-to-end suite"
+    ]
+  },
+  "restoreDrill": {
+    "command": "npm run restore-drill",
+    "status": "PASS",
+    "passed": 26,
+    "failed": 0,
+    "store": "isolated scratch store with one planted erasure",
+    "checked": [
+      "archive hash verification",
+      "byte-for-byte restore into a fresh directory",
+      "erasure re-application (the planted learner was inside the archive and did not come back)",
+      "standalone readiness on the restored store",
+      "deep ledger reconstruction for three learners"
+    ]
+  },
+  "verification": {
+    "typecheck": "PASS",
+    "verify": {
+      "passed": 4631,
+      "failed": 0
+    },
+    "verifyLessons": "PASS",
+    "verifyLesson": {
+      "passed": 989,
+      "failed": 0,
+      "authoredLessons": 88
+    },
+    "e2e": {
+      "passed": 892,
+      "failed": 0
+    }
+  }
+}

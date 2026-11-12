@@ -1,7 +1,10 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LESSON_PLANS = void 0;
+exports.pilotPlanIds = pilotPlanIds;
 exports.planFor = planFor;
+exports.sectionsFor = sectionsFor;
+exports.ideaRouteFor = ideaRouteFor;
 exports.teachingLanguages = teachingLanguages;
 exports.planWordCount = planWordCount;
 exports.firstMoveOf = firstMoveOf;
@@ -39,9 +42,13 @@ exports.orphanPlans = orphanPlans;
 // compact tuple table with 135 entries; a structured lesson does not fit in a
 // tuple, and reshaping that table to carry one would have touched every row and
 // every gate that reads it. Keeping plans keyed by concept id also makes the
-// coverage honest and countable: `planFor` answers null for a concept nobody has
-// written a plan for, and the page then renders the prose it always did. There is
-// no generated filler standing in for teaching nobody wrote.
+// coverage honest and countable: the 19 pilot-candidate plans are authored in
+// this module, and `planFor` serves a supplemental plan for every other concept
+// from `lesson-plans-supplemental.ts`. Those supplemental plans are composed from
+// the concept's genome note and its own concept-specific lens, and are marked
+// `provenance: "supplemental"` / `review: "unreviewed"`; they are not presented
+// as reviewed teaching. A concept with no lens still answers null, so a genome
+// addition cannot silently inherit another concept's lesson.
 //
 // PROVENANCE IS PART OF THE CONTENT (§3 of the strategy note: authored ≠
 // reviewed ≠ pilot-tested). Every plan states its review state, and the page
@@ -50,6 +57,7 @@ exports.orphanPlans = orphanPlans;
 // ─────────────────────────────────────────────────────────────────────────────
 const genome_1 = require("./genome");
 const lesson_plans_intl_1 = require("./lesson-plans-intl");
+const lesson_plans_supplemental_1 = require("./lesson-plans-supplemental");
 /**
  * THE AUTHORED PLANS.
  *
@@ -71,7 +79,7 @@ const lesson_plans_intl_1 = require("./lesson-plans-intl");
  * avoid. `npm run verify` measures the count rather than trusting this
  * paragraph, and `audit/pilot-pack.json` is regenerated from it.
  */
-exports.LESSON_PLANS = {
+const PILOT_LESSON_PLANS = {
     // ── THE FOUNDATIONS RING, ADDED AFTER THE PILOT WAS VERIFIED ────────────────
     //
     // The pilot is a pathway through stage 0–3 algebra and number. A learner who
@@ -127,6 +135,18 @@ exports.LESSON_PLANS = {
         ],
         usedFor: "Percentages (0.45 is 45%), measurement to a stated precision, ratio and standard form all read decimals, and rounding an answer to one decimal place is a judgement about which column the question cares about.",
         review: "unreviewed",
+        // THE WORKED-ON-SCREEN ROUTE. This plan deliberately draws no static figure
+        // because the figure vocabulary has no place-value table; a real video is
+        // the honest alternative, linked rather than embedded.
+        video: {
+            url: "https://www.khanacademy.org/v/decimal-place-value",
+            title: "Decimal place value",
+            source: "Khan Academy",
+            length: "4:00",
+            language: "en",
+            captions: "unknown",
+            summary: "A short walkthrough of decimal place value. Watch how each column is named and how the decimal point fixes which column a digit occupies; the lesson below teaches the same columns without needing the video.",
+        },
     },
     fractions: {
         conceptId: "fractions",
@@ -156,6 +176,25 @@ exports.LESSON_PLANS = {
         ],
         usedFor: "Percentages and decimals are fractions in another notation, ratio compares two of them, and probability is one: the chance of a six is 1/6, which is a fraction before it is ever a percentage.",
         review: "unreviewed",
+        // THE SECOND ROUTE FOR A LEARNER THE FIRST ROUTE DID NOT REACH. Measured
+        // need, not a hunch: `fractions` is a stage-0 concept and the first
+        // prerequisite of the data-and-ratio work every science course leans on, so
+        // a learner arriving here having failed it is common. The base route opens
+        // with notation ("in 3/4 the bottom number, 4…"); a pupil who does not yet
+        // believe the bottom is a SIZE cannot start there. This route builds the
+        // picture first and does not write a fraction until paragraph three, then
+        // proves the comparison rule by drawing before naming it.
+        routes: [
+            {
+                when: "struggling",
+                idea: [
+                    "Start with one bar of chocolate and no symbols at all. Break it into two equal pieces and you have two halves. Break a SECOND identical bar into four equal pieces and you have four quarters. Hold up one piece from each: the quarter is the smaller piece, even though 4 is the bigger number — because the number underneath a fraction counts how many pieces the bar was cut into, not how many you get.",
+                    "So when you meet 3/4, read the bottom first: the bar was cut into 4 equal pieces. Then read the top: you have 3 of them. Say the whole thing out loud as \"three quarters\" and check it against the picture — three pieces, each one a quarter of the bar. If the words and the picture ever disagree, the picture is right; the two numbers are a shorthand for it.",
+                    "Now compare 1/8 and 1/4 the slow way, by drawing. Draw two identical bars. Cut the first into 8 and shade 1 piece; cut the second into 4 and shade 1 piece. The shaded eighth is visibly the smaller piece, so 1/8 is less than 1/4. You have just proved the rule by looking at it, which is why you will not need to memorise which way round it goes.",
+                    "Only when that is comfortable, use the shortcut. To compare fractions with different bottoms, cut both bars into the same number of pieces and count: 2/3 and 3/4 both become twelfths, 8/12 and 9/12, so 3/4 is bigger by one twelfth. If the shortcut will not come in an exam, draw the bars instead — slower, and always right.",
+                ],
+            },
+        ],
         interactive: "fraction-model",
         // THE PICTURE THE IDEA NEEDS. "A bigger bottom means smaller pieces" is a
         // claim about SHAPE — the same circle, cut more ways — so the drawing shows
@@ -240,6 +279,15 @@ exports.LESSON_PLANS = {
         ],
         usedFor: "Interest and depreciation, every statistic in a news report, concentration in chemistry and efficiency in physics, and the ratio and proportion work that follows it.",
         review: "unreviewed",
+        video: {
+            url: "https://www.khanacademy.org/math/pre-algebra/xb4832e56:percentages/xb4832e56:equivalent-representations-of-percent-problems/v/taking-a-percentage-example",
+            title: "Percent of a whole number",
+            source: "Khan Academy",
+            length: "2:07",
+            language: "en",
+            captions: "unknown",
+            summary: "A worked example of finding a percentage of a whole number. Watch how the percentage becomes a decimal before it multiplies; the lesson below applies the same move to a percentage change, where the base matters.",
+        },
         // NO FIGURE, and that is a decision rather than an omission. Every kind the
         // figure union declares draws ONE scale — an area model, a pie, an axis. The
         // belief this lesson exists to break is that there are TWO bases, and a
@@ -272,6 +320,22 @@ exports.LESSON_PLANS = {
         ],
         usedFor: "Coordinates, gradients and inequalities all stand on this: a point below the axis, a line falling to the right, or any inequality you multiply by −1.",
         review: "unreviewed",
+        // THE ADVANCED ROUTE. A learner whose evidence shows mastery of the moves is
+        // handed the same picture as an ALGEBRA (numbers are positions, operations are
+        // transformations) and the two results the default route can only assert:
+        // why two reflections cancel, and where the inequality flip comes from. It
+        // replaces the base paragraphs rather than adding to them, so nothing is
+        // read twice.
+        routes: [
+            {
+                when: "advanced",
+                idea: [
+                    "Treat every number as a POSITION on the line and every operation as a transformation, and the sign rules stop being rules to remember. Adding a number slides the whole line; multiplying by −1 reflects it through zero; subtracting b is adding the reflection of b. That is the whole algebra, and 5 − (−3) = 8 is one sentence in it: reflect −3 to 3, then slide right by 3.",
+                    "This framing answers what the default route can only assert. Why is (−2) × (−3) positive? Multiplication by a negative is a reflection through zero, and reflecting twice returns you to where you began — two half-turns make a full turn. The product of two negatives is positive because the two reversals cancel, not because \"two minuses make a plus\" is something to chant.",
+                    "Two results worth deriving now, because both are used later. Distance between two numbers is |a − b|, so the distance from −4 to 3 is 7, and the midpoint is their mean, (−4 + 3)/2 = −0.5 — check on the line that −0.5 is equally far from −4 and from 3. Then the inequality flip follows from the same picture: multiplying by −1 MIRRORS the line, so every point that was to the left is now to the right, and a \"less than\" becomes a \"greater than\" because the order reversed, not because of a separate rule.",
+                ],
+            },
+        ],
         // THE PICTURE IS THE RULE. 5 − (−3) is the one move in this concept that a
         // learner reliably gets backwards, and it is backwards because they picture
         // it as "take away", which travels left. Drawn, the journey travels right
@@ -279,6 +343,114 @@ exports.LESSON_PLANS = {
         figure: {
             spec: { kind: "number-line", min: -6, max: 10, from: 5, to: 8 },
             caption: "Start at 5. Taking away −3 is removing a leftward move, so the journey goes RIGHT to 8 — the arrow does not turn round because the sign does.",
+        },
+    },
+    // ── THE TWO IDEAS EVERY LATER NUMBER TOPIC ASSUMES ────────────────────────
+    // These were supplemental: a genome paragraph plus a lens. That is enough to
+    // remind someone and not enough to teach someone who has never met the idea,
+    // which is who the catch-up path sends here. Written to the pilot format:
+    // objective, intuition before terminology, several idea paragraphs in the
+    // order they must land, traps that say WHY the wrong move fails.
+    "place-value": {
+        conceptId: "place-value",
+        objective: "Read and write any number by what each digit is actually worth, and explain what multiplying or dividing by ten does to it.",
+        intuition: "A bus goes past with the number 45 on the front. A price tag reads £45. Same two digits, and one of them is nine times bigger than the other number's twin. The digits did not change; their POSITION did. That is the whole idea, and it is why 405 and 45 are not the same amount of anything.",
+        idea: [
+            "Every column is ten times the column on its right. So 452 is not \"four, five, two\": it is 4 hundreds + 5 tens + 2 ones = 400 + 50 + 2. The digit 4 is worth 400 here, 40 in 45, and 4 in 4 — the same symbol, three different amounts.",
+            "Zero is a placeholder, not decoration. 405 has no tens, and the zero is what holds the hundreds column in its place. Drop it and you have written 45, a different number. This is also why you cannot \"cancel\" a zero off the end of a number unless you are dividing by ten.",
+            "Multiplying by 10 moves every digit one column LEFT, because each digit becomes ten times bigger: 35 × 10 = 350. Dividing by 10 moves them right, which is why 350 ÷ 10 = 35. The decimal point never moves — the digits do, and the point stays where it is to mark the ones column.",
+            "Decimals continue the same pattern to the right. The column after the point is tenths, then hundredths: 0.1 is one tenth, 0.45 is four tenths and five hundredths. Nothing new starts at the point; the tens pattern simply keeps halving in the other direction.",
+            "Comparing numbers means comparing the leftmost column where they differ, not counting digits. 0.45 and 0.5 look like 45 against 5, but line up the columns: 0.45 is 45 hundredths and 0.5 is 50 hundredths, so 0.5 is larger. The same rule settles 4,099 against 4,100.",
+            "This is the machinery under every written method you will meet. Column addition lines up the columns so ones meet ones; long multiplication splits a number into its place-value parts; standard form writes a number as a digit string times a power of ten. A learner who cannot say what a digit is worth cannot check any of them.",
+        ],
+        traps: [
+            {
+                move: "Saying the 4 in 452 is worth 4.",
+                why: "The value comes from the column, not the symbol. That 4 sits in the hundreds column, so it contributes 400; the number would be 52 without it. Ask \"which column is it in?\" before \"what is the digit?\".",
+            },
+            {
+                move: "Deciding 0.45 is bigger than 0.5 because 45 is bigger than 5.",
+                why: "They are not in the same column. 0.45 is 45 hundredths and 0.5 is 5 tenths, which is 50 hundredths — so 0.5 is bigger. Compare by place, and pad with zeros if it helps: 0.45 against 0.50.",
+            },
+            {
+                move: "Multiplying by 10 by writing a zero on the end.",
+                why: "That happens to work for whole numbers and quietly fails for decimals: 3.5 × 10 is 35, not 3.50. The digits move one column left; writing a zero does not move anything, it just adds a placeholder.",
+            },
+        ],
+        terms: [
+            { term: "digit", meaning: "One of the ten symbols 0–9. On its own it has no value; its column gives it one." },
+            { term: "place value", meaning: "What a digit is worth because of the column it sits in — 4 means 400 in 452." },
+            { term: "placeholder", meaning: "A zero that keeps the other digits in their columns, as in 405." },
+        ],
+        recap: [
+            "Each column is ten times the one on its right, so 452 = 400 + 50 + 2.",
+            "Zero holds a column open; 405 is not 45.",
+            "Multiplying by 10 moves the digits one column left; the decimal point stays put.",
+        ],
+        usedFor: "Column addition and subtraction, long multiplication and division, decimals, rounding and standard form all read the columns this way.",
+        review: "unreviewed",
+        video: {
+            url: "https://www.youtube.com/watch?v=wx2gI8iwMCA",
+            title: "Introduction to place value",
+            source: "Khan Academy",
+            language: "en",
+            captions: "unknown",
+            summary: "An introduction to place value. Watch how a digit's value comes from its column rather than from the digit alone; the lesson below uses the same columns for whole numbers and decimals.",
+        },
+    },
+    "multiplication": {
+        conceptId: "multiplication",
+        objective: "Multiply any two whole numbers without a calculator, and explain why the column method works rather than just following it.",
+        intuition: "A hall has 4 rows of 3 chairs. You do not count twelve chairs one at a time; you see four equal groups and know the total. That is what multiplication is — repeated addition of equal groups — and 4 × 3 and 3 × 4 give the same twelve because a 4-by-3 rectangle is the same rectangle turned on its side.",
+        idea: [
+            "4 × 3 means four groups of three: 3 + 3 + 3 + 3 = 12. The two numbers have names that matter later — factors — and the answer is the product. Multiplication is commutative (4 × 3 = 3 × 4) and associative ((2 × 3) × 4 = 2 × (3 × 4)), which is what lets you regroup a hard product into two easy ones.",
+            "Split a number by its place value and the hard product becomes two easy ones: 23 × 4 = (20 × 4) + (3 × 4) = 80 + 12 = 92. This is not a trick; it is the distributive law, and it is the reason every written method looks the way it does.",
+            "The column method is that split written down. For 23 × 14 you multiply by the 4 ones first (92), then by the 1 ten — which gives 23 tens, not 23 ones — and add: 230 + 92 = 322. The shifted second row is the tens row, which is why the zero appears at its end.",
+            "Times tables are retrieval, not the idea. Knowing 6 × 7 by heart frees working memory, but if it slips, derive it: 6 × 7 = 6 × 5 + 6 × 2 = 30 + 12 = 42. A learner with two anchor facts and the distributive law can rebuild the rest.",
+            "Always estimate before and after. 23 × 14 is about 20 × 14 = 280, so 322 is plausible and 115 is not. Estimation is not a second method; it is the check that catches a missing shifted row.",
+        ],
+        traps: [
+            {
+                move: "Writing 23 × 4 = 812 by putting 8 and 12 side by side.",
+                why: "12 ones is one ten and two ones, so the ten has to be carried into the tens column: 80 + 12 = 92. Writing the digits in sequence treats a two-digit column result as if it were two separate columns.",
+            },
+            {
+                move: "Forgetting the shift when multiplying by the tens digit.",
+                why: "The 1 in 14 is one ten, so 23 × 1 gives 23 TENS — 230, not 23. Adding 23 + 92 = 115 instead of 322 is the classic missing-zero error, and estimating first catches it immediately.",
+            },
+            {
+                move: "Multiplying a decimal by 10 by appending a zero.",
+                why: "0.4 × 10 is 4, not 0.40. The digits move one column left; appending a zero leaves the value unchanged. (Place value is the idea doing the work here.)",
+            },
+            {
+                move: "Treating multiplication as addition when the numbers are small.",
+                why: "3 × 4 is 12, while 3 + 4 is 7. The sign tells you which structure you have: equal groups means multiply, combining unequal amounts means add.",
+            },
+        ],
+        terms: [
+            { term: "factor", meaning: "One of the numbers being multiplied; in 23 × 4, both 23 and 4 are factors." },
+            { term: "product", meaning: "The result of a multiplication." },
+            { term: "partition", meaning: "Splitting a number into place-value parts, as 23 becomes 20 + 3." },
+        ],
+        recap: [
+            "Multiplication is repeated addition of equal groups, and 4 × 3 = 3 × 4.",
+            "Partition by place value: 23 × 4 = 80 + 12 = 92.",
+            "The second row of a long multiplication is TENS, so it is shifted; estimate to check.",
+        ],
+        usedFor: "Division, fractions, ratio and proportion, area, algebra (3x means 3 times x) and every formula that multiplies a rate by a time.",
+        review: "unreviewed",
+        // THE ARRAY IS THE IDEA. Four rows of three is the picture the intuition
+        // opens with, and the same rectangle on its side is why 4 × 3 = 3 × 4 — a
+        // fact the prose asserts and this drawing shows. The column method has its
+        // own worked example and is not what a rectangle can teach.
+        figure: {
+            spec: {
+                kind: "rectangle",
+                widthParts: [{ units: 3, label: "3" }],
+                heightParts: [{ units: 4, label: "4" }],
+                emphasis: ["12"],
+            },
+            caption: "Four rows of three chairs, drawn as a rectangle. Its area is 3 × 4 = 12, and turning the same rectangle on its side gives 4 × 3 — the same twelve chairs, which is why the order of the factors does not change the product.",
         },
     },
     "order-ops": {
@@ -307,6 +479,15 @@ exports.LESSON_PLANS = {
         ],
         usedFor: "Every formula you meet later — substituting into 3x² + 2, evaluating a physics equation, simplifying an expression — is this order applied to letters instead of numbers.",
         review: "unreviewed",
+        video: {
+            url: "https://www.youtube.com/watch?v=eoYThjIAhOc",
+            title: "Order of operations introduction",
+            source: "Khan Academy",
+            length: "4:33",
+            language: "en",
+            captions: "unknown",
+            summary: "A worked introduction to the order of operations. Watch how brackets and powers are handled before multiplication and addition; the lesson below uses the same order on expressions with letters.",
+        },
     },
     "algebra-expressions": {
         conceptId: "algebra-expressions",
@@ -624,8 +805,8 @@ exports.LESSON_PLANS = {
         idea: [
             "aᵐ means m copies of a multiplied together, so a⁵ = a × a × a × a × a. The base is the a; the index is the 5. The index counts copies, and it is not a value — a⁵ is not 5a.",
             "Multiplying adds the counts: a² × a³ = (a × a)(a × a × a) = a⁵. Dividing subtracts them: a⁵ ÷ a² cancels two copies and leaves a³. Neither law needs memorising if you are willing to write the copies out once.",
-            "a⁰ = 1 follows from the subtraction law: aⁿ ÷ aⁿ = a⁰, and a quantity divided by itself is 1. It is not a special case bolted on — it is what the pattern forces.",
-            "Negative indices carry the same pattern downwards: a² ÷ a⁴ = a⁻², and that division is 1/a². So a⁻² means the reciprocal of a².",
+            "a⁰ = 1 follows from the subtraction law for a non-zero base: aⁿ ÷ aⁿ = a⁰, and a non-zero quantity divided by itself is 1. It is not a special case bolted on — it is what the pattern forces. (0⁰ is undefined; the base must not be zero.)",
+            "Negative indices carry the same pattern downwards for a non-zero base: a² ÷ a⁴ = a⁻², and that division is 1/a². So a⁻² means the reciprocal of a².",
             "Fractional indices are roots, and the reason is the multiplication law turned around: a^(1/2) × a^(1/2) = a¹, so a^(1/2) must be the number that squares to a — the square root.",
             "The laws hold only for the SAME base. 2³ × 2² = 2⁵, but 2³ × 3² stays as it is, because the copies are of different things.",
         ],
@@ -645,6 +826,15 @@ exports.LESSON_PLANS = {
         ],
         usedFor: "Standard form, growth and decay, surds and quadratic formulae all rest on these laws — and they are the difference between manipulating algebra and guessing at it.",
         review: "unreviewed",
+        video: {
+            url: "https://www.youtube.com/watch?v=XZRQhkii0h0",
+            title: "Introduction to exponents",
+            source: "Khan Academy",
+            length: "3:02",
+            language: "en",
+            captions: "unknown",
+            summary: "An introduction to exponents. Watch how a power counts repeated factors and why a² × a³ adds the indices; the lesson below uses the same laws on algebraic expressions.",
+        },
     },
     "linear-equations": {
         conceptId: "linear-equations",
@@ -696,7 +886,7 @@ exports.LESSON_PLANS = {
         idea: [
             "A cell is the basic structural and functional unit of life. Every living organism is made of one cell (a bacterium) or many cells (a plant, an animal, you). The cell is not a container with parts floating in it by accident: each part, or organelle, has a job, and the shape of the part is tied to that job.",
             "An animal cell has a cell membrane around the outside, cytoplasm inside, a nucleus, and mitochondria. The membrane is a thin, flexible boundary that controls what enters and leaves. The cytoplasm is where many reactions happen. The nucleus holds the genetic material (DNA) and controls the cell's activities. Mitochondria are where aerobic respiration releases energy from glucose.",
-            "A plant cell has the same four parts and three more that matter here: a cellulose cell wall outside the membrane, chloroplasts, and a large permanent vacuole. The wall is strong and gives the cell its shape; it is fully permeable, so the membrane underneath is still the gatekeeper. Chloroplasts contain chlorophyll and carry out photosynthesis. The vacuole is filled with cell sap and helps keep the cell firm.",
+            "A plant cell has the same four parts and three more that matter here: a cellulose cell wall outside the membrane, chloroplasts, and a large permanent vacuole. The wall is strong and gives the cell its shape; it is freely permeable to water and small dissolved substances, but it is not the selective barrier — the membrane underneath is. Chloroplasts contain chlorophyll and carry out photosynthesis. The vacuole is filled with cell sap and helps keep the cell firm.",
             "Specialised cells show the same rule at a larger scale: structure serves function. A red blood cell has no nucleus and is packed with haemoglobin, leaving more room to carry oxygen. A root hair cell has a long, thin extension that increases the surface area for absorbing water and minerals. A sperm cell has many mitochondria to power its journey. A nerve cell is long so it can carry an electrical impulse from one part of the body to another.",
             "Cells are not all the same size, and the units matter. Most plant and animal cells are measured in micrometres (μm): one micrometre is one-thousandth of a millimetre, or 10⁻⁶ m. A typical cheek cell is about 50–100 μm across. Magnification tells you how many times larger the image is than the object; it does not, by itself, tell you how much detail you can resolve.",
             "Similar cells group into tissues, tissues into organs, and organs into organ systems. This hierarchy is why a single cell does not need to do everything in a large organism: specialised cells do one job well, and the system coordinates them. It also explains why a large organism cannot simply be one giant cell — the surface area available for exchange grows more slowly than the volume that needs supplying.",
@@ -735,7 +925,7 @@ exports.LESSON_PLANS = {
             },
             {
                 move: "\"The cell wall controls what enters the cell.\"",
-                why: "The cellulose wall is strong and fully permeable: it gives shape and support, but it does not select substances. The cell membrane underneath is the selectively permeable boundary that does that job.",
+                why: "The cellulose wall is strong and freely permeable to water and small dissolved substances: it gives shape and support, but it is not the cell's selective barrier. The cell membrane underneath is the selectively permeable boundary that controls what enters and leaves.",
             },
             {
                 move: "\"A red blood cell has a nucleus like every other cell.\"",
@@ -749,6 +939,13 @@ exports.LESSON_PLANS = {
             "Specialised cells have shapes that increase the surface area or machinery needed for their particular job.",
         ],
         review: "unreviewed",
+        // THE PICTURE THE LESSON NEEDS. The numbered shapes are language-neutral;
+        // the caption maps every number to its name, so a translated plan can
+        // translate the teaching without the SVG growing an English label layer.
+        figure: {
+            spec: { kind: "cell", variant: "plant" },
+            caption: "A plant cell, schematic and not to scale. 1 nucleus, holding the DNA; 2 cytoplasm, where many reactions happen; 3 large permanent vacuole, filled with cell sap; 4 chloroplast, containing chlorophyll; 5 mitochondrion, where aerobic respiration releases energy; 6 cellulose cell wall, outside the membrane. The wall gives shape and support; the membrane just inside it is the selectively permeable barrier that controls what enters and leaves.",
+        },
     },
     // ── SCIENCE · PHOTOSYNTHESIS ──────────────────────────────────────────────
     // CBSE Class X, Life Processes (nutrition in plants). The lesson teaches the
@@ -898,6 +1095,21 @@ exports.LESSON_PLANS = {
             "Reaction types describe how atoms are rearranged; exothermic and endothermic describe the energy change, which is a separate question.",
         ],
         review: "unreviewed",
+        // THE PICTURE THE LESSON NEEDS. Coefficients are the thing learners read as
+        // atom counts, so the molecules are drawn: four H and two O before the
+        // arrow, four H and two O after it. The layout computes those counts, so
+        // the drawing and the conservation claim cannot drift apart.
+        figure: {
+            spec: {
+                kind: "particles",
+                left: [
+                    { atoms: ["H", "H"], count: 2 },
+                    { atoms: ["O", "O"], count: 1 },
+                ],
+                right: [{ atoms: ["O", "H", "H"], count: 2 }],
+            },
+            caption: "2H₂ + O₂ → 2H₂O as particles. Left: two hydrogen molecules (four H atoms) and one oxygen molecule (two O atoms). Right: two water molecules, each with one O and two H — four H and two O again. The atoms are rearranged, not created; the coefficient 2 doubles the MOLECULE count, and that is why the atom count is unchanged.",
+        },
     },
     // ── SCIENCE · ELECTRIC CIRCUITS ──────────────────────────────────────────
     // CBSE Class X, Electricity. The lesson keeps the water analogy only as an
@@ -979,6 +1191,338 @@ exports.LESSON_PLANS = {
         },
     },
 };
+// ── CHEMISTRY · THE QUANTITATIVE CORE ───────────────────────────────────────
+//
+// These two lessons are AUTHORED but deliberately not added to the pilot
+// sequence: the pilot is a CBSE Class X pathway, and adding concepts to it
+// would change a scope a teacher is being asked to review. They are still
+// authored teaching, so they go into LESSON_PLANS ahead of the generated
+// fallback. `provenance: "authored"` is the honest label: written here, not
+// reviewed, and not claimed as part of the pilot.
+//
+// Moles and energy changes are the two topics the comparison found every
+// serious chemistry product teaches as a CALCULATION WITH A METHOD. A paragraph
+// that states n = m/Mr is not a lesson; a learner needs the quantity triangle,
+// a worked substitution, the unit check and the traps that produce the wrong
+// answer. The `sections` field is what lets those sit beside the prose instead
+// of being flattened into it.
+const MOLES_SECTIONS = [
+    {
+        heading: "Start here: calculate the moles in a mass",
+        body: [
+            "Most mole questions give you a mass and ask for an amount. Use n = m ÷ Mᵣ. Work it through with 8.0 g of sodium hydroxide: Mᵣ(NaOH) = 23 + 16 + 1 = 40 g/mol, so n = 8.0 g ÷ 40 g/mol = 0.20 mol. The unit check is g ÷ (g/mol) = mol. To go back to mass, multiply: m = n × Mᵣ, so 0.20 mol × 40 g/mol = 8.0 g.",
+            "If the question gives a solution, convert the volume to dm³ first: 25.0 cm³ = 0.0250 dm³, then use n = c × V. If it gives a balanced equation, reach moles before using the coefficients. The four moves below are the same method every time; the rest of this lesson explains why each one is allowed.",
+        ],
+        formula: "n = m / M_r        m = n × M_r        n = c × V",
+        steps: [
+            "Write the balanced equation and its mole ratio, if the question gives one.",
+            "Convert what you are given into moles: mass ÷ Mᵣ, or concentration × volume in dm³.",
+            "Multiply by the mole ratio from the equation.",
+            "Convert the moles back to the unit asked for — grams, mol/dm³ or dm³ — and check the unit.",
+        ],
+    },
+    {
+        heading: "A mole is a count, not a mass",
+        body: [
+            "A mole is a fixed number of particles: 6.02 × 10²³ of them. That number is Avogadro's constant, and it is chosen so that one mole of a substance has a mass in grams equal to its relative formula mass. The mole is the bridge between a count too large to see and a mass you can weigh.",
+            "The size is not arbitrary. Atoms are so small that a visible sample contains an enormous number of them; counting in moles keeps the numbers human-sized. One mole of carbon-12 has a mass of exactly 12 g, one mole of water has a mass of about 18 g, and both contain the same number of formula units.",
+        ],
+        formula: "n = N / N_A",
+        table: {
+            columns: ["Symbol", "Meaning", "Unit"],
+            rows: [
+                ["n", "amount of substance", "mol"],
+                ["N", "number of particles", "count"],
+                ["N_A", "Avogadro's constant", "6.02 × 10²³ mol⁻¹"],
+            ],
+            caption: "The unit of n is mol; N is a pure count, so N/N_A is mol.",
+        },
+    },
+    {
+        heading: "Relative formula mass: the number you divide by",
+        body: [
+            "The relative formula mass, Mᵣ, is the mass of one mole in grams. For water, add the relative atomic masses: 2(1) + 16 = 18, so Mᵣ = 18 g/mol. For sodium hydroxide: 23 + 16 + 1 = 40 g/mol. The subscript belongs to the atom before it, so H₂O has two hydrogens, not one.",
+            "Calculate Mᵣ before you substitute. Adding every atom in the formula is the step learners skip, and it is why a correct division can still produce the wrong amount: the number on the bottom must be the mass of one mole of the substance named in the question.",
+        ],
+        formula: "M_r = sum of the relative atomic masses in the formula",
+    },
+    {
+        heading: "Concentration: moles per cubic decimetre",
+        body: [
+            "Concentration is the amount of solute in a given volume of solution. It is measured in mol/dm³ (the same as mol L⁻¹). A 0.100 mol/dm³ solution contains 0.100 mol of solute in every cubic decimetre of solution.",
+            "The volume must be in dm³ before you substitute. 1 dm³ is 1000 cm³, so 25.0 cm³ is 0.0250 dm³, not 25. Worked: 25.0 cm³ of 0.100 mol/dm³ sodium hydroxide contains n = c × V = 0.100 × 0.0250 = 0.00250 mol. Dividing by the volume in cm³ gives an answer a thousand times too large — the most common unit error in the topic.",
+        ],
+        formula: "c = n / V        n = c × V",
+        steps: [
+            "Convert the volume from cm³ to dm³: divide by 1000.",
+            "Substitute into n = c × V and keep the units.",
+            "Check the result is in mol before using it in a mole ratio.",
+        ],
+        table: {
+            columns: ["You are given", "Use", "Result"],
+            rows: [
+                ["mass (g)", "n = m ÷ Mᵣ", "moles"],
+                ["moles", "m = n × Mᵣ", "mass (g)"],
+                ["concentration and volume", "n = c × V", "moles"],
+                ["moles and volume", "c = n ÷ V", "concentration (mol/dm³)"],
+            ],
+            caption: "Convert to moles before using an equation's ratio; the ratio is a ratio of amounts, not of masses or volumes.",
+        },
+    },
+    {
+        heading: "The balanced equation supplies the ratio",
+        body: [
+            "The coefficients in a balanced equation are the ratio in which particles react. In 2H₂ + O₂ → 2H₂O, two moles of hydrogen react with one mole of oxygen to make two moles of water. The coefficient 2 in front of H₂ doubles the number of hydrogen MOLECULES; it does not mean 2 g.",
+            "Worked: 4.4 g of propane (Mᵣ = 44) is 4.4 ÷ 44 = 0.10 mol. The equation C₃H₈ + 5O₂ → 3CO₂ + 4H₂O gives four moles of water per mole of propane, so 0.10 mol gives 0.40 mol of water. Its mass is 0.40 × 18 = 7.2 g. Convert a mass to moles first, apply the ratio, then convert the answer to the requested unit.",
+        ],
+        formula: "C₃H₈ + 5O₂ → 3CO₂ + 4H₂O     ratio 1 : 5 : 3 : 4",
+    },
+    {
+        heading: "Limiting reagent: the reactant that runs out first",
+        body: [
+            "When the reactants are not in the exact ratio, one of them is used up first. That reactant limits the amount of product; the other is in excess and some of it will remain. The limiting reactant is not necessarily the one with the smaller mass — it is the one whose amount divided by its coefficient is smallest.",
+            "For 2H₂ + O₂ → 2H₂O with 4 mol H₂ and 1 mol O₂: hydrogen needs 2 mol O₂ to react completely, but only 1 mol is present. Oxygen runs out first, so oxygen is limiting and 2 mol of water forms. The 2 mol of hydrogen left over is the excess.",
+        ],
+    },
+];
+const ENERGY_SECTIONS = [
+    {
+        heading: "Start here: calculate the energy change for a reaction",
+        body: [
+            "Hydrogen and chlorine react to make hydrogen chloride: H₂ + Cl₂ → 2HCl. The question is whether the mixture gets hotter or colder, and by how much per mole. Answer it with two ledgers: the energy needed to break the bonds in the reactants, and the energy released when the new bonds form in the products.",
+            "One H–H bond and one Cl–Cl bond are broken, which costs 436 + 243 = 679 kJ per mole of reactions. Two H–Cl bonds are made, because the equation produces two HCl molecules, which releases 2 × 432 = 864 kJ per mole. The difference is 679 − 864 = −185 kJ/mol. More energy leaves than enters, so the surroundings warm up: the reaction is exothermic.",
+            "Before trusting the number, check it against the two things you already know: the sign must agree with the temperature change you would feel, and the bond count must agree with the equation's coefficients. A sign that contradicts the observation, or a count that ignores a coefficient, means the two ledgers have been mixed up.",
+        ],
+        table: {
+            columns: ["Bond", "Bond energy / kJ mol⁻¹"],
+            rows: [
+                ["H–H", "436"],
+                ["Cl–Cl", "243"],
+                ["H–Cl", "432"],
+            ],
+            caption: "Average bond enthalpies. The values apply to gaseous bonds; they are not the same as the enthalpy of formation of the compound.",
+        },
+        formula: "energy in = 436 + 243 = 679 kJ/mol; energy out = 2 × 432 = 864 kJ/mol; ΔH = 679 − 864 = −185 kJ/mol",
+        steps: [
+            "Count the bonds broken in the reactants and add their energies.",
+            "Count the bonds made in the products, including the coefficient, and add their energies.",
+            "Subtract the energy released from the energy absorbed.",
+            "Read the sign: negative means exothermic, positive means endothermic.",
+        ],
+    },
+    {
+        heading: "Why breaking costs and making pays",
+        body: [
+            "A chemical reaction breaks the bonds in the reactants and makes new bonds in the products. Breaking a bond always requires energy; making a bond always releases energy. The overall energy change is the difference between the two ledgers, which is why the calculation above ends in a subtraction rather than a sum.",
+            "Use average bond enthalpies when the question supplies them. They are averages over similar compounds and are defined for gaseous species, so a calculation using them is an estimate. A negative ΔH means the energy released in making bonds is greater than the energy absorbed in breaking bonds, so the reaction is exothermic.",
+        ],
+        formula: "ΔH = Σ(bonds broken) − Σ(bonds formed)",
+    },
+    {
+        heading: "What the sign of ΔH means, once you have a number",
+        body: [
+            "Every reaction exchanges energy with its surroundings. Enthalpy, H, is the energy stored in the chemical system at constant pressure. We cannot measure the absolute value, so we measure the change: ΔH = H(products) − H(reactants).",
+            "If the products have less enthalpy than the reactants, the difference has been transferred to the surroundings, usually as heat. That reaction is exothermic and ΔH is negative. If the products have more enthalpy, energy has been absorbed; the reaction is endothermic and ΔH is positive. The sign is a direction, not a size.",
+        ],
+        formula: "ΔH = H(products) − H(reactants)",
+        table: {
+            columns: ["Reaction", "ΔH", "Surroundings"],
+            rows: [
+                ["exothermic", "negative", "temperature rises"],
+                ["endothermic", "positive", "temperature falls"],
+            ],
+            caption: "A sign tells you the direction of energy transfer; the magnitude tells you how much per mole.",
+        },
+    },
+    {
+        heading: "Reading a reaction profile",
+        body: [
+            "A reaction profile plots energy against reaction progress. The reactants sit on the left and the products on the right. The peak between them is the transition state, and the height from the reactants to that peak is the activation energy, Eₐ — the barrier a collision must clear before the reaction can happen.",
+            "The height from the reactants to the products is ΔH. On an exothermic profile the product level is lower; on an endothermic profile it is higher. A catalyst lowers the peak, so Eₐ falls, but it does not move the reactant or product levels — the overall ΔH is unchanged.",
+        ],
+    },
+    {
+        heading: "Calorimetry: measuring the heat",
+        body: [
+            "A calorimetry experiment measures the temperature change of a known mass of water or solution. The heat gained or lost is q = m c ΔT, where m is the mass of the liquid being heated, c is its specific heat capacity, and ΔT is the temperature change. For water, c is about 4.18 J g⁻¹ °C⁻¹.",
+            "That q is the heat for the amount you actually used, not per mole. Divide by the number of moles of the limiting reactant to get ΔH per mole. If the temperature rises, the reaction released heat to the water, so the reaction's ΔH is negative; the negative sign is the direction, not a mistake in the arithmetic.",
+        ],
+        formula: "q = m c ΔT        ΔH = −q / n",
+        steps: [
+            "Find ΔT = final temperature − initial temperature.",
+            "Calculate q in joules with the mass of the solution in grams.",
+            "Convert q to kJ by dividing by 1000.",
+            "Divide by the moles that reacted and attach the sign.",
+        ],
+    },
+    {
+        heading: "Signs and units: the check before you move on",
+        body: [
+            "A number without a sign is not an enthalpy change, and a value per mole without per mole in the unit is incomplete. Check three things before writing the answer: the sign agrees with the temperature change, the unit is kJ/mol, and the magnitude is plausible for the bonds involved.",
+            "Bond energies are quoted per mole of bonds. If the equation makes two H–Cl bonds, multiply by two. If it makes one, do not. The coefficient in the equation is the multiplier; the subscript inside a formula is already part of that formula's identity.",
+        ],
+    },
+];
+const CHEMISTRY_AUTHORED_PLANS = {
+    "moles-calcs": {
+        conceptId: "moles-calcs",
+        objective: "Convert between mass, moles and concentration, use a balanced equation's mole ratio, and identify the limiting reagent in a reaction.",
+        intuition: "A recipe for one cake uses two eggs for every 200 g of flour. If you have 400 g of flour but only two eggs, the eggs limit how many cakes you can make — the flour is in excess. Chemistry has the same arithmetic: a balanced equation gives the ratio, and the reactant that runs out first decides how much product forms. The mole is the unit that makes the recipe countable.",
+        idea: MOLES_SECTIONS.flatMap((section) => section.body),
+        sections: MOLES_SECTIONS,
+        terms: [
+            { term: "mole", meaning: "The amount of substance containing 6.02 × 10²³ particles; its mass in grams equals the relative formula mass." },
+            { term: "relative formula mass (Mᵣ)", meaning: "The sum of the relative atomic masses in a formula, in g/mol." },
+            { term: "concentration", meaning: "The amount of solute per cubic decimetre of solution, in mol/dm³." },
+            { term: "limiting reagent", meaning: "The reactant that is used up first and therefore limits the amount of product formed." },
+            { term: "mole ratio", meaning: "The ratio of coefficients in a balanced equation, which tells you how many moles of each substance react or form." },
+        ],
+        workedExamples: [
+            {
+                prompt: "Calculate the amount, in moles, in 8.0 g of sodium hydroxide, NaOH. (Mᵣ = 40)",
+                steps: [
+                    "Write the formula: n = m ÷ Mᵣ.",
+                    "Substitute: n = 8.0 g ÷ 40 g/mol.",
+                    "Check the unit: g ÷ g/mol = mol.",
+                ],
+                answer: "0.20 mol",
+            },
+            {
+                prompt: "25.0 cm³ of 0.100 mol/dm³ sodium hydroxide is neutralised by hydrochloric acid of concentration 0.0500 mol/dm³. The reaction is 1:1. Calculate the volume of acid needed.",
+                steps: [
+                    "Convert the volume to dm³: 25.0 cm³ ÷ 1000 = 0.0250 dm³.",
+                    "Find the moles of NaOH: n = c × V = 0.100 × 0.0250 = 0.00250 mol.",
+                    "The ratio is 1:1, so the acid also needs 0.00250 mol.",
+                    "Rearrange c = n ÷ V: V = n ÷ c = 0.00250 ÷ 0.0500 = 0.0500 dm³ = 50.0 cm³.",
+                ],
+                answer: "50.0 cm³ of hydrochloric acid",
+            },
+            {
+                prompt: "10.0 g of calcium carbonate, CaCO₃, decomposes completely: CaCO₃ → CaO + CO₂. Calculate the mass of calcium oxide formed. (Mᵣ: CaCO₃ = 100, CaO = 56)",
+                steps: [
+                    "Convert the reactant to moles: n = 10.0 ÷ 100 = 0.100 mol.",
+                    "The ratio CaCO₃ : CaO is 1:1, so 0.100 mol of CaO forms.",
+                    "Convert back to mass: m = n × Mᵣ = 0.100 × 56 = 5.60 g.",
+                ],
+                answer: "5.60 g of calcium oxide",
+            },
+        ],
+        traps: [
+            {
+                move: "Multiplies the mass by Mᵣ to find the number of moles.",
+                why: "The unit check exposes it: g × g/mol gives g²/mol, which is not a count. Dividing mass by Mᵣ makes the number smaller, as it should — a mole is a very large count, so a small mass contains a fraction of a mole (unless the substance is very light).",
+            },
+            {
+                move: "Uses the coefficients in the equation as a ratio of masses.",
+                why: "The coefficients count particles, or moles of particles, not grams. Convert the given mass to moles first, apply the coefficient ratio, then convert the product's moles back to grams using its own Mᵣ. A coefficient of 2 means twice as many particles, not twice as many grams.",
+            },
+            {
+                move: "Puts 25 cm³ straight into c = n ÷ V and gets a concentration a thousand times too large.",
+                why: "Concentration is per cubic decimetre. Convert cm³ to dm³ by dividing by 1000 before substituting: 25 cm³ = 0.025 dm³. The same numerical mistake appears when a volume of gas is given in cm³ but the molar volume is in dm³.",
+            },
+        ],
+        usedFor: "Titration, percentage yield, atom economy, gas volumes, electrolysis and every energy-per-mole calculation use the mole as their common currency. A balanced equation is the ratio; the mole is how you count with it.",
+        recap: [
+            "A mole is 6.02 × 10²³ particles; n = m ÷ Mᵣ converts mass to moles, and m = n × Mᵣ converts back.",
+            "Concentration is c = n ÷ V, with V in dm³; 1 dm³ = 1000 cm³.",
+            "The balanced equation gives the mole ratio; the limiting reagent is the reactant whose amount divided by its coefficient is smallest.",
+        ],
+        review: "unreviewed",
+        provenance: "authored",
+        figure: {
+            spec: { kind: "chem", variant: "mole" },
+            caption: "One mole of water contains 6.02 × 10²³ molecules and has a mass of 18 g. The mole is a count of particles, not a mass; molar mass is the bridge between the count and the balance.",
+        },
+    },
+    "energy-changes": {
+        conceptId: "energy-changes",
+        objective: "Classify a reaction as exothermic or endothermic, calculate ΔH from bond energies or calorimetry, and read a reaction profile without confusing Eₐ with ΔH.",
+        intuition: "A hand warmer gets hot when you open it; a cold pack gets cold. Both are chemical reactions exchanging energy with their surroundings. The hand warmer's products have less enthalpy than its reactants, so the difference leaves as heat. The cold pack absorbs energy, so its products have more enthalpy. The sign of ΔH is simply which way the energy went.",
+        idea: ENERGY_SECTIONS.flatMap((section) => section.body),
+        sections: ENERGY_SECTIONS,
+        terms: [
+            { term: "enthalpy change (ΔH)", meaning: "The heat energy exchanged with the surroundings at constant pressure; negative for exothermic, positive for endothermic." },
+            { term: "activation energy (Eₐ)", meaning: "The minimum energy colliding particles need to react; the height of the barrier on a reaction profile." },
+            { term: "bond enthalpy", meaning: "The average energy needed to break one mole of a particular covalent bond in the gaseous state." },
+            { term: "calorimetry", meaning: "An experiment that measures heat exchange from a temperature change, usually using q = m c ΔT." },
+            { term: "specific heat capacity", meaning: "The energy needed to raise the temperature of 1 g of a substance by 1 °C; for water it is about 4.18 J g⁻¹ °C⁻¹." },
+        ],
+        workedExamples: [
+            {
+                prompt: "Calculate ΔH for H₂ + Cl₂ → 2HCl using these average bond enthalpies: H–H 436, Cl–Cl 243, H–Cl 432 kJ/mol.",
+                steps: [
+                    "Energy absorbed breaking bonds: 436 + 243 = 679 kJ/mol.",
+                    "Energy released making bonds: two H–Cl bonds, so 2 × 432 = 864 kJ/mol.",
+                    "ΔH = energy in − energy out = 679 − 864 = −185 kJ/mol.",
+                    "The negative sign means more energy is released than absorbed, so the reaction is exothermic.",
+                ],
+                answer: "ΔH = −185 kJ/mol (exothermic)",
+            },
+            {
+                prompt: "A reaction raises the temperature of 100 g of water by 6.8 °C. The amount reacting is 0.0500 mol. Calculate ΔH per mole. (c = 4.18 J g⁻¹ °C⁻¹)",
+                steps: [
+                    "Calculate the heat gained by the water: q = m c ΔT = 100 × 4.18 × 6.8 = 2842.4 J.",
+                    "Convert to kJ: 2842.4 J ÷ 1000 = 2.842 kJ.",
+                    "Divide by the amount reacting: 2.842 ÷ 0.0500 = 56.8 kJ/mol.",
+                    "The water warmed, so the reaction released heat: the sign is negative.",
+                ],
+                answer: "ΔH = −56.8 kJ/mol",
+            },
+        ],
+        traps: [
+            {
+                move: "Says breaking bonds releases energy because the reaction gives out heat overall.",
+                why: "Breaking a bond always requires energy; forming a bond always releases it. A reaction is exothermic when the energy released by forming the products' bonds is GREATER than the energy absorbed by breaking the reactants' bonds. The overall sign comes from the difference, not from the direction of either half.",
+            },
+            {
+                move: "Gives an exothermic reaction a positive ΔH because the temperature rose.",
+                why: "The sign describes the reaction, not the thermometer. In an exothermic reaction the system loses enthalpy to the surroundings, so ΔH is negative while the surroundings' temperature rises. An endothermic reaction has a positive ΔH and the surroundings cool.",
+            },
+            {
+                move: "Calculates q = m c ΔT and reports q as the enthalpy change per mole.",
+                why: "q is the heat exchanged for the amount actually used, in joules. Enthalpy per mole needs q divided by the number of moles, converted to kJ/mol, with the sign chosen from the temperature change. Reporting q alone gives a total energy, not a molar quantity.",
+            },
+        ],
+        usedFor: "Fuels, hand warmers and cold packs, bond-energy calculations, calorimetry practicals and the energy balance of industrial reactions all use ΔH. The same sign convention returns in equilibrium, where heating shifts the position of a reversible reaction.",
+        recap: [
+            "ΔH is products' enthalpy minus reactants' enthalpy; negative is exothermic, positive is endothermic.",
+            "Breaking bonds costs energy; making bonds releases it; ΔH = bonds broken − bonds formed.",
+            "On a profile, Eₐ is the barrier from reactants to the peak, while ΔH is the difference between reactant and product levels.",
+        ],
+        review: "unreviewed",
+        provenance: "authored",
+        figure: {
+            spec: { kind: "energy-profile", reaction: "H₂ + Cl₂ → 2HCl", activation: 150, delta: -185 },
+            caption: "Reaction profile for H₂ + Cl₂ → 2HCl, schematic and not to scale. The vertical axis is energy; R marks the reactants and P the products. The peak is the transition state, and Eₐ is the activation energy — the barrier a collision must clear. P is below R, so the products have less enthalpy: ΔH is negative and the reaction is exothermic. The barrier is drawn to show the idea, not as a measured value.",
+        },
+    },
+};
+/** Every concept in the genome now has a plan: the pilot-authored lessons above,
+ *  the two authored chemistry lessons, plus a supplemental plan built from the
+ *  concept's own teaching note and a concept-specific lens. Supplemental plans
+ *  are marked unreviewed, so the pilot's review gate still means only the
+ *  candidates in the named packs.
+ *
+ *  The full registry is what `planFor` answers from. `pilotPlanIds()` is the
+ *  smaller set the review packs and the browser lesson walk measure. */
+// AUTHORED WINS, AND THE ORDER IS THE WHOLE RULE. The supplemental module
+// builds a plan for every concept that has a lens, and it is spread LAST in the
+// first version of this merge — so an authored plan whose concept also has a
+// lens was silently replaced by the generated one. Nothing threw: `planFor`
+// answered, the page rendered, the coverage counts looked right, and two new
+// lessons would have shipped as supplemental prose while their authors believed
+// they were live. Found by reading the registry (`place-value` reported
+// `provenance: "supplemental"`) rather than by trusting the file diff. The
+// generated plan is the FALLBACK; it is never allowed to shadow taught content.
+exports.LESSON_PLANS = {
+    ...lesson_plans_supplemental_1.SUPPLEMENTAL_LESSON_PLANS,
+    ...CHEMISTRY_AUTHORED_PLANS,
+    ...PILOT_LESSON_PLANS,
+};
+/** The plans that belong to the review packs, not the supplemental coverage. */
+function pilotPlanIds() {
+    return Object.keys(PILOT_LESSON_PLANS);
+}
 /** The plan for a concept, or null when nobody has written one. Null is a real
  *  answer, not an error: the page falls back to the genome's prose, so a concept
  *  without a plan renders what it always did rather than an empty shell.
@@ -998,6 +1542,70 @@ function planFor(conceptId, lang) {
     if (!lang || lang === "en")
         return base;
     return (0, lesson_plans_intl_1.translatedPlanFor)(conceptId, lang, base) ?? base;
+}
+/** THE SECTIONS EVERY LESSON RENDERS.
+ *
+ *  Authored plans carry their own sequence (the chemistry lessons have formulas
+ *  and tables; the pilot plans teach a deliberate path). For the plans that do
+ *  not, the four authored idea paragraphs are still a sequence, and putting them
+ *  in one undifferentiated card is the wall this format exists to break. This
+ *  groups them into two or three readable sections with honest structural
+ *  headings. It does not invent teaching: every body string is already in the
+ *  plan, and an authored `sections` field always wins. */
+function sectionsFor(plan) {
+    if (plan.sections?.length)
+        return plan.sections;
+    const ideas = plan.idea.filter((para) => para.trim().length > 0);
+    if (!ideas.length)
+        return [];
+    const groups = [];
+    for (let i = 0; i < ideas.length; i += 2)
+        groups.push(ideas.slice(i, i + 2));
+    const headings = [
+        { key: "lesson.sectionCore", text: "The core idea" },
+        { key: "lesson.sectionBuild", text: "Building the idea" },
+        { key: "lesson.sectionTogether", text: "Putting it together" },
+        { key: "lesson.sectionExtend", text: "Extending the idea" },
+    ];
+    return groups.map((body, i) => ({
+        heading: headings[Math.min(i, headings.length - 1)].text,
+        headingKey: headings[Math.min(i, headings.length - 1)].key,
+        body,
+    }));
+}
+/** WHICH ROUTE THROUGH THE IDEA THIS LEARNER READS, and its paragraphs.
+ *
+ *  Thresholds, and why they are where they are:
+ *   - fewer than three answers is not evidence of anything, so the default
+ *     route is served rather than a route chosen from one lucky guess;
+ *   - struggling is accuracy BELOW 0.5 over at least three answers — a learner
+ *     getting most items wrong — and never applies to a learner whose mastery
+ *     has been established, because mastery outranks a bad early run;
+ *   - advanced requires mastery at 0.8 or more AND the three answers, so a
+ *     single correct answer does not promote anybody;
+ *   - a route that has not been authored falls back to the default, so the
+ *     function can only ever return teaching somebody wrote.
+ *  The returned `route` is the one ACTUALLY served, so a caller can tell
+ *  "default because no evidence" from "default because no alternate exists". */
+function ideaRouteFor(plan, evidence) {
+    const attempts = evidence?.attempts ?? 0;
+    const correct = evidence?.correct ?? 0;
+    const mastery = evidence?.mastery ?? 0;
+    const authored = plan.routes ?? [];
+    if (attempts >= 3) {
+        const accuracy = correct / attempts;
+        if (mastery >= 0.8) {
+            const advanced = authored.find((r) => r.when === "advanced");
+            if (advanced)
+                return { route: "advanced", idea: advanced.idea };
+        }
+        else if (accuracy < 0.5) {
+            const struggling = authored.find((r) => r.when === "struggling");
+            if (struggling)
+                return { route: "struggling", idea: struggling.idea };
+        }
+    }
+    return { route: "default", idea: plan.idea };
 }
 /** The languages this concept's lesson is COMPLETELY translated into, English
  *  excluded. Empty is the honest answer for almost the whole bank: one plan, one
@@ -1044,8 +1652,9 @@ function firstMoveOf(explanation) {
         return { first: m[1], rest: m[2] };
     return { first: explanation, rest: "" };
 }
-/** Which concepts have a plan. Reported, never asserted to be 135: a coverage
- *  number that lies is worse than a small honest one. */
+/** Which concepts have a plan: every concept in the genome today, including
+ *  the supplemental coverage. `pilotPlanIds()` remains the smaller reviewed
+ *  candidate set. */
 function plannedConceptIds() {
     return Object.keys(exports.LESSON_PLANS);
 }

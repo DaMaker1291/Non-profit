@@ -365,7 +365,7 @@ function validateEvent(input, expectedLearnerId) {
             return { ok: false, reason: "unknown_type" };
     }
 }
-exports.SOURCES = ["diagnostic", "practice", "retrieval", "past_paper", "transfer", "project"];
+exports.SOURCES = ["diagnostic", "practice", "retrieval", "past_paper", "assessment", "transfer", "project"];
 /** Stable ordering: server time, then id. Two events with the same clock value
  *  must not swap places between runs, or replay stops being deterministic. */
 function orderEvents(events) {
@@ -460,7 +460,7 @@ function projectLearner(events) {
                     }
                     // A diagnostic or paper answer MEASURES; practice teaches. Keeping them
                     // apart is what stops "improvement" from being rehearsal.
-                    if (e.source === "diagnostic" || e.source === "past_paper") {
+                    if (e.source === "diagnostic" || e.source === "past_paper" || e.source === "assessment") {
                         c.measured.asked += 1;
                         if (e.correct)
                             c.measured.correct += 1;
@@ -597,7 +597,7 @@ function impactSnapshot(events) {
     const ordered = orderEvents(events);
     const p = projectLearner(ordered);
     const answers = ordered.filter((e) => e.type === "answer_submitted");
-    const measuredAnswers = answers.filter((e) => e.source === "diagnostic" || e.source === "past_paper");
+    const measuredAnswers = answers.filter((e) => e.source === "diagnostic" || e.source === "past_paper" || e.source === "assessment");
     const rate = (list) => (list.length ? { asked: list.length, correct: list.filter((a) => a.correct).length } : null);
     // The baseline is the EARLIEST measuring sitting, taken from the events that
     // belong to it — not the learner's first-ever answer, which may be practice.

@@ -156,13 +156,17 @@ export const PILOT_LESSON_VERSION = "2026-11-01.3";
  *  non-production process. `PILOT_APPROVALS` stays empty — the product's own
  *  answer to "may a class be set this lesson?" remains no.
  *
- *  The two concepts are the ones `scripts/ui-walk-teacher.mjs` sets. The
+ *  The concepts are exactly the ones the automated walks set: the teacher and
+ *  assignment walks use the maths pair, and the API lifecycle suite also sets
+ *  decimals work in a maths class and aimed work in a physics class. The
  *  approval is scoped to the candidate CBSE scope and the current lesson
  *  version, like every real approval, so the gate still checks the shape it
  *  will check when a qualified reviewer supplies one. */
 export const PILOT_TEST_APPROVALS: readonly PilotApproval[] = [
   "fractions",
   "negatives",
+  "decimals",
+  "electricity-circuits",
 ].map((conceptId) => ({
   conceptId,
   scopeId: CBSE_X_PILOT.id,

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import * as api from "@/lib/api/client";
 import { LessonFigure } from "@/components/lesson-figure";
-import { PROBABILITY_TREE, TREE_FIELDS } from "@/lib/probability-activities";
+import { PROBABILITY_TREE_ACTIVITY, type TreeActivitySpec } from "@/lib/probability-activities";
 
 // COMPLETE THE TREE, THEN CHECK IT.
 //
@@ -17,20 +17,26 @@ import { PROBABILITY_TREE, TREE_FIELDS } from "@/lib/probability-activities";
 // to say why it changes, so a wrong answer is diagnosable rather than just
 // "wrong".
 
-const CONCEPT = "probability-basics";
-
 type Values = Record<string, string>;
 type Verdict = api.ProbabilityActivityResult | null;
 
-const EMPTY: Values = Object.fromEntries(TREE_FIELDS.map((field) => [field.key, ""]));
+function emptyValues(spec: TreeActivitySpec): Values {
+  return Object.fromEntries(spec.fields.map((field) => [field.key, ""]));
+}
 
-export function ProbabilityTreeActivity({ learnerId }: { learnerId: string | null }) {
-  const [values, setValues] = useState<Values>(EMPTY);
+export function ProbabilityTreeActivity({
+  learnerId,
+  spec = PROBABILITY_TREE_ACTIVITY,
+}: {
+  learnerId: string | null;
+  spec?: TreeActivitySpec;
+}) {
+  const [values, setValues] = useState<Values>(() => emptyValues(spec));
   const [verdict, setVerdict] = useState<Verdict>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const complete = TREE_FIELDS.every((field) => (values[field.key] ?? "").trim() !== "");
+  const complete = spec.fields.every((field) => (values[field.key] ?? "").trim() !== "");
 
   function setValue(key: string, next: string): void {
     setValues((current) => ({ ...current, [key]: next }));
@@ -44,8 +50,8 @@ export function ProbabilityTreeActivity({ learnerId }: { learnerId: string | nul
     try {
       const result = await api.probabilityActivity({
         id: learnerId,
-        conceptId: CONCEPT,
-        activityId: "tree-values",
+        conceptId: spec.conceptId,
+        activityId: spec.activityId,
         response: values,
       });
       setVerdict(result);
@@ -59,22 +65,19 @@ export function ProbabilityTreeActivity({ learnerId }: { learnerId: string | nul
   return (
     <section className="card" data-probability-tree aria-label="Interactive probability tree" style={{ marginBottom: 18 }}>
       <p className="eyebrow" style={{ margin: 0 }}>Follow the branches</p>
-      <h3 className="reading" style={{ margin: "6px 0 0" }}>Two counters, no replacement</h3>
-      <p className="reading lesson-text" style={{ marginTop: 8 }}>
-        A bag starts with 3 red and 2 blue counters. Two counters are drawn without replacement.
-        The first draw changes what is left for the second, so this is a dependent tree.
-      </p>
+      <h3 className="reading" style={{ margin: "6px 0 0" }}>{spec.title}</h3>
+      <p className="reading lesson-text" style={{ marginTop: 8 }}>{spec.intro}</p>
 
       <LessonFigure
-        spec={PROBABILITY_TREE}
+        spec={spec.tree}
         showPaths={false}
-        caption="The first branch is out of 5 counters. The second branch is out of the 4 that remain: after a red, 2 red and 2 blue remain; after a blue, 3 red and 1 blue remain. Multiply along a path; do not multiply the first probability by itself."
+        caption={spec.caption}
       />
 
       <fieldset style={{ border: 0, padding: 0, margin: "14px 0 0" }}>
         <legend className="reading" style={{ fontWeight: 600 }}>Complete the values</legend>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 10, marginTop: 8 }}>
-          {TREE_FIELDS.map((field) => (
+          {spec.fields.map((field) => (
             <label key={field.key} className="reading small" style={{ display: "grid", gap: 4 }}>
               {field.label}
               {field.kind === "choice" ? (

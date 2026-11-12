@@ -1,6 +1,6 @@
 # OpenMind multilingual readiness
 
-Generated 2026-11-10 by `npm run verify:multilingual`.
+Generated 2026-11-12 by `npm run verify:multilingual`.
 
 This report distinguishes interface translation from translated and reviewed teaching. It does not count an unverified link as a usable resource.
 

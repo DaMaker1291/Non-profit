@@ -207,30 +207,60 @@ for (const id of ids) {
   }
 }
 
-// ── A balancing item must mark the coefficients that actually balance ──────
-// The generic structural checks cannot see this: `4 and 3` is four distinct
-// options, has an explanation and withholds its key. It was still wrong for
-// `__ Fe + O₂ → __ Fe₂O₃`, whose product coefficient is 2, not 3. Draw each
-// authored balancing equation until it appears and check the marked option
-// against the atom count rather than against the generator's own string.
-const BALANCES = new Map([
-  ["Balance: __ H₂ + O₂ → __ H₂O", "2 and 2"],
-  ["Balance: __ Mg + O₂ → __ MgO", "2 and 2"],
-  ["Balance: __ Al + __ Cl₂ → AlCl₃", "2 and 3"],
-  ["Balance: __ Fe + O₂ → __ Fe₂O₃", "4 and 2"],
-  ["Balance: __ C₃H₈ + __ O₂ → 3CO₂ + 4H₂O", "1 and 5"],
-]);
+// ── A balancing item must mark coefficients that conserve every atom ──────
+// The generic structural checks cannot see a wrong key: `4 and 2` is four
+// distinct options with a plausible explanation, and it was marked for
+// `__ Fe + O₂ → __ Fe₂O₃` even though 4 Fe + 2 O₂ leaves four oxygens against
+// the product's six. Draw each authored equation until it appears and COUNT the
+// atoms the marked option produces. A hard-coded expected string cannot catch
+// this class when the expected string is the thing that is wrong.
+const BALANCE_PROMPTS = [
+  "Balance: __ H₂ + O₂ → __ H₂O",
+  "Balance: __ Mg + O₂ → __ MgO",
+  "Balance: __ Al + __ Cl₂ → __ AlCl₃",
+  "Balance: __ Fe + __ O₂ → __ Fe₂O₃",
+  "Balance: __ C₃H₈ + __ O₂ → 3CO₂ + 4H₂O",
+];
+function atomCounts(side, blanks) {
+  const counts = {};
+  let blank = 0;
+  for (const raw of side.split("+").map((s) => s.trim()).filter(Boolean)) {
+    let coefficient = 1;
+    let formula = raw;
+    if (raw.startsWith("__")) {
+      formula = raw.replace(/^__\s*/, "");
+      coefficient = blanks[blank++];
+    } else {
+      const lead = raw.match(/^(\d+)\s*(.+)$/);
+      if (lead) { coefficient = Number(lead[1]); formula = lead[2]; }
+    }
+    if (!Number.isFinite(coefficient)) return null;
+    for (const match of formula.matchAll(/([A-Z][a-z]?)([₀-₉]*)/g)) {
+      const element = match[1];
+      const subscript = [...match[2]].map((ch) => String("₀₁₂₃₄₅₆₇₈₉".indexOf(ch))).join("");
+      counts[element] = (counts[element] ?? 0) + coefficient * (subscript ? Number(subscript) : 1);
+    }
+  }
+  return counts;
+}
+const countBlanks = (side) => (side.match(/__/g) ?? []).length;
 const seenBalances = new Set();
-for (let i = 0; i < 600 && seenBalances.size < BALANCES.size; i++) {
+for (let i = 0; i < 600 && seenBalances.size < BALANCE_PROMPTS.length; i++) {
   const q = Q.generateQuestion("equations-stoich", `pilot-balance:${i}`);
-  if (!q || !BALANCES.has(q.prompt)) continue;
-  const expected = BALANCES.get(q.prompt);
-  const marked = q.choices?.[q.answer];
-  ok(marked === expected, `balancing key is ${expected} for ${q.prompt} (got ${marked})`);
+  if (!q || !BALANCE_PROMPTS.includes(q.prompt) || seenBalances.has(q.prompt)) continue;
+  const marked = q.choices?.[q.answer] ?? "";
+  const blanks = (marked.match(/\d+/g) ?? []).map(Number);
+  const [left, right] = q.prompt.replace(/^Balance:\s*/, "").split("→");
+  const leftBlanks = countBlanks(left);
+  const a = atomCounts(left, blanks.slice(0, leftBlanks));
+  const b = atomCounts(right, blanks.slice(leftBlanks));
+  const elements = new Set([...Object.keys(a ?? {}), ...Object.keys(b ?? {})]);
+  const conserved = !!a && !!b && [...elements].every((e) => a[e] === b[e]);
+  ok(conserved, `balancing key conserves atoms for ${q.prompt} (marked ${marked})`);
   seenBalances.add(q.prompt);
 }
-ok(seenBalances.size === BALANCES.size,
-  `every authored balancing equation is reachable (${seenBalances.size}/${BALANCES.size})`);
+ok(seenBalances.size === BALANCE_PROMPTS.length,
+  `every authored balancing equation is reachable (${seenBalances.size}/${BALANCE_PROMPTS.length})`);
 
 // ── Uniqueness: the same teaching must not be pasted under twelve names ────
 const tokens = (s) => new Set(String(s).toLowerCase().replace(/[^a-z0-9]+/g, " ").split(/\s+/).filter((w) => w.length > 3));

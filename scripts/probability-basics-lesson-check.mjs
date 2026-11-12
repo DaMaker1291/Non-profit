@@ -21,6 +21,7 @@ import { compileEngines } from "./compile-engines.mjs";
 const require = createRequire(import.meta.url);
 compileEngines();
 const { MATHS_PROBABILITY_BASICS: lesson } = require("../.verify/lessons/authored/maths-probability-basics.js");
+const { MATHS_TREE_DIAGRAMS: treeLesson } = require("../.verify/lessons/authored/maths-tree-diagrams.js");
 const lessonFigures = require("../.verify/lesson-figure.js");
 const simulation = require("../.verify/probability-simulation.js");
 const activities = require("../.verify/probability-activities.js");
@@ -443,6 +444,62 @@ ok(treeSource.includes("showPaths={false}"),
 const pageSource = fs.readFileSync("app/learn/[subject]/[concept]/page.tsx", "utf8");
 ok(pageSource.includes("ProbabilityVennActivity") && pageSource.includes("ProbabilityTreeActivity"),
   "the lesson page renders both interactive representations");
+
+// ── Tree diagrams: the second tree activity and its independent arithmetic ───
+ok(treeLesson.conceptId === "tree-diagrams", "tree-diagrams: filed under its genome id");
+ok(treeLesson.contract === "openmind.lesson/1.0" && treeLesson.version === "1.0.0",
+  "tree-diagrams: current contract and version");
+ok(treeLesson.declaredStatus === "draft" && treeLesson.reviews.length === 0 && treeLesson.learnerTesting.length === 0,
+  "tree-diagrams: declares draft and claims no review or learner testing");
+ok(treeLesson.objectives.length >= 4 && treeLesson.explanation.length >= 6 &&
+  treeLesson.workedExamples.length >= 4 && treeLesson.misconceptions.length >= 5 &&
+  treeLesson.guidedPractice.length >= 5 && treeLesson.transfer.length >= 1,
+  "tree-diagrams: complete lesson shape");
+ok(treeLesson.retrieval.some((item) => item.when === "week-later") &&
+  treeLesson.retrieval.some((item) => item.when === "month-later"),
+  "tree-diagrams: retrieval is spaced beyond the next day");
+ok(treeLesson.representations.some((block) => block.figure?.spec?.kind === "tree"),
+  "tree-diagrams: the lesson draws its actual tree, rather than describing a picture it does not have");
+for (const item of treeLesson.assessment.filter((entry) => entry.check)) {
+  const normalise = (value) => value.normalize("NFKC").replace(/\u2212/g, "-").replace(/\s+/g, " ").trim().toLowerCase();
+  ok(item.check.accepted.some((accepted) => normalise(accepted) === normalise(item.modelAnswer)),
+    `tree-diagrams/${item.id}: the model answer is one of its own accepted answers`);
+}
+
+const treeDiagram = lessonFigures.treeLayout(activities.TREE_DIAGRAMS_TREE);
+ok(treeDiagram.paths.length === 4 && close(treeDiagram.totalProbability, 1),
+  "tree-diagrams: the spinner tree has four paths and they total 1");
+ok(treeDiagram.paths.filter((path) => close(path.probability, 2 / 9)).length === 2,
+  "tree-diagrams: exactly one red has two paths, each 2/9");
+ok(close(treeDiagram.paths.find((path) => path.probability === 1 / 9)?.probability ?? 0, 1 / 9) &&
+  treeDiagram.paths.some((path) => close(path.probability, 4 / 9)),
+  "tree-diagrams: red-red is 1/9 and blue-blue is 4/9");
+ok(close(1 - 4 / 9, 5 / 9) && close(2 / 9 + 2 / 9, 4 / 9),
+  "tree-diagrams: exactly one red is 4/9; at least one red is 5/9");
+ok(activities.probabilityActivityConcept("tree-diagrams-values") === "tree-diagrams",
+  "tree-diagrams: the activity belongs to the new concept, not to probability-basics");
+const treeDiagramRight = activities.gradeProbabilityActivity("tree-diagrams-values", {
+  rr: "1/9", bb: "4/9", exactlyOneRed: "4/9", independent: "Independent",
+});
+ok(treeDiagramRight?.correct === true && treeDiagramRight?.fields?.length === 4,
+  "tree-diagrams: the server marks the completed independent spinner tree correct");
+const treeDiagramPartial = activities.gradeProbabilityActivity("tree-diagrams-values", {
+  rr: "1/9", bb: "4/9", exactlyOneRed: "2/9", independent: "Independent",
+});
+ok(treeDiagramPartial?.correct === false &&
+  treeDiagramPartial?.fields?.filter((field) => field.correct).length === 3,
+  "tree-diagrams: a partial tree keeps the three fields that were right");
+ok(activities.gradeProbabilityActivity("tree-diagrams-values", { rr: "nonsense" }) === null,
+  "tree-diagrams: unparseable input is refused, not scored");
+ok(close(5 / 8 * 4 / 7, 5 / 14) && close(3 / 8 * 2 / 7, 3 / 28),
+  "tree-diagrams: the without-replacement bag gives red-red 5/14 and blue-blue 3/28");
+ok(close(1 - 3 / 8 * 2 / 7, 25 / 28), "tree-diagrams: at least one red from the bag is 25/28");
+ok(close(3 * (1 / 2) ** 3, 3 / 8) && close(1 - (1 / 2) ** 3, 7 / 8),
+  "tree-diagrams: exactly two heads is 3/8 and at least one head is 7/8");
+ok(close(1 - (5 / 6) ** 2, 11 / 36) && close(2 * (1 / 6) * (5 / 6), 10 / 36),
+  "tree-diagrams: two dice give at least one six 11/36 and exactly one six 10/36");
+ok(pageSource.includes("TREE_DIAGRAM_ACTIVITY") && pageSource.includes('conceptId === "tree-diagrams"'),
+  "tree-diagrams: the lesson page renders the second tree activity");
 
 const figureSource = fs.readFileSync("components/lesson-figure.tsx", "utf8");
 ok(figureSource.includes("vennLayout") && figureSource.includes("treeLayout"),

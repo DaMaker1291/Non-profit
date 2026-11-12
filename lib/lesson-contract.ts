@@ -258,6 +258,7 @@ export type AccessibilityNeed =
   | "low-vision"
   | "screen-reader"
   | "dyslexia"
+  | "cognitive"
   | "motor"
   | "no-audio"
   | "colour-vision";

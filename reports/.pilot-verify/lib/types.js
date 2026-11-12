@@ -3,7 +3,7 @@
 // OpenMind — core domain types
 // ─────────────────────────────────────────────────────────────────────────────
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.BOARD_IDS = void 0;
+exports.DATA_PREFERENCES = exports.BOARD_IDS = void 0;
 exports.isBoardId = isBoardId;
 /** Runtime registry for the BoardId union — the single source of truth shared
  *  by the profile API, the enrolment UI and the specification layer. Without
@@ -38,3 +38,4 @@ function isBoardId(value) {
 }
 const _boardIdsCover = true;
 void _boardIdsCover;
+exports.DATA_PREFERENCES = ["text", "low", "balanced", "high"];

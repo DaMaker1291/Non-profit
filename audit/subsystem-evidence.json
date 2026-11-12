@@ -1,0 +1,40 @@
+{
+  "contract": "openmind.subsystem-evidence/1.0",
+  "recordedAt": "2026-11-11",
+  "environment": {
+    "store": "isolated scratch directories; the live .openmind-data store was not opened",
+    "offlineRun": "production build, network-disabled browser restart",
+    "teacherRun": "development server on 4175 with a scratch store",
+    "securityRun": "development server on 4173 with a scratch store; production-check also ran the authorization matrix"
+  },
+  "subsystems": {
+    "OFFLINE-001": {
+      "status": "BROWSER_VERIFIED",
+      "evidence": [
+        "scripts/verify-offline-browser.mjs: 25 passed, 0 failed — downloaded Fractions, production service worker, offline reload, browser restart, local-only queue, reconnect, exactly one ledger event, duplicate replay refused, sign-out cleanup",
+        "scripts/production-check.mjs: offline sync protocol — dedupe, refusals, paging, replay"
+      ],
+      "remainingWork": "Re-run after any change to the service worker, offline store or sync protocol. External media remains link-only unless redistribution permission exists."
+    },
+    "TEACH-001": {
+      "status": "BROWSER_VERIFIED",
+      "evidence": [
+        "scripts/verify-classroom2.mjs: 33 passed, 0 failed — live room, late join, pause/end refusal, non-owner 403, assignment publication gate",
+        "scripts/verify-assignment-browser.mjs: 29 passed, 0 failed — class, baseline, teacher Work tab, pupil completion, outstanding pupil, evidence-derived monitor",
+        "scripts/ui-walk-teacher.mjs: 27 passed, 0 failed — finding, proposal, review, set work, before/after, next decision, server record",
+        "scripts/verify-permissions.mjs: 87 passed, 0 failed"
+      ],
+      "remainingWork": "Re-run the three browser journeys after any change to classes, assignments or teacher authority. Genuine teacher review of the workflow remains external."
+    },
+    "SEC-001": {
+      "status": "BROWSER_VERIFIED",
+      "evidence": [
+        "scripts/verify-permissions.mjs: 87 passed, 0 failed — identity, ownership, role boundaries, sign-in bounds, expensive-door rate limits",
+        "scripts/verify-auth-boundaries.mjs: 19 passed, 0 failed — session expiry, sign-out refusal, pupil excluded from teacher console, cross-teacher class isolation",
+        "scripts/verify-auth-sync.mjs: 36 passed, 0 failed — two independent browser profiles, shared server ledger, third profile reads the account record",
+        "scripts/production-check.mjs: authorization matrix and offline sync protocol PASS"
+      ],
+      "remainingWork": "Re-run after any auth or API change. External legal and data-protection review remains required; no compliance claim is made."
+    }
+  }
+}

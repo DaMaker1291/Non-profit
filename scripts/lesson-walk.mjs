@@ -56,7 +56,7 @@
 // the assertions are what fail the run.
 // ─────────────────────────────────────────────────────────────────────────────
 import { pageFor, launchChrome, sleep } from "./browser.mjs";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 const BASE = process.env.LESSON_WALK_BASE ?? "http://127.0.0.1:4173";
 const PORT = 9333 + Math.floor(Math.random() * 600);
@@ -258,6 +258,26 @@ const AUTHORED_CONTRACT = [
   { concept: "forces-basics", subject: "physics" },
   { concept: "motion-graphs", subject: "physics" },
   { concept: "waves-basics", subject: "physics" },
+  // Batch 52 — the first secondary mathematics outlines after the science
+  // tranche. algebra-expand and straight-lines also have a plan figure and are
+  // measured by FIGURED; this row measures the authored contract on the page.
+  { concept: "standard-form", subject: "maths" },
+  { concept: "algebra-expand", subject: "maths" },
+  { concept: "straight-lines", subject: "maths" },
+  { concept: "inequalities", subject: "maths" },
+  { concept: "surds", subject: "maths" },
+  { concept: "simultaneous", subject: "maths" },
+  { concept: "sim-equations-quad", subject: "maths" },
+  { concept: "functions", subject: "maths" },
+  { concept: "trig-ratios", subject: "maths" },
+  { concept: "trig-identity", subject: "maths" },
+  { concept: "circle-theorems", subject: "maths" },
+  { concept: "pythagoras", subject: "maths" },
+  { concept: "volume", subject: "maths" },
+  { concept: "transformations", subject: "maths" },
+  { concept: "vectors", subject: "maths" },
+  { concept: "tree-diagrams", subject: "maths" },
+  { concept: "scatter-correlation", subject: "maths" },
 ];
 
 /** Every kind the figure union declares. A plan may only draw one of these. */
@@ -1629,6 +1649,45 @@ async function main() {
         `${concept}: ${item} is submitted visibly and marked correct ("${String(verdict.text).slice(0, 80)}")`);
     }
 
+    // ── tree-diagrams: the second tree, answered through the page ───────────
+    // The module gate proves the path products; this proves a learner can fill
+    // the visible fields, submit them, and receive the server's four-field
+    // verdict. It then submits a malformed value and requires a refusal rather
+    // than a painted "Correct". The activity is the lesson's own tree, not a
+    // second copy: the same component reads TREE_DIAGRAM_ACTIVITY.
+    section("Tree diagrams' interactive tree is marked by the server");
+    await viewport(1280, 900);
+    await goto(`${BASE}/learn/maths/tree-diagrams`);
+    await p.waitFor(`return !!document.querySelector("main .authored-lesson");`, "the authored tree-diagrams lesson", 30000);
+    const treeDiagramPresent = await p.evaluate(`return !!document.querySelector('[data-probability-tree]');`);
+    check(treeDiagramPresent, "tree-diagrams: the interactive spinner tree is on the page");
+    if (treeDiagramPresent) {
+      await p.typeInto(`document.querySelector('[data-tree-field="rr"]')`, "1/9", "P(red then red)");
+      await p.typeInto(`document.querySelector('[data-tree-field="bb"]')`, "4/9", "P(blue then blue)");
+      await p.typeInto(`document.querySelector('[data-tree-field="exactlyOneRed"]')`, "4/9", "P(exactly one red)");
+      await p.pickOption(`document.querySelector('[data-tree-field="independent"]')`, "Independent", "the independence field");
+      await p.clickExpr(`document.querySelector('[data-tree-submit]')`, "Check the spinner tree");
+      await p.waitFor(`return (document.querySelector('[data-tree-verdict]')?.innerText || "").includes("Correct");`, "the spinner tree verdict", 15000);
+      const treeDiagramText = await p.evaluate(`return document.querySelector('[data-tree-verdict]')?.innerText || "";`);
+      check(/Correct/.test(treeDiagramText) && /1\/9/.test(treeDiagramText) && /4\/9/.test(treeDiagramText),
+        `tree-diagrams: the completed spinner tree is marked correct and names its paths ("${String(treeDiagramText).slice(0, 110)}")`);
+
+      await p.typeInto(`document.querySelector('[data-tree-field="rr"]')`, "nonsense", "an invalid spinner value");
+      await p.clickExpr(`document.querySelector('[data-tree-submit]')`, "Check the invalid spinner tree");
+      await p.waitFor(`return /could not be marked|bad request/i.test(document.body.innerText);`, "the invalid spinner tree refusal", 15000);
+      const invalidTreeDiagram = await p.evaluate(`return document.querySelector('[data-probability-tree]')?.innerText || "";`);
+      check(/could not be marked|bad request/i.test(invalidTreeDiagram) && !/Correct/.test(invalidTreeDiagram),
+        "tree-diagrams: malformed input is refused visibly instead of painted as correct");
+
+      await viewport(320, 640);
+      await sleep(150);
+      const treeDiagramWidth = await p.evaluate(`const el = document.querySelector('[data-probability-tree]'); return el ? { scroll: el.scrollWidth, client: el.clientWidth } : null;`);
+      check(!!treeDiagramWidth && treeDiagramWidth.scroll <= treeDiagramWidth.client + 1,
+        treeDiagramWidth ? `tree-diagrams: the interactive tree fits a 320-px screen (${treeDiagramWidth.scroll} vs ${treeDiagramWidth.client})` : "tree-diagrams: the tree width could not be measured");
+      await viewport(1280, 900);
+      await sleep(120);
+    }
+
     // ── the first biology numeric assessment through the page ───────────────
     // `circulation` is a numeric item whose answer is a volume per minute, not a
     // label. Typing 6 proves the visible control is enabled for a signed-in
@@ -1985,6 +2044,25 @@ async function main() {
     try { await close(); } catch { /* already gone */ }
   }
 
+  // THE BROWSER RESULT IS A FILE, NOT ONLY A LINE IN A TERMINAL. A later
+  // checkpoint cannot truthfully say a page was measured from a transcript that
+  // has scrolled away, so the walk writes the measured denominator and verdict
+  // beside the catalogue it verifies.
+  writeFileSync(
+    new URL("../audit/lesson-browser.json", import.meta.url),
+    `${JSON.stringify({
+      generatedBy: "scripts/lesson-walk.mjs",
+      at: new Date().toISOString(),
+      command: "npm run verify:lesson",
+      passed,
+      failed,
+      authoredLessons: AUTHORED_CONTRACT.length,
+      authoredCatalogue: JSON.parse(readFileSync(new URL("../audit/lesson-catalogue.json", import.meta.url), "utf8")).totals.authored,
+      allAuthoredPainted: failed === 0 && passed > 0,
+      widths: [1280, 768, 375, 320],
+      note: "Browser-measured authored lesson pages and plan figures. The authoredCatalogue value is checked against audit/lesson-catalogue.json; a mismatch is a stale record, not a pass.",
+    }, null, 2)}\n`,
+  );
   console.log(`\n${passed} passed, ${failed} failed`);
   if (SHOTS) console.log(`screenshots: ${SHOT_DIR}/`);
   process.exit(failed === 0 ? 0 : 1);

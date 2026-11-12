@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-02T19:46:04.377Z",
+  "generatedAt": "2026-11-12T17:56:09.179Z",
   "schemaVersion": 1,
   "passed": 72,
   "failed": 0,
@@ -7,7 +7,7 @@
   "summary": {
     "subjects": 5,
     "concepts": 135,
-    "authoredPlans": 19,
+    "authoredPlans": 135,
     "richLessons": 3,
     "assessments": 4,
     "resourceRecords": 8,
@@ -28,7 +28,7 @@
       "subject": "maths",
       "label": "Mathematics",
       "concepts": 67,
-      "authoredPlans": 15,
+      "authoredPlans": 67,
       "richLessons": 0,
       "blockKinds": [],
       "responseKinds": [],
@@ -42,7 +42,7 @@
       "subject": "physics",
       "label": "Physics",
       "concepts": 18,
-      "authoredPlans": 1,
+      "authoredPlans": 18,
       "richLessons": 1,
       "blockKinds": [
         "calculation",
@@ -66,7 +66,7 @@
       "subject": "chemistry",
       "label": "Chemistry",
       "concepts": 16,
-      "authoredPlans": 1,
+      "authoredPlans": 16,
       "richLessons": 0,
       "blockKinds": [],
       "responseKinds": [],
@@ -80,7 +80,7 @@
       "subject": "biology",
       "label": "Biology",
       "concepts": 16,
-      "authoredPlans": 2,
+      "authoredPlans": 16,
       "richLessons": 1,
       "blockKinds": [
         "explanation",
@@ -100,7 +100,7 @@
       "subject": "computing",
       "label": "Computing",
       "concepts": 18,
-      "authoredPlans": 0,
+      "authoredPlans": 18,
       "richLessons": 1,
       "blockKinds": [
         "code_lab",

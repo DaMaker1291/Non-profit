@@ -137,8 +137,15 @@ async function answerOne(p, concept) {
   await p.waitFor(`return !!document.querySelector("main h1");`, `the ${concept} lesson`, 25000);
   const turn = `[...document.querySelectorAll("main button")].find(b => /Now your turn/.test(b.textContent || ""))`;
   if (await p.evaluate(`return !!${turn};`)) await p.clickExpr(turn, `the practice door on ${concept}`);
+  // THE SERVE DECLARES FOUR ANSWER KINDS. Waiting only for `.choices` or the
+  // numeric box made a fraction item look like a missing question: `fractions`
+  // served a fraction response, the page was correctly showing its numerator /
+  // denominator fields, and this walk timed out on a stage that had rendered.
+  // Every kind the page can draw is recognised here, and answered with a value
+  // that is a real submission — this walk is about the assignment becoming Done
+  // from recorded evidence, not about the answer being right.
   await p.waitFor(
-    `return document.querySelectorAll("main .choices button").length > 0 || !!document.querySelector("main .numeric-input");`,
+    `return document.querySelectorAll("main .choices button").length > 0 || !!document.querySelector("main .numeric-input") || !!document.querySelector("main .fraction-input") || !!document.querySelector("main .pair-input");`,
     `a practice item on ${concept}`,
     30000,
   );
@@ -146,13 +153,25 @@ async function answerOne(p, concept) {
     prompt: (document.querySelector("main .qprompt")?.innerText || "").trim().slice(0, 120),
     choices: document.querySelectorAll("main .choices button").length,
     numeric: !!document.querySelector("main .numeric-input"),
+    fraction: !!document.querySelector("main .fraction-input"),
+    pair: !!document.querySelector("main .pair-input"),
   };`);
   check(item.prompt.length > 0, `the pupil was served a real ${concept} question`);
-  if (item.choices > 0) {
-    await p.clickExpr(`document.querySelector("main .choices button")`, "the first practice choice");
-  } else {
+  if (item.fraction) {
+    const fields = `[...document.querySelectorAll("main .fraction-input")]`;
+    await p.typeInto(`${fields}[0]`, "1", "the numerator");
+    await p.typeInto(`${fields}[1]`, "2", "the denominator");
+    await p.clickExpr(`[...document.querySelectorAll("main button")].find(b => /Check/.test(b.textContent || ""))`, "the Check button");
+  } else if (item.pair) {
+    const fields = `[...document.querySelectorAll("main .pair-input")]`;
+    await p.typeInto(`${fields}[0]`, "0", "the x coordinate");
+    await p.typeInto(`${fields}[1]`, "0", "the y coordinate");
+    await p.clickExpr(`[...document.querySelectorAll("main button")].find(b => /Check/.test(b.textContent || ""))`, "the Check button");
+  } else if (item.numeric) {
     await p.typeInto(`document.querySelector("main .numeric-input")`, "0", "the numeric answer box");
     await p.clickExpr(`[...document.querySelectorAll("main button")].find(b => /Check/.test(b.textContent || ""))`, "the Check button");
+  } else {
+    await p.clickExpr(`document.querySelector("main .choices button")`, "the first practice choice");
   }
   await p.waitFor(`return !!document.querySelector("main .feedback");`, "the server's mark", 25000);
   return item;

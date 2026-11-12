@@ -193,8 +193,11 @@ async function answerOne(p, concept, label) {
   if (await p.evaluate(`return !!${turn};`)) {
     await p.clickExpr(turn, `the practice door on ${concept}`);
   }
+  // FOUR ANSWER KINDS, NOT TWO. `fractions` can serve a fraction response, and
+  // waiting only for `.choices` or a numeric box made a correctly rendered
+  // numerator/denominator item look like a practice stage that never loaded.
   await p.waitFor(
-    `return document.querySelectorAll("main .choices button").length > 0 || !!document.querySelector("main .numeric-input");`,
+    `return document.querySelectorAll("main .choices button").length > 0 || !!document.querySelector("main .numeric-input") || !!document.querySelector("main .fraction-input") || !!document.querySelector("main .pair-input");`,
     `a practice item on ${concept}`,
     30000,
   );
@@ -202,13 +205,25 @@ async function answerOne(p, concept, label) {
     prompt: (document.querySelector("main .qprompt")?.innerText || "").trim().slice(0, 140),
     choices: document.querySelectorAll("main .choices button").length,
     numeric: !!document.querySelector("main .numeric-input"),
+    fraction: !!document.querySelector("main .fraction-input"),
+    pair: !!document.querySelector("main .pair-input"),
   };`);
   check(item.prompt.length > 0, `${label} was served a real question ("${item.prompt.slice(0, 80)}")`);
-  if (item.choices > 0) {
-    await p.clickExpr(`document.querySelector("main .choices button")`, `the first choice on ${concept}`);
-  } else {
+  if (item.fraction) {
+    const fields = `[...document.querySelectorAll("main .fraction-input")]`;
+    await p.typeInto(`${fields}[0]`, "1", "the numerator");
+    await p.typeInto(`${fields}[1]`, "2", "the denominator");
+    await p.clickExpr(button(`/Check/.test(b.textContent || "")`), "the Check button");
+  } else if (item.pair) {
+    const fields = `[...document.querySelectorAll("main .pair-input")]`;
+    await p.typeInto(`${fields}[0]`, "0", "the x coordinate");
+    await p.typeInto(`${fields}[1]`, "0", "the y coordinate");
+    await p.clickExpr(button(`/Check/.test(b.textContent || "")`), "the Check button");
+  } else if (item.numeric) {
     await p.typeInto(`document.querySelector("main .numeric-input")`, "0", "the numeric answer box");
     await p.clickExpr(button(`/Check/.test(b.textContent || "")`), "the Check button");
+  } else {
+    await p.clickExpr(`document.querySelector("main .choices button")`, `the first choice on ${concept}`);
   }
   await p.waitFor(`return !!document.querySelector("main .feedback");`, `the grade on ${concept}`, 25000);
   const verdict = await p.evaluate(`return (document.querySelector("main .feedback")?.innerText || "").trim().replace(/\\n+/g, " · ").slice(0, 100);`);

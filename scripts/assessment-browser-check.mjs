@@ -15,6 +15,7 @@
 //   npm run assessment:browser
 //   (requires a non-production server with OPENMIND_ASSESSMENT_FIXTURE=1)
 // ─────────────────────────────────────────────────────────────────────────────
+import { mkdirSync, writeFileSync } from "node:fs";
 import { launchChrome, pageFor } from "./browser.mjs";
 
 const BASE = process.env.OPENMIND_BASE ?? "http://127.0.0.1:4173";
@@ -45,6 +46,11 @@ if (ready.status !== 200) {
   console.error(`assessment browser: server is not ready at ${BASE} (status ${ready.status})`);
   process.exit(2);
 }
+// WARM THE PAGE BEFORE THE BROWSER. `next dev` compiles a route on its first
+// request; measuring that compile as a page failure made this walk red on a
+// cold tree (the gate had not mounted within 20s while the route was still
+// compiling). A browser check should measure the page, not the compiler.
+await call("/assessment");
 const catalog = await call("/api/assessment");
 if (catalog.body?.fixture?.notTeacherApproval !== true) {
   console.error("assessment browser: the test fixture is not enabled on this server");
@@ -63,6 +69,11 @@ const created = await post("/api/profile", {
   spec: "uk-gcse",
   specLevel: "foundation",
   subjectCourses: { biology: { spec: "uk-gcse", specLevel: "foundation" } },
+  // `/assessment` is an `onboarded` route: a profile with a course but no
+  // `onboardedAt` is correctly sent back to enrolment by the route guard. This
+  // fixture used to omit the flag, so the HTTP journey passed while the real
+  // page never reached its own gate. The fixture is a learner who has finished
+  // enrolment, not a shortcut around it.
   onboarded: true,
   secret,
 });
@@ -108,7 +119,7 @@ try {
     localStorage.setItem("openmind:profileId", ${JSON.stringify(id)});
     localStorage.setItem("openmind:profileSecret", ${JSON.stringify(secret)}); return true;`);
   await p.goto(`${BASE}/assessment`);
-  await p.waitFor(`return !!document.querySelector("[data-assessment-gate]");`, "the assessment gate");
+  await p.waitFor(`return !!document.querySelector("[data-assessment-gate]");`, "the assessment gate", 60000);
 
   const gate = await evaluation(`return {
     text: document.querySelector("[data-assessment-gate]").innerText,
@@ -232,6 +243,21 @@ try {
 }
 
 console.log(`\nassessment browser: ${passed} passed, ${failed} failed`);
+if (!failed) {
+  // A GATE'S OWN RECORD, so the checkpoint can cite the browser run rather
+  // than a number typed into a document. It is written only on success: a red
+  // run must never leave a record that reads like a green one.
+  mkdirSync("audit", { recursive: true });
+  writeFileSync("audit/assessment-browser.json", `${JSON.stringify({
+    contract: "openmind.assessment-browser/1.0",
+    recordedAt: new Date().toISOString(),
+    passed,
+    failed,
+    fixture: true,
+    tableBranch: true,
+    journeys: ["numeric", "table", "short-answer", "prose", "invalid", "evidence", "mastery", "next-step"],
+  }, null, 2)}\n`);
+}
 if (failed) {
   console.error("assessment browser: the learner-facing loop did not hold");
   process.exit(1);

@@ -211,7 +211,11 @@ export function vennProbability(
 
 // ── activities ──────────────────────────────────────────────────────────────
 
-export type ProbabilityActivityId = "venn-union" | "venn-neither" | "tree-values";
+export type ProbabilityActivityId =
+  | "venn-union"
+  | "venn-neither"
+  | "tree-values"
+  | "tree-diagrams-values";
 
 export const PROBABILITY_ACTIVITY_CONCEPT = "probability-basics";
 
@@ -219,6 +223,7 @@ export function probabilityActivityConcept(activityId: string): string | null {
   if (activityId === "venn-union" || activityId === "venn-neither" || activityId === "tree-values") {
     return PROBABILITY_ACTIVITY_CONCEPT;
   }
+  if (activityId === "tree-diagrams-values") return "tree-diagrams";
   return null;
 }
 
@@ -305,7 +310,7 @@ export const PROBABILITY_TREE: Extract<LessonFigureSpec, { kind: "tree" }> = {
 };
 
 export interface TreeField {
-  readonly key: "rr" | "bb" | "atLeastOneRed" | "dependent";
+  readonly key: string;
   readonly label: string;
   readonly kind: "value" | "choice";
   readonly answer: string;
@@ -325,13 +330,110 @@ export const TREE_FIELDS: readonly TreeField[] = [
   },
 ];
 
-function gradeTree(response: unknown): ProbabilityActivityResult | null {
+/** The spinner tree for tree-diagrams. Two independent spins, each with
+ *  P(red) = 1/3 and P(blue) = 2/3. Every path is a product; the four paths sum
+ *  to 1. "Exactly one red" adds the two distinct paths and is not 2/3. */
+export const TREE_DIAGRAMS_TREE: Extract<LessonFigureSpec, { kind: "tree" }> = {
+  kind: "tree",
+  first: [
+    {
+      label: "Red",
+      probability: 1 / 3,
+      display: "1/3",
+      second: [
+        { label: "Red", probability: 1 / 3, display: "1/3", pathDisplay: "1/9" },
+        { label: "Blue", probability: 2 / 3, display: "2/3", pathDisplay: "2/9" },
+      ],
+    },
+    {
+      label: "Blue",
+      probability: 2 / 3,
+      display: "2/3",
+      second: [
+        { label: "Red", probability: 1 / 3, display: "1/3", pathDisplay: "2/9" },
+        { label: "Blue", probability: 2 / 3, display: "2/3", pathDisplay: "4/9" },
+      ],
+    },
+  ],
+};
+
+export const TREE_DIAGRAM_FIELDS: readonly TreeField[] = [
+  { key: "rr", label: "P(red then red)", kind: "value", answer: "1/9" },
+  { key: "bb", label: "P(blue then blue)", kind: "value", answer: "4/9" },
+  { key: "exactlyOneRed", label: "P(exactly one red)", kind: "value", answer: "4/9" },
+  {
+    key: "independent",
+    label: "Are the two spins independent?",
+    kind: "choice",
+    answer: "Independent",
+    options: ["Independent", "Dependent"],
+  },
+];
+
+/** Everything a tree activity needs. The component and the marker read this
+ *  one record, so the picture, the fields and the key cannot drift apart. */
+export interface TreeActivitySpec {
+  readonly title: string;
+  readonly intro: string;
+  readonly conceptId: string;
+  readonly activityId: "tree-values" | "tree-diagrams-values";
+  readonly tree: Extract<LessonFigureSpec, { kind: "tree" }>;
+  readonly fields: readonly TreeField[];
+  readonly caption: string;
+  readonly modelAnswer: string;
+  readonly correctFeedback: string;
+  readonly wrongFeedback: string;
+}
+
+export const PROBABILITY_TREE_ACTIVITY: TreeActivitySpec = {
+  title: "Two counters, no replacement",
+  intro:
+    "A bag starts with 3 red and 2 blue counters. Two counters are drawn without replacement. The first draw changes what is left for the second, so this is a dependent tree.",
+  conceptId: PROBABILITY_ACTIVITY_CONCEPT,
+  activityId: "tree-values",
+  tree: PROBABILITY_TREE,
+  fields: TREE_FIELDS,
+  caption:
+    "The first branch is out of 5 counters. The second branch is out of the 4 that remain: after a red, 2 red and 2 blue remain; after a blue, 3 red and 1 blue remain. Multiply along a path; do not multiply the first probability by itself.",
+  modelAnswer:
+    "P(red then red) = 6/20; P(blue then blue) = 2/20; P(at least one red) = 18/20 = 9/10; the draws are dependent.",
+  correctFeedback:
+    "The second branch depends on the first: after a red, 2 red and 2 blue remain; after a blue, 3 red and 1 blue remain. The four paths total 1.",
+  wrongFeedback:
+    "Multiply along a path, not across branches. The four paths are 6/20, 6/20, 6/20 and 2/20; they should total 1. At least one red is the complement of blue then blue.",
+};
+
+export const TREE_DIAGRAM_ACTIVITY: TreeActivitySpec = {
+  title: "Two independent spins",
+  intro:
+    "A spinner lands on red with probability 1/3 and blue with probability 2/3. It is spun twice, and the spinner is unchanged between spins. Draw both stages, multiply along each path, and use the complement for 'exactly one red' if you prefer.",
+  conceptId: "tree-diagrams",
+  activityId: "tree-diagrams-values",
+  tree: TREE_DIAGRAMS_TREE,
+  fields: TREE_DIAGRAM_FIELDS,
+  caption:
+    "Each first branch has the same pair of second branches because the spinner is unchanged. The four paths are 1/9, 2/9, 2/9 and 4/9; together they make 1. Exactly one red is the two middle paths, not a single branch.",
+  modelAnswer:
+    "P(red then red) = 1/9; P(blue then blue) = 4/9; P(exactly one red) = 2/9 + 2/9 = 4/9; the spins are independent.",
+  correctFeedback:
+    "Independent means the second spin is unchanged by the first, so both stages use 1/3 and 2/3. Multiply along a path; add the two paths that satisfy 'exactly one red': 2/9 + 2/9 = 4/9.",
+  wrongFeedback:
+    "Multiply along a path: red then red is 1/3 × 1/3 = 1/9. Do not add 1/3 + 1/3. For exactly one red, add the two distinct orders, red-blue and blue-red; the total of all four paths must be 1.",
+};
+
+function gradeTreeFields(
+  fieldsIn: readonly TreeField[],
+  response: unknown,
+  modelAnswer: string,
+  correctFeedback: string,
+  wrongFeedback: string,
+): ProbabilityActivityResult | null {
   if (!response || typeof response !== "object" || Array.isArray(response)) return null;
   const submitted = response as Record<string, unknown>;
   const fields: FieldResult[] = [];
   let invalid = false;
 
-  for (const field of TREE_FIELDS) {
+  for (const field of fieldsIn) {
     const raw = submitted[field.key];
     if (field.kind === "choice") {
       if (typeof raw !== "string" || !field.options?.includes(raw)) {
@@ -374,16 +476,30 @@ function gradeTree(response: unknown): ProbabilityActivityResult | null {
   }
 
   if (invalid) return null;
-  const correct = fields.every((field) => field.correct);
   return {
-    correct,
-    modelAnswer:
-      "P(red then red) = 6/20; P(blue then blue) = 2/20; P(at least one red) = 18/20 = 9/10; the draws are dependent.",
-    feedback: correct
-      ? "The second branch depends on the first: after a red, 2 red and 2 blue remain; after a blue, 3 red and 1 blue remain. The four paths total 1."
-      : "Multiply along a path, not across branches. The four paths are 6/20, 6/20, 6/20 and 2/20; they should total 1. At least one red is the complement of blue then blue.",
+    correct: fields.every((field) => field.correct),
+    modelAnswer,
+    feedback: fields.every((field) => field.correct) ? correctFeedback : wrongFeedback,
     fields,
   };
+}
+
+function gradeTree(response: unknown): ProbabilityActivityResult | null {
+  return gradeTreeFields(
+    TREE_FIELDS, response,
+    PROBABILITY_TREE_ACTIVITY.modelAnswer,
+    PROBABILITY_TREE_ACTIVITY.correctFeedback,
+    PROBABILITY_TREE_ACTIVITY.wrongFeedback,
+  );
+}
+
+function gradeTreeDiagram(response: unknown): ProbabilityActivityResult | null {
+  return gradeTreeFields(
+    TREE_DIAGRAM_FIELDS, response,
+    TREE_DIAGRAM_ACTIVITY.modelAnswer,
+    TREE_DIAGRAM_ACTIVITY.correctFeedback,
+    TREE_DIAGRAM_ACTIVITY.wrongFeedback,
+  );
 }
 
 export function gradeProbabilityActivity(
@@ -394,6 +510,7 @@ export function gradeProbabilityActivity(
     case "venn-union": return gradeVennUnion(response);
     case "venn-neither": return gradeVennNeither(response);
     case "tree-values": return gradeTree(response);
+    case "tree-diagrams-values": return gradeTreeDiagram(response);
     default: return null;
   }
 }

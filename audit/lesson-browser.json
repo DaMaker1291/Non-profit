@@ -1,0 +1,17 @@
+{
+  "generatedBy": "scripts/lesson-walk.mjs",
+  "at": "2026-11-12T17:54:53.892Z",
+  "command": "npm run verify:lesson",
+  "passed": 989,
+  "failed": 0,
+  "authoredLessons": 88,
+  "authoredCatalogue": 88,
+  "allAuthoredPainted": true,
+  "widths": [
+    1280,
+    768,
+    375,
+    320
+  ],
+  "note": "Browser-measured authored lesson pages and plan figures. The authoredCatalogue value is checked against audit/lesson-catalogue.json; a mismatch is a stale record, not a pass."
+}

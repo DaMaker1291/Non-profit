@@ -1,7 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PILOT_LESSON_VERSION = exports.PILOT_APPROVALS = exports.PILOT_SUPPORTED_LANGUAGES = exports.PILOT_CONCEPT_IDS = exports.PILOT_SEQUENCE = exports.CBSE_X_PILOT = void 0;
+exports.PILOT_TEST_APPROVALS = exports.PILOT_LESSON_VERSION = exports.PILOT_APPROVALS = exports.PILOT_SUPPORTED_LANGUAGES = exports.PILOT_CONCEPT_IDS = exports.PILOT_SEQUENCE = exports.CBSE_X_PILOT = void 0;
 exports.pilotLanguageSupported = pilotLanguageSupported;
+exports.pilotApprovals = pilotApprovals;
 exports.planGaps = planGaps;
 exports.approvalProblems = approvalProblems;
 exports.lessonStatus = lessonStatus;
@@ -15,10 +16,11 @@ exports.pilotWordCount = pilotWordCount;
 // THE PILOT — what is actually allowed in front of a learner, and what is not.
 //
 // The deployment audit found the product's most dangerous educational defect:
-// 120 of 135 concepts rendered a 31–58 word genome summary in the same visual
-// position as a complete lesson. Nothing on the page said "this is not a
-// lesson", so a learner — and a visiting teacher — could reasonably read it as
-// one. This module is the single answer to that question.
+// before the supplemental plans, 120 of 135 concepts rendered a 31–58 word
+// genome summary in the same visual position as a complete lesson. Nothing on
+// the page said "this is not a lesson", so a learner — and a visiting teacher —
+// could reasonably read it as one. This module is the single answer to that
+// question, and it still distinguishes a complete plan from a reviewed one.
 //
 // FOUR STATES, and they are deliberately not a percentage:
 //
@@ -51,7 +53,7 @@ exports.CBSE_X_PILOT = {
     excludes: [
         "ICSE, state boards and every other country",
         "Hindi, Bengali, Urdu and every other medium of instruction",
-        "the 116 concepts with no complete authored lesson",
+        "the 116 concepts outside this 12-lesson path, including every supplemental lesson",
         "any claim of full CBSE syllabus coverage",
         "any school, teacher or learner partnership",
     ],
@@ -105,6 +107,50 @@ exports.PILOT_APPROVALS = [];
 /** A content version. Bump this whenever any pilot lesson changes; an approval
  *  for an older version no longer applies. */
 exports.PILOT_LESSON_VERSION = "2026-11-01.3";
+/** TEST-ONLY APPROVALS, AND THEY ARE NOT A REVIEW.
+ *
+ *  The browser walks need to exercise the assignment loop, and a real teacher
+ *  has not signed any lesson for this build. This registry exists so the walk
+ *  can run against the real gate instead of bypassing it: the records are
+ *  deliberately named as test fixtures, the registry is empty in production,
+ *  and it is read only when `OPENMIND_TEST_CONTENT_APPROVALS=1` in a
+ *  non-production process. `PILOT_APPROVALS` stays empty — the product's own
+ *  answer to "may a class be set this lesson?" remains no.
+ *
+ *  The two concepts are the ones `scripts/ui-walk-teacher.mjs` sets. The
+ *  approval is scoped to the candidate CBSE scope and the current lesson
+ *  version, like every real approval, so the gate still checks the shape it
+ *  will check when a qualified reviewer supplies one. */
+exports.PILOT_TEST_APPROVALS = [
+    "fractions",
+    "negatives",
+].map((conceptId) => ({
+    conceptId,
+    scopeId: exports.CBSE_X_PILOT.id,
+    lessonVersion: exports.PILOT_LESSON_VERSION,
+    reviewer: "OpenMind test fixture",
+    reviewerRole: "automated test fixture — not a subject review",
+    reviewedAt: "2026-11-01",
+    notes: "Test-only approval used by the browser walk; never a claim of review.",
+    checklist: {
+        subjectAccuracy: true,
+        explanationQuality: true,
+        workedExamples: true,
+        questionsAndMarking: true,
+        diagramQuality: true,
+        languageAndTerminology: true,
+        ageAppropriateness: true,
+        accessibility: true,
+    },
+}));
+/** The approvals in force for this process. Production always reads the real,
+ *  empty registry; the fixture is reachable only from an explicit development
+ *  test run. */
+function pilotApprovals() {
+    const testRun = process.env.NODE_ENV !== "production"
+        && process.env.OPENMIND_TEST_CONTENT_APPROVALS === "1";
+    return testRun ? [...exports.PILOT_APPROVALS, ...exports.PILOT_TEST_APPROVALS] : exports.PILOT_APPROVALS;
+}
 /** What a complete plan must carry before anybody can review it. This is a
  *  STRUCTURAL check, not a subject review: it can say a plan has four idea
  *  paragraphs and a trap explanation, and it cannot say the physics is right. */
@@ -173,7 +219,7 @@ function approvalProblems(a, plan) {
 function lessonStatus(conceptId, lang = "en", scope = exports.CBSE_X_PILOT, 
 /** Injected ONLY by the gate, so the approved branch can be driven with a
  *  synthetic record. The product always uses the empty real registry above. */
-approvals = exports.PILOT_APPROVALS) {
+approvals = pilotApprovals()) {
     // THE PLAN IN THE LANGUAGE THE LESSON IS TAUGHT IN, not the English one.
     // `planFor` falls back to English when no complete translation exists; the
     // language branch below is what stops that fallback from being reported as a
@@ -201,7 +247,7 @@ approvals = exports.PILOT_APPROVALS) {
     }
     else if (!inScope) {
         state = "needs-educator-review";
-        reasons.push("A complete authored lesson, but outside the 12-lesson CBSE pilot scope.");
+        reasons.push("A complete lesson plan, but outside the 12-lesson CBSE pilot scope.");
     }
     else {
         const approval = approvalFor(conceptId, scope.id, approvals);
@@ -225,7 +271,7 @@ approvals = exports.PILOT_APPROVALS) {
 }
 /** ONLY approved lessons may enter the learner-facing pilot path. Today this is
  *  empty, and that is the honest answer, not a bug to work around. */
-function approvedPilotPath(scope = exports.CBSE_X_PILOT, approvals = exports.PILOT_APPROVALS) {
+function approvedPilotPath(scope = exports.CBSE_X_PILOT, approvals = pilotApprovals()) {
     return exports.PILOT_SEQUENCE.filter((id) => lessonStatus(id, scope.language, scope, approvals).state === "approved-for-pilot");
 }
 /** The review queue: complete authored candidates that are not approved. */

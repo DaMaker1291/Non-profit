@@ -1,7 +1,7 @@
 {
   "schema": "openmind.readiness/1.0",
   "generatedBy": "scripts/international-readiness.mjs",
-  "generatedAt": "2026-11-10T21:24:50.982Z",
+  "generatedAt": "2026-11-12T17:49:09.132Z",
   "sources": {
     "catalogue": "audit/lesson-catalogue.json",
     "lessonAudit": "reports/lesson-quality/audit.json",
@@ -12,15 +12,15 @@
   "note": "State is scoped. automated_verified means the deterministic checks passed; it is not educator review, learner testing or production approval. A row may be draft while the lesson contract is automated_verified: coverage and review are different questions.",
   "numbers": {
     "concepts": 135,
-    "authored": 70,
-    "outlines": 65,
-    "machineChecked": 70,
+    "authored": 88,
+    "outlines": 47,
+    "machineChecked": 88,
     "educatorReviewed": 0,
     "learnerTested": 0,
     "published": 0,
     "criticalGaps": 0,
-    "highGaps": 65,
-    "reviewQueue": 70,
+    "highGaps": 47,
+    "reviewQueue": 88,
     "languages": 15,
     "teachingLanguagesReviewed": 0,
     "teachingLanguagesMachine": 2,
@@ -36,7 +36,7 @@
       "id": "content.authored-contract",
       "scope": "Every authored lesson, against openmind.lesson/1.0",
       "state": "automated_verified",
-      "claim": "70 authored lessons meet the deterministic contract; 70 are machine_checked.",
+      "claim": "88 authored lessons meet the deterministic contract; 88 are machine_checked.",
       "evidence": [
         "audit/lesson-catalogue.json",
         "reports/lesson-quality/audit.json",
@@ -60,7 +60,7 @@
       "id": "content.curriculum-coverage",
       "scope": "All 135 concepts required by the current bank",
       "state": "missing",
-      "claim": "70 authored / 135; 65 outlines remain; no critical stage-1 gap remains.",
+      "claim": "88 authored / 135; 47 outlines remain; no critical stage-1 gap remains.",
       "evidence": [
         "audit/lesson-catalogue.json",
         "reports/lesson-quality/queue.md"
@@ -70,7 +70,7 @@
         "node scripts/lesson-quality-audit.mjs"
       ],
       "knownDefects": [
-        "65 high-priority outlines remain"
+        "47 high-priority outlines remain"
       ],
       "dependencies": [
         "lib/genome.ts",
@@ -83,7 +83,7 @@
       "id": "content.educator-review",
       "scope": "Every authored lesson, against its exact version and content hash",
       "state": "human_review_required",
-      "claim": "0 educator-reviewed; 70 authored lessons await a qualified human review.",
+      "claim": "0 educator-reviewed; 88 authored lessons await a qualified human review.",
       "evidence": [
         "audit/lesson-catalogue.json",
         "audit/validation/TEACHER_REVIEW_PACK.md"
@@ -1781,7 +1781,7 @@
       "id": "content.next-high-priority-outline",
       "title": "Author the next high-priority lesson outline",
       "state": "missing",
-      "why": "There are no critical stage-1 gaps left, but 65 high-priority outlines remain; the queue is now the content backlog.",
+      "why": "There are no critical stage-1 gaps left, but 47 high-priority outlines remain; the queue is now the content backlog.",
       "nextAction": "Take the first item in reports/lesson-quality/queue.md and author it to openmind.lesson/1.0, then regenerate and run the lesson gates.",
       "humanRequired": false
     },
@@ -1826,7 +1826,7 @@
       "id": "content.educator-review",
       "title": "Obtain genuine educator reviews",
       "state": "human_review_required",
-      "why": "0 of 70 authored lessons has a human subject review.",
+      "why": "0 of 88 authored lessons has a human subject review.",
       "nextAction": "Send the version-pinned pack to a qualified teacher and record the real decision.",
       "humanRequired": true
     },

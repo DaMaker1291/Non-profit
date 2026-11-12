@@ -125,6 +125,145 @@ async function newProfile(body) {
   return r;
 }
 
+/** The answer fields for a served item, in the shape its SERVER-staged kind
+ *  requires. A practice serve may now ask for a fraction or a coordinate pair
+ *  instead of an option, and a numeric item accepts a typed value. Sending
+ *  `choiceIndex` to a constructed-response item is refused before grading —
+ *  which made this suite report real mastery-building as broken.
+ *
+ *  `correct` picks the item's own key when the `reveal` test hook supplied it;
+ *  `any` is for assertions that only need a valid submission (an event, a hint
+ *  count), where the served view deliberately withholds the key. */
+function answerFields(q, correct = true) {
+  if (q.responseKind === "fraction" && q.answerFraction) {
+    const { numerator, denominator } = q.answerFraction;
+    return {
+      fractionAnswer: {
+        numerator: String(correct ? numerator : numerator + 1),
+        denominator: String(denominator),
+      },
+    };
+  }
+  if (q.responseKind === "pair" && q.answerPair) {
+    const { x, y } = q.answerPair;
+    return { pairAnswer: { x: String(correct ? x : x + 1), y: String(y) } };
+  }
+  if (q.responseKind === "numeric" && typeof q.answerValue === "number") {
+    if (correct) return { numericAnswer: String(q.answerValue) };
+    const distractor = (q.choiceValues ?? []).find(
+      (v) => typeof v === "number" && Number.isFinite(v) && Math.abs(v - q.answerValue) > 1e-9,
+    );
+    return { numericAnswer: String(distractor ?? q.answerValue + 1) };
+  }
+  const idx = correct || !Array.isArray(q.choices)
+    ? q.answer
+    : (q.answer + 1) % q.choices.length;
+  return { choiceIndex: idx };
+}
+function anyAnswerFields(q) {
+  if (q.responseKind === "fraction") return { fractionAnswer: { numerator: "1", denominator: "2" } };
+  if (q.responseKind === "pair") return { pairAnswer: { x: "0", y: "0" } };
+  if (q.responseKind === "numeric") return { numericAnswer: "0" };
+  return { choiceIndex: 0 };
+}
+
+/** A paper's stored key, read from the scratch store this suite already owns.
+ *  The served paper deliberately withholds it; a sitting that must be perfect
+ *  has to answer from the same key the server marks against. */
+function storedPaperKey(paperId) {
+  try {
+    const all = JSON.parse(fs.readFileSync(path.join(DATA_DIR, "papers.json"), "utf8"));
+    return all?.[paperId] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** The correct typed response for one structured part. Every branch mirrors the
+ *  authored scheme, including the follow-through part: its value is read from
+ *  the line the learner's plot part draws. */
+function structuredCorrectAnswer(part, prior) {
+  if (part.response === "graph" && part.graph) {
+    const { m, c, xMin, xMax } = part.graph;
+    return `${xMin},${m * xMin + c} ${xMax},${m * xMax + c}`;
+  }
+  if (part.response === "plot" && part.plot) {
+    return JSON.stringify({
+      points: part.plot.points.map((p) => [p.x, p.y]),
+      line: true,
+    });
+  }
+  if (part.response === "readoff" && part.readOff) {
+    const source = prior.find((p) => p.id === part.readOff.from && p.plot)?.plot;
+    if (source) return String(source.m * part.readOff.at + source.c);
+    return String(part.readOff.at);
+  }
+  if (part.response === "algebra" && part.algebra?.accepted?.length) {
+    return part.algebra.accepted[0];
+  }
+  if (part.response === "table" && part.table) {
+    return JSON.stringify(part.table.rows.flatMap((row) => row.cells
+      .filter((cell) => cell.answer !== undefined)
+      .map((cell) => String(cell.answer))));
+  }
+  if (part.response === "short" && part.short?.length) {
+    return part.short.map((criterion) => criterion.accept[0]).filter(Boolean).join(". ");
+  }
+  if (Array.isArray(part.accepted) && part.accepted.length) return part.accepted[0];
+  return part.unitRequired && part.unit ? `${part.answer} ${part.unit}` : String(part.answer);
+}
+
+/** A complete sitting built from the mark scheme. `keep` lets the partial
+ *  sitting submit only the questions it is meant to answer; every answer it
+ *  sends is correct, so the only lost marks are the skipped ones. */
+function correctPaperSitting(key, keep = () => true) {
+  const answers = {};
+  const numericAnswers = {};
+  const structuredAnswers = {};
+  const structuredWorking = {};
+  key.questions.forEach((q, index) => {
+    if (!keep(q, index)) return;
+    if (q.structured) {
+      structuredAnswers[q.id] = q.structured.map((part, i) =>
+        structuredCorrectAnswer(part, q.structured.slice(0, i)));
+      structuredWorking[q.id] = q.structured.map((part) => part.method?.accept?.[0] ?? "");
+      return;
+    }
+    if (q.responseKind === "numeric" && typeof q.answerValue === "number") {
+      numericAnswers[q.id] = String(q.answerValue);
+      return;
+    }
+    answers[q.id] = q.answer;
+  });
+  return { answers, numericAnswers, structuredAnswers, structuredWorking };
+}
+
+/** A deliberately wrong but fully attempted sitting: every question carries
+ *  input, so nothing is unanswered, and the numeric sentinel cannot coincide
+ *  with a real key. Choice index 0 is the one answer a paper may accidentally
+ *  mark right, which is why the assertions below read the result rather than
+ *  assuming a particular score. */
+function wrongPaperSitting(paper) {
+  const answers = {};
+  const numericAnswers = {};
+  const structuredAnswers = {};
+  const structuredWorking = {};
+  const sentinel = "-987654321";
+  for (const section of paper.sections) {
+    for (const q of section.questions) {
+      if (q.structured) {
+        structuredAnswers[q.id] = q.structured.parts.map(() => sentinel);
+        structuredWorking[q.id] = q.structured.parts.map(() => sentinel);
+      } else if (q.view.responseKind === "numeric") {
+        numericAnswers[q.id] = sentinel;
+      } else {
+        answers[q.id] = 0;
+      }
+    }
+  }
+  return { answers, numericAnswers, structuredAnswers, structuredWorking };
+}
+
 /** A TEACHER is a signed-in account. The returned shape matches `newProfile`
  *  (`body.profile.id`), so a call site that only needs the id keeps working —
  *  the difference is that the cookie is recorded here and attached by
@@ -204,12 +343,11 @@ if (s1.status === 200 && s1.body.question && !("answer" in s1.body.question)) {
 // without the hook the answer fields must be stripped
 const sPlain = await post("/api/progress", { action: "serve", id: pid, conceptId: "fractions" });
 ok(!("answer" in sPlain.body.question) && !("explanation" in sPlain.body.question), "served question carries no answer fields");
-const wrongIdx = (s1.body.question.answer + 1) % s1.body.question.choices.length;
-const p1 = await post("/api/progress", { action: "answer", id: pid, conceptId: "linear-equations", questionId: s1.body.question.id, choiceIndex: wrongIdx });
+const wrongIdx = (s1.body.question.answer + 1) % s1.body.question.choices.length;  const p1 = await post("/api/progress", { action: "answer", id: pid, conceptId: "linear-equations", questionId: s1.body.question.id, ...answerFields(s1.body.question, false) });
 ok(p1.status === 200 && p1.body.correct === false, "wrong answer graded server-side");
 ok(p1.body.misconceptionId, `wrong answer names a misconception (${p1.body.misconceptionId})`);
 const s2 = await post("/api/progress", { action: "serve", id: pid, conceptId: "linear-equations", reveal: true });
-const p2 = await post("/api/progress", { action: "answer", id: pid, conceptId: "linear-equations", questionId: s2.body.question.id, choiceIndex: s2.body.question.answer });
+const p2 = await post("/api/progress", { action: "answer", id: pid, conceptId: "linear-equations", questionId: s2.body.question.id, ...answerFields(s2.body.question) });
 ok(p2.status === 200 && p2.body.correct === true && p2.body.streak === 1, "streak builds on correct");
 ok(p2.body.mastery > p1.body.mastery, `mastery rose (${p1.body.mastery.toFixed(3)} → ${p2.body.mastery.toFixed(3)})`);
 // stale question (already graded) must be refused
@@ -225,7 +363,7 @@ async function lift(conceptId, times = 1) {
   for (let i = 0; i < times; i++) {
     const s = await post("/api/progress", { action: "serve", id: pid, conceptId, reveal: true });
     if (s.status !== 200) return false;
-    const r = await post("/api/progress", { action: "answer", id: pid, conceptId, questionId: s.body.question.id, choiceIndex: s.body.question.answer });
+    const r = await post("/api/progress", { action: "answer", id: pid, conceptId, questionId: s.body.question.id, ...answerFields(s.body.question) });
     if (r.status !== 200 || !r.body.correct) return false;
   }
   return true;
@@ -267,8 +405,7 @@ const lid = lprof.body.profile.id;
 async function gradeOne(who, conceptId, correct) {
   const s = await post("/api/progress", { action: "serve", id: who, conceptId, reveal: true });
   if (s.status !== 200) return null;
-  const idx = correct ? s.body.question.answer : (s.body.question.answer + 1) % s.body.question.choices.length;
-  const r = await post("/api/progress", { action: "answer", id: who, conceptId, questionId: s.body.question.id, choiceIndex: idx });
+  const r = await post("/api/progress", { action: "answer", id: who, conceptId, questionId: s.body.question.id, ...answerFields(s.body.question, correct) });
   return r.status === 200 ? r.body : null;
 }
 
@@ -329,7 +466,7 @@ ok(again.status === 409, "finishing with no baseline is refused rather than fabr
 await post("/api/session", { action: "start", id: lid, conceptId: "linear-equations", kind: "TRANSFER", target: 3 });
 const ts = await post("/api/progress", { action: "serve", id: lid, conceptId: "linear-equations", intent: "transfer", reveal: true });
 ok(ts.status === 200 && ts.body.question, "a transfer question is served");
-const ta = await post("/api/progress", { action: "answer", id: lid, conceptId: "linear-equations", questionId: ts.body.question.id, choiceIndex: ts.body.question.answer });
+const ta = await post("/api/progress", { action: "answer", id: lid, conceptId: "linear-equations", questionId: ts.body.question.id, ...answerFields(ts.body.question) });
 ok(ta.status === 200 && ta.body.correct === true, "it is answered correctly");
 const tf = await post("/api/session", { action: "finish", id: lid, conceptId: "linear-equations" });
 ok(tf.status === 200 && tf.body.result?.activity?.transferAsked === 1,
@@ -348,7 +485,7 @@ ok(tf.body.result?.activity?.hints === 0, "with no hints, so independence is int
   // (i) Unaided practice: independent, no hints, sourced as practice.
   const sg = await post("/api/progress", { action: "serve", id: lid, conceptId: "fractions", reveal: true });
   ok(sg.status === 200 && sg.body.question, "a plain practice question is served");
-  const ag = await post("/api/progress", { action: "answer", id: lid, conceptId: "fractions", questionId: sg.body.question.id, choiceIndex: sg.body.question.answer });
+  const ag = await post("/api/progress", { action: "answer", id: lid, conceptId: "fractions", questionId: sg.body.question.id, ...answerFields(sg.body.question) });
   const ev = ag.body.demonstrated;
   ok(ag.status === 200 && ev && typeof ev === "object", "the grade carries what the answer demonstrated");
   // …and it is NOT the ledger event. A client handed the shape a graded answer
@@ -367,7 +504,7 @@ ok(tf.body.result?.activity?.hints === 0, "with no hints, so independence is int
   const hintedQ = sh.body.question.id;
   const hint = await post("/api/progress", { action: "hint", id: lid, conceptId: "fractions", questionId: hintedQ, level: 2 });
   ok(hint.status === 200, "a hint can be taken on the served question");
-  const ah = await post("/api/progress", { action: "answer", id: lid, conceptId: "fractions", questionId: hintedQ, choiceIndex: sh.body.question.answer });
+  const ah = await post("/api/progress", { action: "answer", id: lid, conceptId: "fractions", questionId: hintedQ, ...answerFields(sh.body.question) });
   const evh = ah.body.demonstrated;
   ok(ah.status === 200 && ah.body.correct === true, "and the answer is still graded correct");
   ok(evh.hints >= 1, `but the server counts the hint it watched (hints=${evh.hints})`);
@@ -389,8 +526,7 @@ const answerOnce = async (who, correct, log) => {
   if (s.status !== 200) return null;
   const q = s.body.question;
   log?.push({ difficulty: q.difficulty, target: s.body.target });
-  const idx = correct ? q.answer : (q.answer + 1) % q.choices.length;
-  const r = await post("/api/progress", { action: "answer", id: who, conceptId: CONCEPT, questionId: q.id, choiceIndex: idx });
+  const r = await post("/api/progress", { action: "answer", id: who, conceptId: CONCEPT, questionId: q.id, ...answerFields(q, correct) });
   return r.status === 200 ? { served: s.body, graded: r.body } : null;
 };
 
@@ -458,7 +594,7 @@ ok(transferTarget.body.target === null,
   const hs = await post("/api/progress", { action: "serve", id: lid, conceptId: "fractions", intent: "transfer", reveal: true });
   ok(hs.status === 200 && hs.body.question, "a transfer request serves a question");
   await post("/api/progress", { action: "hint", id: lid, conceptId: "fractions", questionId: hs.body.question.id, level: 1 });
-  const ha = await post("/api/progress", { action: "answer", id: lid, conceptId: "fractions", questionId: hs.body.question.id, choiceIndex: hs.body.question.answer });
+  const ha = await post("/api/progress", { action: "answer", id: lid, conceptId: "fractions", questionId: hs.body.question.id, ...answerFields(hs.body.question) });
   ok(ha.status === 200 && ha.body.demonstrated?.mode === "guided" && ha.body.demonstrated?.hints >= 1,
     `a hinted TRANSFER answer is attributed as guided, never as independent work (${JSON.stringify(ha.body.demonstrated)})`);
   ok(ha.body.demonstrated?.retained === false, "and it is not dressed up as delayed recall either");
@@ -690,7 +826,7 @@ ok(dFin.body.result.misconceptions !== undefined, "result carries misconception 
     const srv = await post("/api/progress", { action: "serve", id: kid2, conceptId: WEAK, reveal: true });
     const qp = srv.body.question;
     if (!qp) break;
-    const ans = await post("/api/progress", { action: "answer", id: kid2, conceptId: WEAK, questionId: qp.id, choiceIndex: qp.answer });
+    const ans = await post("/api/progress", { action: "answer", id: kid2, conceptId: WEAK, questionId: qp.id, ...answerFields(qp) });
     if (ans.status === 200) practised++;
   }
   ok(practised >= 4, `${practised} hint-free answers were graded server-side on the weak concept`);
@@ -865,7 +1001,7 @@ const wedgeAnon = await newProfile({ handle: "anon", country: "XX", language: "s
 ok(wedgeAnon.status === 200 && wedgeAnon.body.profile?.id, "anonymous wedge profile created (no onboarding fields)");
 const wedgeServe = await post("/api/progress", { action: "serve", id: wedgeAnon.body.profile.id, conceptId: "linear-equations" });
 ok(wedgeServe.status === 200 && wedgeServe.body.question?.choices?.length === 4 && !("answer" in wedgeServe.body.question), "wedge serve: no answer fields");
-const wedgeAns = await post("/api/progress", { action: "answer", id: wedgeAnon.body.profile.id, conceptId: "linear-equations", questionId: wedgeServe.body.question.id, choiceIndex: 1 });
+const wedgeAns = await post("/api/progress", { action: "answer", id: wedgeAnon.body.profile.id, conceptId: "linear-equations", questionId: wedgeServe.body.question.id, ...anyAnswerFields(wedgeServe.body.question) });
 ok(wedgeAns.status === 200 && typeof wedgeAns.body.correct === "boolean", "wedge answer graded server-side");
 
 // 9.5 Teacher network: plan determinism + offline pack export
@@ -1009,8 +1145,8 @@ ok((planJson.bank ?? []).every((d) => d.questions.every((q) => typeof q.prompt =
   // a real roster with two students and two real ledgers.
   const dueSoon = Date.now() + 3 * 24 * 60 * 60 * 1000;
   const aimed = await post("/api/assignments", {
-    id: tid, action: "create", clsId: physId, conceptIds: ["momentum"], dueAt: dueSoon,
-    title: "Small group: momentum", targetHandles: ["phys_kid_e2e"],
+    id: tid, action: "create", clsId: physId, conceptIds: ["electricity-circuits"], dueAt: dueSoon,
+    title: "Small group: circuits", targetHandles: ["phys_kid_e2e"],
   });
   ok(aimed.status === 200 && (aimed.body.assignment?.targetHandles ?? []).join(",") === "phys_kid_e2e",
     `work can be aimed at named learners (HTTP ${aimed.status}, targets ${JSON.stringify(aimed.body?.assignment?.targetHandles)})`);
@@ -1028,7 +1164,7 @@ ok((planJson.bank ?? []).every((d) => d.questions.every((q) => typeof q.prompt =
   ok(quietWork.length === 0,
     "and the learner it was NOT aimed at never does — work for somebody else is not their homework");
   const ghostTarget = await post("/api/assignments", {
-    id: tid, action: "create", clsId: physId, conceptIds: ["momentum"], dueAt: dueSoon,
+    id: tid, action: "create", clsId: physId, conceptIds: ["electricity-circuits"], dueAt: dueSoon,
     title: "Ghost", targetHandles: ["nobody_in_this_class_e2e"],
   });
   ok(ghostTarget.status === 400 && /not a learner in this class/.test(ghostTarget.body?.error ?? ""),
@@ -1148,8 +1284,7 @@ async function driveFlare(handle) {
     const s = await post("/api/progress", { action: "serve", id: pid, conceptId: "negatives", reveal: true });
     if (s.status !== 200 || !s.body.question) break;
     const q = s.body.question;
-    const wrong = (q.answer + 1) % q.choices.length;
-    const a = await post("/api/progress", { action: "answer", id: pid, conceptId: "negatives", questionId: q.id, choiceIndex: wrong, reveal: true });
+    const a = await post("/api/progress", { action: "answer", id: pid, conceptId: "negatives", questionId: q.id, ...answerFields(q, false), reveal: true });
     flare = a.body?.flare ?? null;
   }
   return { prof, pid, flare };
@@ -1212,7 +1347,7 @@ ok(typeof mWrong.body.hint?.text === "string" && mWrong.body.hint.text.length > 
   const pid3 = prof3.body.profile.id;
   const svA = await post("/api/progress", { action: "serve", id: pid3, conceptId: "fractions", reveal: true });
   await post("/api/progress", { action: "hint", id: pid3, conceptId: "fractions", questionId: svA.body.question.id, level: 2 });
-  await post("/api/progress", { action: "answer", id: pid3, conceptId: "fractions", questionId: svA.body.question.id, choiceIndex: svA.body.question.answer });
+  await post("/api/progress", { action: "answer", id: pid3, conceptId: "fractions", questionId: svA.body.question.id, ...answerFields(svA.body.question) });
   const snap3 = (await getAuthed(`/api/progress?id=${pid3}&subject=maths`, pid3)).body;
   const pr3 = snap3.progress?.fractions ?? {};
   ok(!pr3.independent?.asked, `hinted answer bought no independence (${JSON.stringify(pr3.independent ?? null)})`);
@@ -1225,7 +1360,7 @@ ok(typeof mWrong.body.hint?.text === "string" && mWrong.body.hint.text.length > 
   const smuggle = await post("/api/progress", { action: "serve", id: pid4, conceptId: "fractions", reveal: true });
   await post("/api/progress", {
     action: "answer", id: pid4, conceptId: "fractions", questionId: smuggle.body.question.id,
-    choiceIndex: smuggle.body.question.answer, mode: "transfer", hints: 0,
+    ...answerFields(smuggle.body.question), mode: "transfer", hints: 0,
   });
   const snap4s = (await getAuthed(`/api/progress?id=${pid4}&subject=maths`, pid4)).body;
   ok(!(snap4s.progress?.fractions?.transfer?.asked), "client-declared transfer mode bought no credit");
@@ -1242,7 +1377,7 @@ ok(typeof mWrong.body.hint?.text === "string" && mWrong.body.hint.text.length > 
   }
   ok(!!noSurface,
     `the door still finds a concept it cannot re-frame, so the fallback rule is tested on real behaviour (${noSurface ?? "none found"})`);
-  await post("/api/progress", { action: "answer", id: pid4, conceptId: noSurface, questionId: svD.body.question.id, choiceIndex: svD.body.question.answer });
+  await post("/api/progress", { action: "answer", id: pid4, conceptId: noSurface, questionId: svD.body.question.id, ...answerFields(svD.body.question) });
   const snap4d = (await getAuthed(`/api/progress?id=${pid4}&subject=maths`, pid4)).body;
   ok(!(snap4d.progress?.[noSurface]?.transfer?.asked),
     `direct (same-surface) re-draw granted no transfer credit (${noSurface})`);
@@ -1250,14 +1385,14 @@ ok(typeof mWrong.body.hint?.text === "string" && mWrong.body.hint.text.length > 
   // inverse surface) and correct recognition there earns the credit.
   const svC = await post("/api/progress", { action: "serve", id: pid4, conceptId: "linear-equations", intent: "transfer", reveal: true });
   ok(svC.status === 200 && svC.body.question, "transfer-staged serve succeeds");
-  const trAns = await post("/api/progress", { action: "answer", id: pid4, conceptId: "linear-equations", questionId: svC.body.question.id, choiceIndex: svC.body.question.answer });
+  const trAns = await post("/api/progress", { action: "answer", id: pid4, conceptId: "linear-equations", questionId: svC.body.question.id, ...answerFields(svC.body.question) });
   ok(trAns.status === 200 && trAns.body.correct === true, "transfer question graded server-side");
   const snap4 = (await getAuthed(`/api/progress?id=${pid4}&subject=maths`, pid4)).body;
   const pr4 = snap4.progress?.["linear-equations"] ?? {};
   ok(pr4.transfer?.asked >= 1 && pr4.transfer?.correct >= 1, `staged transfer attributed server-side (${JSON.stringify(pr4.transfer)})`);
   // c) Transfer credit is one-shot: replaying the spent questionId is rejected
   //    outright and cannot farm further transfer attempts.
-  const replay = await post("/api/progress", { action: "answer", id: pid4, conceptId: "linear-equations", questionId: svC.body.question.id, choiceIndex: svC.body.question.answer });
+  const replay = await post("/api/progress", { action: "answer", id: pid4, conceptId: "linear-equations", questionId: svC.body.question.id, ...answerFields(svC.body.question) });
   ok(replay.status === 400, "replayed/credited question rejected (one grading per serve)");
   const snap4b = (await getAuthed(`/api/progress?id=${pid4}&subject=maths`, pid4)).body;
   ok((snap4b.progress?.["linear-equations"]?.transfer?.asked ?? 0) === 1, `no transfer credit farming (${JSON.stringify(snap4b.progress?.["linear-equations"]?.transfer)})`);
@@ -1287,10 +1422,14 @@ ok(typeof mWrong.body.hint?.text === "string" && mWrong.body.hint.text.length > 
   ok(sectionMarks === paper.marks, `the paper's own marks add up (${sectionMarks} = ${paper.marks})`);
 
   const paperId = paper.id;
-  // Sloppy sitting: every answer index 0. Afterwards we know the key.
-  const zeros = {};
-  for (const sec of paper.sections) for (const q of sec.questions) zeros[q.id] = 0;
-  const first = await post("/api/paper", { paperId, answers: zeros, id: kid, lang: "en" });
+  const paperKey = storedPaperKey(paperId);
+  ok(!!paperKey, "the stored paper key is readable from the server's own store");
+  // Sloppy sitting: every question is attempted, and every typed answer is a
+  // sentinel no scheme can mark right. A blank numeric or structured box would
+  // be UNANSWERED, which is a different state from wrong and would break the
+  // evidence assertions below.
+  const wrong = wrongPaperSitting(paper);
+  const first = await post("/api/paper", { paperId, ...wrong, id: kid, lang: "en" });
   ok(first.status === 200 && first.body.result, "a sitting is marked");
   const r1 = first.body.result;
   const a1 = first.body.analysis;
@@ -1345,9 +1484,10 @@ ok(typeof mWrong.body.hint?.text === "string" && mWrong.body.hint.text.length > 
   ok(tagsAfter > 0, `paper mistakes record their misconception tags (${tagsAfter} tagged misses)`);
 
   // Second sitting of the SAME stored paper, now with the key we were given.
-  const good = {};
-  for (const q of r1.perQuestion) good[q.id] = q.answer;
-  const second = await post("/api/paper", { paperId, answers: good, id: kid, lang: "en" });
+  // The key includes numeric values and structured schemes, not just choice
+  // indexes: a paper is no longer a list of four-option questions.
+  const good = correctPaperSitting(paperKey);
+  const second = await post("/api/paper", { paperId, ...good, id: kid, lang: "en" });
   ok(second.status === 200, "the paper can be re-sat from its stored key");
   ok(second.body.result.raw === second.body.result.total, "a perfect sitting scores the paper's full marks");
   const a2 = second.body.analysis;
@@ -1363,9 +1503,8 @@ ok(typeof mWrong.body.hint?.text === "string" && mWrong.body.hint.text.length > 
 
   // Skipping is not believing: skipped questions lose marks, are counted
   // unanswered, and never tag a misconception.
-  const half = {};
-  for (const [i, q] of r1.perQuestion.entries()) if (i % 2 === 0) half[q.id] = q.answer;
-  const partial = await post("/api/paper", { paperId, answers: half, id: kid });
+  const half = correctPaperSitting(paperKey, (_q, i) => i % 2 === 0);
+  const partial = await post("/api/paper", { paperId, ...half, id: kid });
   const a3 = partial.body.analysis;
   const skippedCount = partial.body.result.perQuestion.filter((q) => q.correct === null).length;
   ok(skippedCount > 0 && a3.unansweredCount === skippedCount, `skipped questions are counted unanswered (${a3.unansweredCount})`);
@@ -1794,7 +1933,7 @@ ok(rootHtml.includes("openmind:lang") || rootHtml.includes("access-panel") || ro
 
   const s1 = await post("/api/progress", { ...g, action: "serve" });
   ok(s1.status === 200 && !!s1.body.question?.id, "a question is served to the ledger learner");
-  const a1 = await post("/api/progress", { ...g, action: "answer", questionId: s1.body.question.id, choiceIndex: 0, ms: 4000 });
+  const a1 = await post("/api/progress", { ...g, action: "answer", questionId: s1.body.question.id, ...anyAnswerFields(s1.body.question), ms: 4000 });
   ok(a1.status === 200 && typeof a1.body.correct === "boolean", "and graded by the server as usual");
   ok(a1.body.evidence === undefined,
     "the evidence event written for that answer is NOT handed back to the client — a client that can read the shape can author one");
@@ -1811,7 +1950,7 @@ ok(rootHtml.includes("openmind:lang") || rootHtml.includes("access-panel") || ro
   // A hinted answer: independence is the server's call, so the EVENT must say so.
   const s2 = await post("/api/progress", { ...g, action: "serve" });
   await post("/api/progress", { ...g, action: "hint", questionId: s2.body.question.id, level: 1 });
-  await post("/api/progress", { ...g, action: "answer", questionId: s2.body.question.id, choiceIndex: 0, ms: 3000 });
+  await post("/api/progress", { ...g, action: "answer", questionId: s2.body.question.id, ...anyAnswerFields(s2.body.question), ms: 3000 });
   const led2 = await getAuthed(`/api/evidence?id=${id}`, id);
   const last = led2.body.events[led2.body.events.length - 1];
   ok(last.hints === 1 && last.mode === "guided",
@@ -1900,7 +2039,7 @@ ok(rootHtml.includes("openmind:lang") || rootHtml.includes("access-panel") || ro
   const sv = await post("/api/progress", { action: "serve", id: lid, conceptId: "fractions", reveal: true });
   const an = await post("/api/progress", {
     action: "answer", id: lid, conceptId: "fractions",
-    questionId: sv.body.question.id, choiceIndex: sv.body.question.answer,
+    questionId: sv.body.question.id, ...answerFields(sv.body.question),
   });
   ok(an.status === 200 && an.body.correct === true, "the live answer is graded");
 
@@ -1938,10 +2077,10 @@ ok(rootHtml.includes("openmind:lang") || rootHtml.includes("access-panel") || ro
   // Two practice answers: one right, one wrong — counts, streak, accuracy,
   // misconception tags and pace all move on the live model.
   const sv1 = await post("/api/progress", { action: "serve", id: rid, conceptId: "fractions", reveal: true });
-  const an1 = await post("/api/progress", { action: "answer", id: rid, conceptId: "fractions", questionId: sv1.body.question.id, choiceIndex: sv1.body.question.answer, ms: 4000 });
+  const an1 = await post("/api/progress", { action: "answer", id: rid, conceptId: "fractions", questionId: sv1.body.question.id, ...answerFields(sv1.body.question), ms: 4000 });
   ok(an1.status === 200, "first practice answer graded");
   const sv2 = await post("/api/progress", { action: "serve", id: rid, conceptId: "fractions", reveal: true });
-  const an2 = await post("/api/progress", { action: "answer", id: rid, conceptId: "fractions", questionId: sv2.body.question.id, choiceIndex: (sv2.body.question.answer + 1) % sv2.body.question.choices.length, ms: 3000 });
+  const an2 = await post("/api/progress", { action: "answer", id: rid, conceptId: "fractions", questionId: sv2.body.question.id, ...answerFields(sv2.body.question, false), ms: 3000 });
   ok(an2.status === 200, "second practice answer graded");
 
   const led = await getAuthed(`/api/evidence?id=${rid}`, rid);
@@ -1995,7 +2134,7 @@ ok(rootHtml.includes("openmind:lang") || rootHtml.includes("access-panel") || ro
   const sv = await post("/api/progress", { action: "serve", id: bid, conceptId: "fractions", reveal: true });
   const an = await post("/api/progress", {
     action: "answer", id: bid, conceptId: "fractions", questionId: sv.body.question.id,
-    choiceIndex: sv.body.question.answer, ms: 2500,
+    ...answerFields(sv.body.question), ms: 2500,
   });
   ok(an.status === 200, "one recorded answer");
 
@@ -2178,7 +2317,7 @@ ok(rootHtml.includes("openmind:lang") || rootHtml.includes("access-panel") || ro
   ok(ts.status === 200 && ts.body.question, "a re-framed question is served for the transfer stage");
   const ta = await post("/api/progress", {
     action: "answer", id: jid, conceptId: tConcept,
-    questionId: ts.body.question.id, choiceIndex: ts.body.question.answer, ms: 3000,
+    questionId: ts.body.question.id, ...answerFields(ts.body.question), ms: 3000,
   });
   ok(ta.status === 200 && ta.body.correct === true, "and answered correctly, hint-free");
   const fin2 = await post("/api/session", { action: "finish", id: jid, conceptId: tConcept });
@@ -2375,7 +2514,7 @@ ok(rootHtml.includes("openmind:lang") || rootHtml.includes("access-panel") || ro
   ok(served.status === 200 && served.body.question, "a review question is served");
   const recalled = await post("/api/progress", {
     action: "answer", id: rid, conceptId: "fractions",
-    questionId: served.body.question.id, choiceIndex: served.body.question.answer, ms: 2500,
+    questionId: served.body.question.id, ...answerFields(served.body.question), ms: 2500,
   });
   ok(recalled.body?.correct === true, "and recalled correctly, hint-free");
   // WHAT THE ANSWER PROVED, in the server's own words: delayed recall, and it
@@ -2399,7 +2538,7 @@ ok(rootHtml.includes("openmind:lang") || rootHtml.includes("access-panel") || ro
   const again = await post("/api/progress", { action: "serve", id: rid, conceptId: "fractions", reveal: true });
   await post("/api/progress", {
     action: "answer", id: rid, conceptId: "fractions",
-    questionId: again.body.question.id, choiceIndex: again.body.question.answer, ms: 2000,
+    questionId: again.body.question.id, ...answerFields(again.body.question), ms: 2000,
   });
   const third = await getAuthed(`/api/evidence?id=${rid}`, rid);
   ok(third.body.projection.byConcept.fractions.retention.asked === 1,
@@ -2437,10 +2576,9 @@ ok(rootHtml.includes("openmind:lang") || rootHtml.includes("access-panel") || ro
   ok(fDue.body.actions?.[0]?.kind === "RETRIEVE",
     `the same concept comes due for them too (${fDue.body.actions?.[0]?.kind}:${fDue.body.actions?.[0]?.conceptId})`);
   const fServe = await post("/api/progress", { action: "serve", id: fid, conceptId: "fractions", reveal: true });
-  const fWrong = (fServe.body.question.answer + 1) % fServe.body.question.choices.length;
   const fAns = await post("/api/progress", {
     action: "answer", id: fid, conceptId: "fractions",
-    questionId: fServe.body.question.id, choiceIndex: fWrong, ms: 9000,
+    questionId: fServe.body.question.id, ...answerFields(fServe.body.question, false), ms: 9000,
   });
   ok(fAns.body?.correct === false, "and they fail the review");
   ok(fAns.body?.demonstrated?.source === "retrieval",
@@ -2500,7 +2638,7 @@ const stubLog = process.env.OPENMIND_AI_STUB_LOG ?? "";
     await post("/api/progress", {
       action: "answer", id: tid, conceptId: "fractions",
       questionId: serve.body.question.id,
-      choiceIndex: i === 0 ? serve.body.question.answer : (serve.body.question.answer + 1) % 4,
+      ...answerFields(serve.body.question, i === 0),
       ms: 4000,
     });
   }
@@ -2660,7 +2798,7 @@ const stubLog = process.env.OPENMIND_AI_STUB_LOG ?? "";
   const serve = await post("/api/progress", { action: "serve", id: did, conceptId: "fractions", reveal: true });
   await post("/api/progress", {
     action: "answer", id: did, conceptId: "fractions",
-    questionId: serve.body.question.id, choiceIndex: serve.body.question.answer, ms: 2500,
+    questionId: serve.body.question.id, ...answerFields(serve.body.question), ms: 2500,
   });
 
   const WRONG = "wrong-secret-value";
@@ -2757,7 +2895,7 @@ const stubLog = process.env.OPENMIND_AI_STUB_LOG ?? "";
     for (const conceptId of CONCEPTS) {
       const s = await post("/api/progress", { action: "serve", id, conceptId, reveal: true });
       if (s.status !== 200 || !s.body.question) return null;
-      held.push({ conceptId, questionId: s.body.question.id, choiceIndex: s.body.question.answer });
+      held.push({ conceptId, questionId: s.body.question.id, ...answerFields(s.body.question) });
     }
     return held;
   };
@@ -2769,7 +2907,7 @@ const stubLog = process.env.OPENMIND_AI_STUB_LOG ?? "";
     action: "answer", id,
     submissionId: `sub_e2e_${id.slice(-6)}_${i}`,
     deviceAt: Date.now() - 3 * DAY,
-    conceptId: h.conceptId, questionId: h.questionId, choiceIndex: h.choiceIndex, ms: 3000,
+    ...h, ms: 3000,
   }));
   const deliver = async (batch) => {
     const out = [];
@@ -3015,7 +3153,7 @@ const stubLog = process.env.OPENMIND_AI_STUB_LOG ?? "";
   const sv = await post("/api/progress", { action: "serve", id: student, conceptId: "decimals", reveal: true });
   const hq = sv.body.question.id;
   await post("/api/progress", { action: "hint", id: student, conceptId: "decimals", questionId: hq, level: 2 });
-  const anh = await post("/api/progress", { action: "answer", id: student, conceptId: "decimals", questionId: hq, choiceIndex: sv.body.question.answer });
+  const anh = await post("/api/progress", { action: "answer", id: student, conceptId: "decimals", questionId: hq, ...answerFields(sv.body.question) });
   ok(anh.status === 200 && anh.body.demonstrated?.mode === "guided" && anh.body.demonstrated?.hints >= 1,
     `the learner is told the answer was supported (mode=${anh.body.demonstrated?.mode}, hints=${anh.body.demonstrated?.hints})`);
   const hintedMon = (await getAuthed(`/api/assignments?me=${teacher}`, teacher)).body.monitor.find((m) => m.assignment.id === aid);
@@ -3333,7 +3471,7 @@ console.log("▸ Evidence→intervention: the loop, over its own doors");
   // A hint is support, never an unaided demonstration.
   const sv = await post("/api/progress", { action: "serve", id: s1, conceptId: IV, reveal: true });
   await post("/api/progress", { action: "hint", id: s1, conceptId: IV, questionId: sv.body.question.id, level: 2 });
-  await post("/api/progress", { action: "answer", id: s1, conceptId: IV, questionId: sv.body.question.id, choiceIndex: sv.body.question.answer });
+  await post("/api/progress", { action: "answer", id: s1, conceptId: IV, questionId: sv.body.question.id, ...answerFields(sv.body.question) });
   ok((await gradeOne(s1, IV, true))?.correct === true, "a second unaided answer, then another");
   const read2 = await post("/api/needs", { action: "read", id: ivTid, clsId: ivCid, needId: ivRec.id });
   const m2 = read2.body.outcome.members.find((m) => m.handle === "iv_s1");

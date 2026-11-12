@@ -368,7 +368,13 @@ const devData = fs.mkdtempSync(path.join(os.tmpdir(), "om-devcheck-"));
 const devLog = path.join(devData, "server.log");
 const devChild = startServer(
   "npx", ["next", "dev", "-p", String(DEV_PORT)],
-  { NODE_ENV: "development", NEXT_DIST_DIR: ".next-dev", OPENMIND_DATA_DIR: devData },
+  {
+    NODE_ENV: "development", NEXT_DIST_DIR: ".next-dev", OPENMIND_DATA_DIR: devData,
+    // The lifecycle suite exercises the assignment gate, and no real teacher
+    // has approved a lesson. This is the same test-only fixture the browser
+    // walks use; PILOT_APPROVALS itself stays empty.
+    OPENMIND_TEST_CONTENT_APPROVALS: "1",
+  },
   devLog,
 );
 const devUp = await waitFor(`${DEV_BASE}/`, 90, devChild);

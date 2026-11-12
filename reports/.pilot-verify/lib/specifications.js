@@ -54,6 +54,13 @@ const UK_ALEVEL = {
 };
 const IGCSE = {
     id: "int-igcse", country: "INT", board: "cambridge", name: "Cambridge IGCSE",
+    // Cambridge's own subject codes. The subject page prints the code beside the
+    // qualification so a learner can match what OpenMind calls their course to
+    // the syllabus they actually sit. The syllabi are recorded only where a
+    // version has been checked against the published syllabus, rather than
+    // assuming every subject shares one revision cycle.
+    subjectCodes: { maths: "0580", physics: "0625", chemistry: "0620", biology: "0610", computing: "0478" },
+    syllabi: { chemistry: "2026–2028" },
     coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 3] },
     levels: [
         { id: "core", tier: "foundation", name: "Core", stages: [0, 2], difficulty: 0.4 },
@@ -413,21 +420,20 @@ exports.SPECIFICATIONS = [
 ];
 // ── The two counts, kept apart on purpose ────────────────
 //
-// `SPECIFICATIONS.length` counts COURSES (25); it is not a country count and
+// `SPECIFICATIONS.length` counts COURSES (91); it is not a country count and
 // never was. The curriculum page printed it beside a dictionary string that said
 // "courses from 20 countries", so that line was wrong twice over: the sentence
 // counted the international (`INT`) and independent (`XX`) pseudo-countries as
 // countries, and the number in front of it was a course count. In the languages
-// whose sentence takes its number from the prefix, a learner read "25 countries",
-// which nothing in the data supports.
+// whose sentence takes its number from the prefix, a learner read a country
+// count that nothing in the data supports.
 //
-// The honest pair, for the record: **every country the registry records a
-// national pathway for has one** (GB, US, ZA, AU, CA, IE, IN, PK, BD, KE, TZ,
-// UG, NG, GH, PH, ID, BR, MX, and now Cameroon, which has TWO); the
-// international and independent courses serve everyone else; and the onboarding
-// picker offers 70 countries, so most of them are offered a real course that is NOT
-// their national curriculum. That is what the wording has to say — and this
-// constant is the ONE owner of the number, so no dictionary may re-bake it.
+// The honest pair, for the record: the picker now offers every ISO country and
+// territory (plus Kosovo and an "other" choice); 70 have a national route and
+// every other choice is explicitly offered the international and independent
+// courses. Cameroon still contributes two national courses but ONE national
+// route. That is what the wording has to say — and this constant is the ONE
+// owner of the number, so no dictionary may re-bake it.
 //
 // THE OWNER IS NOW THE REGISTRY, not a set built from the specification list.
 // Those two numbers used to agree by construction; they stopped being the same
@@ -757,7 +763,7 @@ function courseGaps(profile, subject) {
     // disabled for ever. Measured live: a learner could create an account and then
     // never leave step 4 of 6 — which reads exactly like "sign-up does not work".
     // Those countries have courses now (see NATIONAL_COURSES, which is why this
-    // fallback is reached only by a code the picker does not offer at all).
+    // fallback is reached by an unrecorded country rather than by a wall).
     //
     // The independent pathway IS a course — the rule this function's own doc
     // states — and it carries real grades (Foundations / Core / Advanced) and

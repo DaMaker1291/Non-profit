@@ -1,0 +1,18 @@
+{
+  "contract": "openmind.assessment-browser/1.0",
+  "recordedAt": "2026-11-12T00:22:48.997Z",
+  "passed": 33,
+  "failed": 0,
+  "fixture": true,
+  "tableBranch": true,
+  "journeys": [
+    "numeric",
+    "table",
+    "short-answer",
+    "prose",
+    "invalid",
+    "evidence",
+    "mastery",
+    "next-step"
+  ]
+}

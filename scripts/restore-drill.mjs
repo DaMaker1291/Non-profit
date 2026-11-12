@@ -64,6 +64,7 @@ const value = (name, fallback = null) => {
 
 let pass = 0;
 let fail = 0;
+let untested = 0;
 const step = (line) => console.log(`\n▸ ${line}`);
 const ok = (cond, what, detail = "") => {
   if (cond) pass++;
@@ -87,7 +88,13 @@ const linesOf = (file) =>
 function loadErasures() {
   const ts = require("typescript");
   const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "om-drill-ts-"));
-  for (const rel of ["lib/server/class-membership.ts", "lib/server/erasures.ts"]) {
+  // The closure is explicit, and it is three files rather than two for a reason:
+  // `erasures.ts` delegates the surgery to `erasure.ts`, so compiling the log
+  // without the workflow it calls left a module that loaded and then could not
+  // run — exactly the failure this drill exists to catch. Keep this list in step
+  // with the runtime imports; a type-only import disappears at transpile time and
+  // needs no entry, but a value import does.
+  for (const rel of ["lib/server/class-membership.ts", "lib/server/erasure.ts", "lib/server/erasures.ts"]) {
     const js = ts.transpileModule(fs.readFileSync(path.join(ROOT, rel), "utf8"), {
       // esModuleInterop is NOT a default here, and without it `import path from
       // "path"` compiles to `path_1.default` — which is undefined for a CommonJS
@@ -197,11 +204,16 @@ async function main() {
       erasures = loadErasures();
       temps.push(erasures.outDir);
     } catch (e) {
-      note(`could not load the erasure applier (${e.message}) — the re-apply step is UNTESTED`);
+      // A drill that cannot load the workflow has not tested erasure at all. That
+      // is a FAILURE, not a note: the previous version printed this line and still
+      // ended with "RESTORE DRILL: PASS", which is the exact false confidence a
+      // restore drill exists to prevent.
+      ok(false, "the app's own erasure workflow loads", e.message);
     }
     if (erasures) {
       const log = await erasures.mod.readErasures(source);
       if (log.length === 0) {
+        untested++;
         note(
           `no erasure is recorded in ${source}, so there is nothing to re-apply. That is NOT a pass for this ` +
             "step: a deployment that has never erased anyone has never tested it.",
@@ -286,7 +298,9 @@ async function main() {
     }
 
     console.log(`\n${"─".repeat(58)}`);
-    console.log(`RESTORE DRILL: ${fail === 0 ? "PASS" : `FAIL (${fail} failed)`} — ${pass} passed, ${fail} failed`);
+    console.log(
+      `RESTORE DRILL: ${fail === 0 ? (untested ? `PASS (${untested} step untested)` : "PASS") : `FAIL (${fail} failed)`} — ${pass} passed, ${fail} failed`,
+    );
     console.log(fail === 0 ? "  the archive restores, the instance serves it, and its learners' records survive." : "");
     return fail;
   } finally {

@@ -1,14 +1,14 @@
 # Execution state
 
-Checkpoint written at **2026-11-10T21:30:10.782Z** by `scripts/international-readiness.mjs`.
+Checkpoint written at **2026-11-12T17:55:10.772Z** by `scripts/international-readiness.mjs`.
 
 ## Working tree
 
 - Branch: `main`
-- HEAD: `3c4a4604892341e2d91fc73f9a1b30afc452edfb`
-- Changed/untracked paths: **72**
-- Free disk: **2.24 GiB** (the suite's guard is independent; this is only a check-point observation)
-- Browser coverage: **70/70 authored lessons** have a row in the walk contract (missing: none). The 65 outlines are not browser-applicable until they have an authored lesson.
+- HEAD: `d26a07653e09ac9ca1c87a5e82484e7131e52a2a`
+- Changed/untracked paths: **100**
+- Free disk: **11.08 GiB** (the suite's guard is independent; this is only a check-point observation)
+- Browser coverage: **88/88 authored lessons** have a row in the walk contract (missing: none). The 47 outlines are not browser-applicable until they have an authored lesson.
 
 ## Completed in this batch
 

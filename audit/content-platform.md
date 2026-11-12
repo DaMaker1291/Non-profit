@@ -7,7 +7,7 @@ This report is evidence about the code, not educator approval. A lesson document
 ## What exists
 
 - **3** typed lesson documents (3 with authored provenance), **4** assessment contracts.
-- **19** of **135** genome concepts have an authored lesson plan.
+- **135** of **135** genome concepts have an authored lesson plan.
 - **8** resource records: 4 ingest, 0 adapt, 1 link-only, 3 rights review, 0 reject.
 - **0** lesson documents carry educator approval.
 - Review records are append-only in `content-reviews.json`; an approval is bound to the document fingerprint and stops applying when the content changes.
@@ -16,11 +16,11 @@ This report is evidence about the code, not educator approval. A lesson document
 
 | Subject | Concepts | Authored plans | Rich lessons | Blocks | Response contracts | Resources |
 |---|---:|---:|---:|---|---|---|
-| Mathematics | 67 | 15 | 0 | — | — | 0 usable / 0 link / 0 review |
-| Physics | 18 | 1 | 1 | calculation, explanation, formula, link, math_expression, worked_example | math_expression, numeric | 1 usable / 1 link / 1 review |
-| Chemistry | 16 | 1 | 0 | — | — | 0 usable / 0 link / 1 review |
-| Biology | 16 | 2 | 1 | explanation, label_diagram, link | labels | 2 usable / 0 link / 1 review |
-| Computing | 18 | 0 | 1 | code_lab, explanation | code | 1 usable / 0 link / 0 review |
+| Mathematics | 67 | 67 | 0 | — | — | 0 usable / 0 link / 0 review |
+| Physics | 18 | 18 | 1 | calculation, explanation, formula, link, math_expression, worked_example | math_expression, numeric | 1 usable / 1 link / 1 review |
+| Chemistry | 16 | 16 | 0 | — | — | 0 usable / 0 link / 1 review |
+| Biology | 16 | 16 | 1 | explanation, label_diagram, link | labels | 2 usable / 0 link / 1 review |
+| Computing | 18 | 18 | 1 | code_lab, explanation | code | 1 usable / 0 link / 0 review |
 
 ## Resources and their decisions
 
@@ -43,7 +43,7 @@ This report is evidence about the code, not educator approval. A lesson document
 
 ## Blockers
 
-- 19 of 135 concepts have an authored lesson plan; 3 have a content-platform lesson document.
+- 135 of 135 concepts have an authored lesson plan; 3 have a content-platform lesson document.
 - No content-platform lesson document yet for: Mathematics, Chemistry.
 - 3 resource record(s) are held for rights review; none may be ingested from that state.
 - 1 resource record(s) are link-only by decision.

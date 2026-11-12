@@ -189,7 +189,7 @@ const NATIONAL_ROUTES = [
 ];
 // ── THE 51 COUNTRIES THAT HAD NO CURRICULUM AT ALL ─────────────────────────
 //
-// THE DEFECT THESE RECORDS FIX. The picker offered 71 countries and 19 had a
+// THE DEFECT THESE RECORDS FIX. The original picker offered 71 countries and 19 had a
 // national route. The other 52 — France, Germany, Spain, Italy, Poland, Japan,
 // China, Korea, Vietnam, Turkey, Iran, Ethiopia, Egypt, Morocco, Nigeria's
 // neighbours, most of Latin America — resolved to NO national pathway, so
@@ -305,23 +305,10 @@ function pathwayFromRoute(route) {
             "learner is shown.",
     };
 }
-/** A country the picker offers with NO national pathway recorded. Listing them
- *  explicitly (rather than inferring "anything unlisted is unmapped") is what
- *  lets the gate tell "we have not researched this yet" apart from "somebody
- *  forgot to add it at all", which is the difference the report has to show. */
-// AFTER THE ADDED_ROUTES PASS THIS LIST IS SHORT ON PURPOSE. Every country the
-// enrolment picker OFFERS now has a national route, so nothing on this list is
-// offered to a learner — these are the systems OpenMind has not modelled yet and
-// does not pretend to. Keeping them named is the difference between "we have not
-// researched this" and "somebody forgot it": the curriculum gate fails on a code
-// in NEITHER list, and the report prints this one as the queue it is.
-const UNRESEARCHED_COUNTRIES = [
-    // Gulf, South-East Asia and Europe outside the picker today.
-    "AE", "SA", "MY", "TH", "SG",
-    "NL", "SE", "NO", "DK", "FI", "GR", "RO", "HU", "CZ", "CH",
-    // Americas
-    "CL",
-];
+/** Every offered code with no national pathway recorded. Kept explicit so a new
+ *  picker entry must be CLASSIFIED: the curriculum gate fails on a code in
+ *  neither this queue nor CURRICULA, instead of silently treating "not added
+ *  yet" as "we decided to offer the international fallback". */
 const CURRICULA = {
     ...Object.fromEntries([...NATIONAL_ROUTES, ...ADDED_ROUTES].map((r) => [
         r.code,
@@ -366,6 +353,31 @@ const CURRICULA = {
 /** Every country code the registry can answer for, plus the "no national
  *  route" list. Read by the audit report, never by a page. */
 exports.RESEARCHED_CODES = Object.keys(CURRICULA);
+const UNRESEARCHED_COUNTRIES = [
+    "AX", "AL", "DZ", "AS", "AD", "AO", "AI", "AQ",
+    "AG", "AM", "AW", "AT", "AZ", "BS", "BH", "BB",
+    "BY", "BE", "BZ", "BJ", "BM", "BT", "BQ", "BA",
+    "BW", "BV", "IO", "BN", "BG", "BI", "CV", "KY",
+    "CF", "TD", "CL", "CX", "CC", "KM", "CG", "CD",
+    "CK", "CR", "HR", "CU", "CW", "CY", "CZ", "DK",
+    "DJ", "DM", "GQ", "ER", "EE", "SZ", "FK", "FO",
+    "FJ", "FI", "GF", "PF", "TF", "GA", "GM", "GE",
+    "GI", "GR", "GL", "GD", "GP", "GU", "GG", "GN",
+    "GW", "GY", "HM", "VA", "HK", "HU", "IS", "IM",
+    "IL", "JM", "JE", "KI", "KP", "XK", "KW", "KG",
+    "LV", "LS", "LR", "LY", "LI", "LT", "LU", "MO",
+    "MG", "MY", "MV", "MT", "MH", "MQ", "MR", "MU",
+    "YT", "FM", "MD", "MC", "ME", "MS", "MZ", "NA",
+    "NR", "NL", "NC", "NZ", "NU", "NF", "MK", "MP",
+    "NO", "OM", "PW", "PS", "PA", "PG", "PY", "PN",
+    "PT", "PR", "QA", "RE", "RO", "RU", "BL", "SH",
+    "KN", "LC", "MF", "PM", "VC", "WS", "SM", "ST",
+    "SA", "RS", "SC", "SL", "SG", "SX", "SK", "SI",
+    "SB", "GS", "SS", "SR", "SJ", "SE", "CH", "TW",
+    "TJ", "TH", "TL", "TG", "TK", "TO", "TT", "TN",
+    "TM", "TC", "TV", "AE", "UM", "UY", "VU", "VE",
+    "VG", "VI", "WF", "EH",
+];
 exports.UNRESEARCHED_CODES = [...UNRESEARCHED_COUNTRIES];
 exports.SHARED_PATHWAY_IDS = exports.SHARED_PATHWAYS.map((p) => p.id);
 const ALL_PATHWAYS = [

@@ -1,0 +1,65 @@
+{
+  "generatedBy": "scripts/autonomous-checkpoint.mjs",
+  "generatedAt": "2026-11-12T17:57:01.230Z",
+  "branch": "main",
+  "head": "d26a076",
+  "dirtyFiles": 100,
+  "freeGiB": 10.99,
+  "lowSpace": false,
+  "counts": {
+    "concepts": 135,
+    "authoredLessons": 88,
+    "outlineConcepts": 47,
+    "machineChecked": 88,
+    "browserVerifiedLessons": 88,
+    "humanReviewedLessons": 0,
+    "assessmentBlueprints": 3,
+    "assessmentServable": 0,
+    "humanReviewedTranslations": 0
+  },
+  "nextTask": {
+    "id": "CUR-completing-square",
+    "conceptId": "completing-square",
+    "title": "Completing the square",
+    "subject": "maths",
+    "reason": "First unresolved concept in genome order whose declared prerequisites are authored.",
+    "status": "outline",
+    "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
+  },
+  "levelA": {
+    "achieved": false,
+    "reason": "47 concepts still have no authored lesson. All 88 authored lessons are browser-verified, and the production build, standalone startup and restore drill are recorded PASS. Level A also requires the full curriculum, so it is not achieved."
+  },
+  "levelB": {
+    "achieved": false,
+    "reason": "No external teacher review, learner trial, curriculum approval, legal clearance, human language review or assistive-technology session exists."
+  },
+  "lastCheckpointEvidence": [
+    "npm run typecheck (PASS)",
+    "npm run lesson:catalogue (88 authored, 47 outlines)",
+    "node scripts/secondary-maths-lesson-check.mjs (included in verify:lessons)",
+    "npm run verify (4631 passed, 0 failed)",
+    "npm run verify:lessons (PASS)",
+    "npm run verify:lesson (989 passed, 0 failed; 88 authored lessons)",
+    "npm run production-check (PASS)",
+    "npm run restore-drill (26 passed, 0 failed)",
+    "npm run e2e (892 passed, 0 failed)"
+  ],
+  "browserEvidence": {
+    "generatedBy": "scripts/lesson-walk.mjs",
+    "at": "2026-11-12T17:54:53.892Z",
+    "command": "npm run verify:lesson",
+    "passed": 989,
+    "failed": 0,
+    "authoredLessons": 88,
+    "authoredCatalogue": 88,
+    "allAuthoredPainted": true,
+    "widths": [
+      1280,
+      768,
+      375,
+      320
+    ],
+    "note": "Browser-measured authored lesson pages and plan figures. The authoredCatalogue value is checked against audit/lesson-catalogue.json; a mismatch is a stale record, not a pass."
+  }
+}

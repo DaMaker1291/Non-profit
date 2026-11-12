@@ -1,17 +1,17 @@
 # OpenMind lesson-quality dashboard
 
-Generated 2026-11-10T21:29:34.790Z. Structural comparison of every authored openmind.lesson/1.0 lesson. Counts are read from the lessons; no quality score is invented and no learning outcome is claimed.
+Generated 2026-11-12T17:55:10.559Z. Structural comparison of every authored openmind.lesson/1.0 lesson. Counts are read from the lessons; no quality score is invented and no learning outcome is claimed.
 
 ## Totals
 
-- Authored lessons: **70**
-- Teaching words: **116054**
-- Worked steps that state why: **522 / 522**
-- Misconceptions with a correction and contrast: **217 / 217**
-- Drawn lesson figures: **3** across 261 representation blocks
-- Gradable assessment items: **127**; constructed responses: **89**; explicitly unscored reflections: **1**
-- Transfer tasks: **70**; spaced retrieval prompts: **208**
-- Accessibility needs with an authored alternative: **277**
+- Authored lessons: **88**
+- Teaching words: **155993**
+- Worked steps that state why: **764 / 764**
+- Misconceptions with a correction and contrast: **295 / 295**
+- Drawn lesson figures: **4** across 336 representation blocks
+- Gradable assessment items: **168**; constructed responses: **111**; explicitly unscored reflections: **1**
+- Transfer tasks: **88**; spaced retrieval prompts: **271**
+- Accessibility needs with an authored alternative: **360**
 - Subject-teacher reviewed: **0**
 - Learner-tested: **0**
 
@@ -21,6 +21,7 @@ Generated 2026-11-10T21:29:34.790Z. Structural comparison of every authored open
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | acids-bases | chemistry | draft | 1539 | 8 | 4 | 0 | 2 | 6/6 | 3 | 2 | 1 | 0 | 1 | 3 | 4 | 0 | 0 |
 | addition | maths | draft | 983 | 6 | 3 | 0 | 2 | 7/7 | 2 | 1 | 1 | 0 | 1 | 2 | 3 | 0 | 0 |
+| algebra-expand | maths | draft | 1739 | 12 | 4 | 0 | 3 | 11/11 | 3 | 2 | 1 | 0 | 1 | 3 | 4 | 0 | 0 |
 | algebra-expressions | maths | draft | 1502 | 8 | 3 | 0 | 2 | 6/6 | 3 | 2 | 1 | 0 | 1 | 3 | 4 | 0 | 0 |
 | algorithms-search | computing | draft | 1384 | 8 | 4 | 0 | 2 | 7/7 | 3 | 2 | 1 | 0 | 1 | 3 | 4 | 0 | 0 |
 | analysis-tests | chemistry | draft | 2664 | 16 | 5 | 0 | 2 | 8/8 | 4 | 2 | 2 | 0 | 1 | 4 | 4 | 0 | 0 |
@@ -32,6 +33,7 @@ Generated 2026-11-10T21:29:34.790Z. Structural comparison of every authored open
 | biodiversity | biology | draft | 1814 | 8 | 4 | 0 | 2 | 6/6 | 3 | 2 | 2 | 0 | 1 | 3 | 4 | 0 | 0 |
 | breathing-gas | biology | draft | 2032 | 12 | 4 | 0 | 2 | 8/8 | 3 | 3 | 1 | 0 | 1 | 3 | 4 | 0 | 0 |
 | cells | biology | draft | 1419 | 8 | 4 | 0 | 2 | 6/6 | 3 | 1 | 2 | 0 | 1 | 3 | 4 | 0 | 0 |
+| circle-theorems | maths | draft | 2390 | 18 | 4 | 0 | 3 | 15/15 | 5 | 2 | 1 | 0 | 1 | 3 | 5 | 0 | 0 |
 | circulation | biology | draft | 2916 | 17 | 4 | 0 | 2 | 7/7 | 3 | 2 | 2 | 0 | 1 | 3 | 5 | 0 | 0 |
 | compounds-mixtures | chemistry | draft | 1836 | 12 | 4 | 0 | 2 | 6/6 | 4 | 3 | 1 | 0 | 1 | 3 | 4 | 0 | 0 |
 | conditionals | computing | draft | 1303 | 8 | 4 | 0 | 2 | 6/6 | 3 | 2 | 1 | 0 | 1 | 3 | 4 | 0 | 0 |
@@ -56,11 +58,13 @@ Generated 2026-11-10T21:29:34.790Z. Structural comparison of every authored open
 | forces-basics | physics | draft | 1382 | 8 | 4 | 0 | 2 | 6/6 | 3 | 1 | 2 | 0 | 1 | 3 | 4 | 0 | 0 |
 | fraction-ops | maths | draft | 1058 | 6 | 3 | 0 | 2 | 6/6 | 2 | 1 | 1 | 0 | 1 | 2 | 3 | 0 | 0 |
 | fractions | maths | draft | 1268 | 7 | 3 | 0 | 2 | 6/6 | 3 | 0 | 2 | 0 | 1 | 3 | 4 | 0 | 0 |
+| functions | maths | draft | 1702 | 15 | 4 | 0 | 3 | 12/12 | 4 | 2 | 1 | 0 | 1 | 3 | 5 | 0 | 0 |
 | functions-code | computing | draft | 1308 | 8 | 4 | 0 | 2 | 8/8 | 3 | 3 | 1 | 0 | 1 | 3 | 4 | 0 | 0 |
 | genetics | biology | draft | 2692 | 14 | 4 | 0 | 2 | 8/8 | 4 | 2 | 2 | 0 | 1 | 4 | 4 | 0 | 0 |
 | hormones | biology | draft | 2533 | 16 | 4 | 0 | 2 | 8/8 | 4 | 2 | 2 | 0 | 1 | 4 | 4 | 0 | 0 |
 | immune-health | biology | draft | 2486 | 16 | 4 | 0 | 2 | 8/8 | 4 | 2 | 2 | 0 | 1 | 4 | 4 | 0 | 0 |
 | indices-intro | maths | draft | 1701 | 8 | 3 | 0 | 3 | 11/11 | 3 | 2 | 1 | 0 | 1 | 3 | 5 | 0 | 0 |
+| inequalities | maths | draft | 1732 | 12 | 4 | 0 | 3 | 11/11 | 3 | 2 | 1 | 0 | 1 | 3 | 4 | 0 | 0 |
 | ionic-bonding | chemistry | draft | 2303 | 17 | 4 | 0 | 2 | 8/8 | 4 | 2 | 1 | 0 | 1 | 3 | 4 | 0 | 0 |
 | linear-equations | maths | draft | 1342 | 8 | 3 | 0 | 2 | 7/7 | 3 | 2 | 1 | 0 | 1 | 3 | 4 | 0 | 0 |
 | lists-arrays | computing | draft | 1374 | 8 | 4 | 0 | 2 | 8/8 | 3 | 3 | 1 | 0 | 1 | 3 | 4 | 0 | 0 |
@@ -80,13 +84,27 @@ Generated 2026-11-10T21:29:34.790Z. Structural comparison of every authored open
 | place-value | maths | draft | 907 | 6 | 3 | 0 | 2 | 6/6 | 2 | 1 | 1 | 0 | 1 | 2 | 3 | 0 | 0 |
 | probability-basics | maths | draft | 3341 | 10 | 5 | 2 | 5 | 20/20 | 7 | 4 | 1 | 1 | 1 | 3 | 5 | 0 | 0 |
 | proportion | maths | draft | 1489 | 6 | 3 | 0 | 3 | 9/9 | 3 | 2 | 1 | 0 | 1 | 3 | 4 | 0 | 0 |
+| pythagoras | maths | draft | 2202 | 18 | 4 | 0 | 3 | 15/15 | 5 | 2 | 1 | 0 | 1 | 3 | 5 | 0 | 0 |
 | quadratics | maths | draft | 1244 | 6 | 3 | 0 | 2 | 6/6 | 3 | 2 | 1 | 0 | 1 | 3 | 4 | 0 | 0 |
+| rates-reaction | chemistry | draft | 2208 | 15 | 4 | 0 | 2 | 8/8 | 4 | 2 | 1 | 0 | 1 | 3 | 4 | 0 | 0 |
 | ratio | maths | draft | 1488 | 6 | 3 | 1 | 3 | 9/9 | 3 | 2 | 1 | 0 | 1 | 3 | 4 | 0 | 0 |
 | respiration | biology | draft | 1484 | 8 | 4 | 0 | 2 | 6/6 | 3 | 3 | 1 | 0 | 1 | 3 | 4 | 0 | 0 |
 | rounding | maths | draft | 1043 | 6 | 3 | 0 | 2 | 6/6 | 2 | 1 | 1 | 0 | 1 | 2 | 3 | 0 | 0 |
+| scatter-correlation | maths | draft | 2781 | 21 | 4 | 0 | 4 | 16/16 | 6 | 3 | 2 | 0 | 1 | 5 | 5 | 0 | 0 |
 | sequences | maths | draft | 1543 | 6 | 3 | 0 | 3 | 9/9 | 3 | 2 | 1 | 0 | 1 | 3 | 4 | 0 | 0 |
+| sim-equations-quad | maths | draft | 2020 | 15 | 4 | 0 | 3 | 13/13 | 4 | 2 | 1 | 0 | 1 | 3 | 5 | 0 | 0 |
+| simultaneous | maths | draft | 1729 | 12 | 4 | 0 | 3 | 12/12 | 3 | 2 | 1 | 0 | 1 | 3 | 4 | 0 | 0 |
+| standard-form | maths | draft | 1902 | 12 | 4 | 0 | 3 | 12/12 | 3 | 2 | 1 | 0 | 1 | 3 | 4 | 0 | 0 |
+| straight-lines | maths | draft | 1766 | 12 | 4 | 0 | 3 | 9/9 | 3 | 2 | 1 | 0 | 1 | 3 | 4 | 0 | 0 |
 | subtraction | maths | draft | 1023 | 7 | 3 | 0 | 2 | 7/7 | 2 | 1 | 1 | 0 | 1 | 2 | 3 | 0 | 0 |
+| surds | maths | draft | 1664 | 12 | 4 | 0 | 3 | 11/11 | 3 | 2 | 1 | 0 | 1 | 3 | 4 | 0 | 0 |
+| transformations | maths | draft | 3045 | 21 | 5 | 0 | 4 | 20/20 | 6 | 3 | 2 | 0 | 1 | 5 | 5 | 0 | 0 |
+| tree-diagrams | maths | draft | 2770 | 21 | 4 | 1 | 4 | 17/17 | 6 | 3 | 2 | 0 | 1 | 5 | 5 | 0 | 0 |
+| trig-identity | maths | draft | 2450 | 18 | 4 | 0 | 3 | 15/15 | 5 | 2 | 1 | 0 | 1 | 3 | 5 | 0 | 0 |
+| trig-ratios | maths | draft | 2554 | 18 | 4 | 0 | 3 | 14/14 | 4 | 2 | 1 | 0 | 1 | 3 | 5 | 0 | 0 |
 | variables | computing | draft | 1229 | 8 | 4 | 0 | 2 | 6/6 | 3 | 3 | 0 | 0 | 1 | 3 | 4 | 0 | 0 |
+| vectors | maths | draft | 2677 | 21 | 5 | 0 | 4 | 16/16 | 6 | 3 | 2 | 0 | 1 | 5 | 5 | 0 | 0 |
+| volume | maths | draft | 2608 | 18 | 5 | 0 | 3 | 15/15 | 5 | 3 | 1 | 0 | 1 | 4 | 5 | 0 | 0 |
 | waves-basics | physics | draft | 1124 | 8 | 4 | 0 | 2 | 5/5 | 3 | 1 | 2 | 0 | 1 | 3 | 4 | 0 | 0 |
 | what-is-code | computing | draft | 1060 | 8 | 4 | 0 | 2 | 6/6 | 3 | 1 | 1 | 0 | 1 | 3 | 4 | 0 | 0 |
 

@@ -2553,7 +2553,8 @@ const LATE_GENS = {
                 prompt: `A goat is tethered by a 5 m rope to a post. Which shape shows everywhere the goat can reach?`,
                 correct: "A circle of radius 5 m centred on the post",
                 wrongs: ["A line 5 m from the post", "The interior of a 5 m square around the post", "A circle of radius 10 m centred on the post"],
-                tags: [], explanation: `Fixed distance from a fixed point: every reachable point is exactly 5 m away — that locus is a circle of radius 5 m centred on the post. Inside it the rope would be slack, not taut.`,
+                tags: [],
+                explanation: `Fixed distance from a fixed point: every reachable point is exactly 5 m away — that locus is a circle of radius 5 m centred on the post. Inside it the rope would be slack, not taut.`,
                 difficulty: 0.35,
             };
         if (v === 1)
@@ -2561,7 +2562,8 @@ const LATE_GENS = {
                 prompt: `Points equidistant from two fixed points A and B lie on...`,
                 correct: "the perpendicular bisector of AB",
                 wrongs: ["the line AB itself", "a circle through A and B", "the angle bisector at A"],
-                tags: [], explanation: `Equal distance from both ends is the definition of the perpendicular bisector — it cuts AB in half at 90°. Compasses construct it as two equal arcs crossing.`,
+                tags: [],
+                explanation: `Equal distance from both ends is the definition of the perpendicular bisector — it cuts AB in half at 90°. Compasses construct it as two equal arcs crossing.`,
                 difficulty: 0.4,
             };
         if (v === 2)
@@ -2569,14 +2571,16 @@ const LATE_GENS = {
                 prompt: `Points equidistant from two straight roads that cross lie on...`,
                 correct: "the angle bisectors of the roads",
                 wrongs: ["the perpendicular bisector of the roads", "a circle centred where they cross", "a line parallel to one road"],
-                tags: [], explanation: `Equal distance from two lines means equal perpendicular distance to each — that locus is the pair of angle bisectors. Bisect the angle where the roads cross with compasses.`,
+                tags: [],
+                explanation: `Equal distance from two lines means equal perpendicular distance to each — that locus is the pair of angle bisectors. Bisect the angle where the roads cross with compasses.`,
                 difficulty: 0.45,
             };
         return {
             prompt: `A fence must be built no more than 3 m from a straight hedge. Which region shows where the fence may go?`,
             correct: "A strip of width 3 m running along the hedge",
             wrongs: ["A circle of radius 3 m", "A line exactly 3 m from the hedge", "A 3 m × 3 m square at each end"],
-            tags: [], explanation: `"Within 3 m of a line" is a band: every point up to 3 m perpendicular distance. Combined loci like this (with, say, 10 m from a well) carve real site plans into allowed regions.`,
+            tags: [],
+            explanation: `"Within 3 m of a line" is a band: every point up to 3 m perpendicular distance. Combined loci like this (with, say, 10 m from a well) carve real site plans into allowed regions.`,
             difficulty: 0.5,
         };
     },
@@ -3265,7 +3269,7 @@ function serveView(q, lang, board) {
     // `tolerance.unit` — the box needs to know it is grammatically wrong to the
     // 14th decimal. `choiceValues` is stripped too: it is the same four numbers
     // the visible options already state.
-    const { answer: _a, explanation: _e, misconceptionTags: _m, answerValue: _v, choiceValues: _cv, choiceNotes: _cn, ...view } = q;
+    const { answer: _a, explanation: _e, misconceptionTags: _m, answerValue: _v, answerFraction: _af, answerPair: _ap, choiceValues: _cv, choiceNotes: _cn, ...view } = q;
     if (lang && lang !== "en") {
         view.prompt = (0, qterms_1.localizeStem)(view.prompt, lang);
     }
