@@ -1079,7 +1079,10 @@ h3 { font-weight: 650; letter-spacing: 0; font-size: var(--t16); margin: 0 0 6px
 .card:not(.flat):not(.soft):hover {
   box-shadow: var(--shadow-2);
 }
-.grid.cols2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+/* `min(280px, 100%)`: the 280px minimum is a comfortable desktop column, but
+   inside a padded card on a 320px phone it is 30px wider than the space it has,
+   so the card overflowed. Below 280 the column simply takes the full width. */
+.grid.cols2 { grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr)); }
 .grid.cols3 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 .grid.cols4 { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
 
@@ -3613,3 +3616,22 @@ h4, h5, h6 { margin: var(--s3) 0 var(--s1); line-height: 1.3; }
   .card { padding: var(--s2); }
   .card.primary { padding: var(--s3); }
 }
+
+/* ── 320px: THE SMALLEST PHONE THE SUITE TESTS ─────────────────────────────
+   Two blocks were still wider than the screen at that width.
+
+   1. The phone bar's five cells are 64px each, and "Exam papers" at 11px needs
+      66 — so the bar measured 353px and every page scrolled. 10px is the size
+      the caption can be without truncating or wrapping a label.
+   2. An inline content hash is forty hex characters with no break
+      opportunity; it made /lesson-review/<concept> 557px wide. Inline code is
+      the shape that carries identifiers, so it may break when it must. */
+@media (max-width: 360px) {
+  .bottomnav a, .bottomnav summary { font-size: 10px; padding-inline: 0; }
+}
+code { overflow-wrap: anywhere; }
+/* The account heading is the learner's own address, and an address is one long
+   token: "someone@example.test" measured 341px in a 288px heading and pushed the
+   whole page — and the fixed bar above it — past the screen. A heading may break
+   a word it cannot fit. */
+h1 { overflow-wrap: break-word; }
