@@ -2993,8 +2993,15 @@ html.access-calm .hand-underline svg path { stroke-dashoffset: 0; }
   .print-page { margin: 0; width: 100%; }
   .print-sheet { overflow-x: auto; }
   .print-label-grid { grid-template-columns: 1fr; }
-  .print-sheet table { table-layout: fixed; width: 100%; }
-  .print-sheet th, .print-sheet td { padding: 5px 5px; overflow-wrap: anywhere; }
+  /* `.print-table` by CLASS as well as `.print-page table`: the subject index
+     (`/print/maths`) puts its Lesson/Version/Sheets table outside both a sheet
+     and a `.print-page` (its main is `.page-shell`), where it stayed 351px. */
+  .print-page table, .print-table { table-layout: fixed; width: 100%; }
+  .print-page th, .print-page td,
+  .print-table th, .print-table td { padding: 5px 5px; overflow-wrap: anywhere; }
+  /* The name bar's run of underscores is the one unbreakable token left: 257px
+     of it in 190px of sheet, which kept the worksheet scrolling 23px at 320. */
+  .print-namebar { overflow-wrap: anywhere; }
   .print-sheet .print-marks,
   .print-sheet .print-order-box,
   .print-sheet .guide-table td:first-child { white-space: normal; }
