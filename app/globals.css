@@ -2911,12 +2911,165 @@ html.access-calm .hand-underline svg path { stroke-dashoffset: 0; }
   .topbar-spacer { display: none; }
 }
 
+/* ── PRINTABLE LESSON SHEETS ────────────────────────────────────────────────
+   The worksheet is a document, not a web page pretending to be one. Serif body
+   text and ruled space photocopy better than UI chrome, and no illustration is
+   an image: the diagram is inline SVG and survives at any print resolution. */
+.shell:has(.print-sheet) .sidebar,
+.shell:has(.print-sheet) .bottomnav,
+.shell:has(.print-sheet) .access-btn { display: none; }
+.shell:has(.print-sheet) { display: block; }
+.print-page { max-width: 940px; margin: 0 auto; padding: 24px 20px 64px; }
+
+.print-toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.print-sheet {
+  background: #fff; color: #111; border: 1px solid #d8dcd9; border-radius: 4px;
+  padding: 38px 44px 46px; font-family: Georgia, "Times New Roman", serif;
+  font-size: 12.5pt; line-height: 1.5;
+}
+.print-sheet h1 { font-size: 25pt; line-height: 1.12; margin: 2px 0 6px; color: #111; }
+.print-sheet h2 { font-size: 15pt; margin: 26px 0 10px; padding-bottom: 3px; border-bottom: 1.5px solid #222; color: #111; }
+.print-sheet h3 { font-size: 12.5pt; margin: 14px 0 4px; color: #111; }
+.print-sheet p { margin: 7px 0; color: #111; }
+.print-sheet li { margin: 5px 0; color: #111; }
+.print-sheet a { color: #111; text-decoration: underline; }
+.print-kicker, .print-meta, .print-small { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.print-kicker { font-size: 8.5pt; letter-spacing: .12em; text-transform: uppercase; margin: 0; }
+.print-meta { font-size: 8.5pt; color: #444; margin: 0 0 12px; }
+.print-small { font-size: 9.5pt; color: #333; }
+.print-namebar { display: flex; flex-wrap: wrap; gap: 18px; border-top: 1px solid #999; border-bottom: 1px solid #999; padding: 8px 0; font-size: 10pt; }
+.print-block { margin: 12px 0 18px; }
+.print-item { border-top: 1px solid #ddd; padding: 12px 0 8px; margin: 0; break-inside: avoid; }
+.print-item-head { display: flex; gap: 12px; align-items: baseline; justify-content: space-between; break-after: avoid; }
+.print-marks { white-space: nowrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 9pt; }
+.print-answer { margin: 8px 0 10px; }
+.print-rule { border-bottom: 1px solid #aaa; height: 26px; }
+.print-parts { margin-top: 8px; }
+.print-part { margin: 10px 0 16px; break-inside: avoid; }
+.print-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 10.5pt; }
+.print-table th, .print-table td { border: 1px solid #555; padding: 7px 8px; text-align: left; vertical-align: top; }
+.print-table th { background: #f0f2f0; font-weight: 700; }
+.print-table td { min-height: 28px; height: 28px; }
+.print-blank-cell { min-width: 54px; }
+.print-code, .print-notation { background: #f4f5f4; border: 1px solid #bbb; padding: 10px; white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 9.5pt; }
+.print-template { font-size: 13pt; line-height: 2; }
+.print-bank { margin: 8px 0; padding-left: 22px; }
+.print-order-box { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 9pt; margin-left: 8px; }
+.print-figure { margin: 12px 0; }
+.print-grid { display: block; width: 100%; max-width: 430px; height: auto; margin: 10px 0; border: 1px solid #999; background: #fff; }
+.print-figure figcaption { font-size: 9.5pt; color: #333; margin-top: 4px; }
+.print-label-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 18px; margin-top: 8px; }
+.print-steps { padding-left: 22px; }
+.print-answer-line { border-top: 1px solid #999; padding-top: 6px; }
+.guide-context { border-left: 4px solid #222; padding: 7px 10px; margin: 10px 0 4px; font-size: 10.5pt; background: #f4f5f4; }
+.guide-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 10.5pt; }
+.guide-table th, .guide-table td { border: 1px solid #555; padding: 7px 8px; text-align: left; vertical-align: top; }
+.guide-table th { background: #f0f2f0; font-weight: 700; }
+.guide-table td:first-child { width: 44px; white-space: nowrap; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.guide-table td:nth-child(2) { width: 22%; }
+.guide-groups td:first-child { width: 15%; }
+.guide-groups td:nth-child(2) { width: 20%; }
+.teacher-guide section { break-inside: auto; }
+.teacher-guide .guide-table tr { break-inside: avoid; }
+.print-footer { margin-top: 28px; border-top: 1px solid #999; padding-top: 8px; font-size: 8.5pt; color: #444; }
+.print-key { border-top: 8px solid #111; }
+.print-break-avoid { break-inside: avoid; }
+.print-page-break { break-before: page; }
+
+/* ── THE SHEET ON A PHONE ─────────────────────────────────────────────────
+   `margin: 0 auto` centres the page on a wide screen and, in `.shell-main`'s
+   column flex, turns the item's stretch OFF — so on a phone the page sized
+   itself to its widest row and scrolled the whole document sideways.
+
+   The blocks below were laid out for A4 and their MIN-CONTENT widths exceed a
+   348px sheet: the label grid's runs of underscores cannot break, and the
+   group table has four columns. Fixed table layout makes the declared widths
+   authoritative and stacked labels give each clue the full measure instead of
+   three 129px slivers. THIS BLOCK MUST STAY AFTER THE RULES IT OVERRIDES: it
+   sat above `.print-label-grid` for one build and lost the tie on equal
+   specificity, which is why the worksheet still scrolled. `overflow-x` is the
+   guard for a future block that cannot wrap at all. */
+@media (max-width: 640px) {
+  .print-page { margin: 0; width: 100%; }
+  .print-sheet { overflow-x: auto; }
+  .print-label-grid { grid-template-columns: 1fr; }
+  .print-sheet table { table-layout: fixed; width: 100%; }
+  .print-sheet th, .print-sheet td { padding: 5px 5px; overflow-wrap: anywhere; }
+  .print-sheet .print-marks,
+  .print-sheet .print-order-box,
+  .print-sheet .guide-table td:first-child { white-space: normal; }
+  .print-blank-cell { min-width: 0; }
+  .guide-table th:nth-child(1) { width: 16%; }
+  .guide-table th:nth-child(2) { width: 26%; }
+  .guide-groups th:nth-child(1) { width: 20%; }
+  .guide-groups th:nth-child(2) { width: 20%; }
+  .guide-groups th:nth-child(3) { width: 36%; }
+}
+
+/* Paper-mark entry: a teacher's form, not a pupil's quiz. */
+.paper-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 10px 0; }
+.paper-grid label, .paper-entry label { display: grid; gap: 4px; font-size: var(--t13); font-weight: 600; }
+.paper-grid select, .paper-entry select, .paper-entry input[type="text"], .paper-entry input:not([type]), .paper-entry textarea {
+  width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--text); font: inherit;
+}
+.paper-entry textarea { min-height: 78px; resize: vertical; }
+.paper-check { display: flex !important; grid-template-columns: auto 1fr; align-items: center; gap: 8px; margin: 10px 0; }
+.paper-check input { width: 18px; height: 18px; }
+.paper-marks { display: grid; gap: 10px; margin-top: 10px; }
+.paper-mark-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: start; border-top: 1px solid var(--line-soft); padding-top: 10px; }
+.paper-score { display: flex !important; align-items: center; gap: 5px; white-space: nowrap; }
+.paper-score input { width: 68px; padding: 8px; text-align: right; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--text); font: inherit; }
+.paper-entry .chip.assessment { background: #e7eee8; }
+.paper-entry .chip.transfer { background: #f3eadc; }
+@media (max-width: 720px) { .paper-grid { grid-template-columns: 1fr; } }
+
+/* ── TEACHER-LED PRESENTER ──────────────────────────────────────────────────
+   High contrast, large type, and no learner controls. It is designed for a
+   projector first and a 13-inch laptop second. */
+.presenter { min-height: 100vh; background: #f6f5ef; color: #17201b; padding: 14px 20px 18px; display: flex; flex-direction: column; gap: 12px; }
+.presenter-bar { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; flex-wrap: wrap; border-bottom: 2px solid #17201b; padding-bottom: 10px; }
+.presenter-kicker { margin: 0; font-family: var(--mono); font-size: 12px; letter-spacing: .13em; text-transform: uppercase; font-weight: 700; }
+.presenter-count { margin: 3px 0 0; color: #4d5b53; font-size: 13px; }
+.presenter-controls { display: flex; gap: 7px; flex-wrap: wrap; }
+.presenter-context-select { display: flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+.presenter-context-select select { max-width: 190px; border: 1px solid #9eaaa1; background: #fff; color: #17201b; padding: 6px 7px; font: inherit; text-transform: none; letter-spacing: 0; }
+.presenter-contextbar { border: 1px solid #b9c1ba; border-left: 5px solid #244a33; background: #fff; padding: 8px 12px; font-size: 13px; }
+.presenter-stage { flex: 1; max-width: 1100px; width: 100%; margin: 0 auto; padding: 18px 4px; }
+.presenter-eyebrow { margin: 0 0 6px; font-family: var(--mono); font-size: 13px; letter-spacing: .15em; text-transform: uppercase; color: #4d6a58; font-weight: 700; }
+.presenter-stage h1 { margin: 0 0 18px; font-size: clamp(30px, 4.2vw, 58px); line-height: 1.08; letter-spacing: -.025em; max-width: 22ch; }
+.presenter-paragraph { font-size: clamp(18px, 2.1vw, 27px); line-height: 1.45; max-width: 46ch; margin: 0 0 12px; }
+.presenter-bullets { font-size: clamp(17px, 1.8vw, 24px); line-height: 1.45; max-width: 48ch; padding-left: 24px; }
+.presenter-bullets li { margin: 9px 0; }
+.presenter-grouptask, .presenter-answer { margin-top: 20px; border-left: 5px solid #345c43; background: #e8eee8; padding: 14px 16px; font-size: clamp(16px, 1.7vw, 22px); max-width: 62ch; }
+.presenter-answer { border-left-color: #8a5a24; background: #f5ecdf; }
+.presenter-groupbar { border: 1px solid #345c43; background: #e8eee8; padding: 9px 13px; display: flex; gap: 10px; flex-wrap: wrap; font-size: 13px; }
+.presenter-notes { border-top: 1px solid #b9c1ba; padding-top: 9px; color: #34443a; font-size: 14px; max-width: 1100px; width: 100%; margin: 0 auto; }
+.presenter-notes p { margin: 4px 0; }
+.presenter-small { font-size: 12px; color: #5b6960; }
+.presenter-links { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 4px; }
+.presenter-links a { color: #244a33; text-decoration: underline; font-size: 13px; }
+.presenter-foot { display: flex; justify-content: space-between; align-items: center; gap: 14px; border-top: 1px solid #b9c1ba; padding-top: 9px; font-family: var(--mono); font-size: 11px; color: #5b6960; }
+.presenter-dots { display: flex; gap: 3px; max-width: 50vw; overflow: hidden; }
+.presenter-dots button { width: 7px; height: 7px; padding: 0; border-radius: 50%; border: 0; background: #c3cbc4; }
+.presenter-dots button.on { background: #244a33; }
+@media (max-width: 720px) {
+  .presenter { padding: 10px 12px 14px; }
+  .presenter-stage h1 { max-width: none; }
+  .presenter-dots { display: none; }
+}
+
 /* Print: the exercise sheet, without the chrome. */
 @media print {
-  .sidebar, .topbar, .bottomnav, .access-btn, .footer { display: none !important; }
+  .sidebar, .topbar, .bottomnav, .access-btn, .footer, .print-hide { display: none !important; }
   .shell { display: block; }
   body { background: #fff; }
   .card { box-shadow: none; break-inside: avoid; }
+  .print-page { max-width: none; padding: 0; }
+  .print-sheet { border: 0; border-radius: 0; padding: 0; font-size: 11.5pt; }
+  .print-sheet h1 { font-size: 22pt; }
+  .print-sheet h2 { font-size: 14pt; }
+  .print-rule { height: 24px; }
+  a { color: #111 !important; text-decoration: none !important; }
 }
 
 /* Low-power / electricity-aware mode (§6): kill motion + heavy decoration. */

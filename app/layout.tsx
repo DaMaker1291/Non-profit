@@ -32,6 +32,13 @@ export const metadata: Metadata = {
    * black if it carries transparency), which is why that PNG is full-bleed.
    */
   icons: {
+    /**
+     * THE BROWSER-TAB ICON, and it has to be named here. Without a `rel="icon"`
+     * link the browser falls back to requesting `/favicon.ico`, which this app
+     * does not serve — a 404 on every page load that no gate was watching.
+     * `/icon.svg` is the file `app/icon.svg` already serves.
+     */
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
     apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
   },
   appleWebApp: {

@@ -234,7 +234,7 @@ export default function AssessmentPage() {
   );
 
   return (
-    <div className="wrap">
+    <main className="wrap">
       <p className="eyebrow">Assessment</p>
       <h1>A complete assessment journey, with the gate visible</h1>
       <p className="lede">
@@ -484,6 +484,6 @@ export default function AssessmentPage() {
         This page does not claim teacher review, learner testing, examination equivalence or a licence to
         republish source material. Those remain separate, incomplete requirements.
       </p>
-    </div>
+    </main>
   );
 }
