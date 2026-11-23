@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Field card — Equal groups → multiplication</title>
+<style>
+  :root { --ink: #000; --line: #555; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: Georgia, "Times New Roman", serif;
+    color: var(--ink);
+    background: #fff;
+    margin: 0;
+    font-size: 10.5pt;
+    line-height: 1.35;
+  }
+  .page {
+    max-width: 190mm;
+    margin: 0 auto;
+    padding: 10mm 8mm;
+    page-break-after: always;
+  }
+  .page:last-child { page-break-after: auto; }
+  h1 { font-size: 16pt; margin: 0 0 2mm; letter-spacing: -0.2px; }
+  h2 { font-size: 12pt; margin: 5mm 0 1.5mm; border-bottom: 1.5px solid var(--ink); padding-bottom: 1mm; }
+  h3 { font-size: 10.5pt; margin: 3mm 0 1mm; }
+  p, li { margin: 0 0 1.5mm; }
+  ul, ol { margin: 0 0 2mm; padding-left: 5mm; }
+  .sub { font-size: 9.5pt; color: #333; margin-bottom: 3mm; }
+  .banner {
+    border: 2px solid var(--ink);
+    padding: 2mm 3mm;
+    margin-bottom: 3mm;
+    font-size: 9.5pt;
+  }
+  .mono { font-family: "Courier New", monospace; }
+  .say { font-style: italic; }
+  .phase { margin: 0 0 2.5mm; }
+  .phase b { display: inline-block; min-width: 0; }
+  table { width: 100%; border-collapse: collapse; margin: 1.5mm 0 2.5mm; font-size: 9.5pt; }
+  th, td { border: 1px solid var(--line); padding: 1.2mm 1.8mm; vertical-align: top; text-align: left; }
+  th { background: #eee; font-weight: bold; }
+  .boxes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3mm; }
+  .box { border: 1px solid var(--line); padding: 2mm; }
+  .box .n { font-weight: bold; font-size: 9pt; }
+  .box .ask { font-size: 9pt; margin-top: 1mm; }
+  .box .ans { font-size: 9pt; margin-top: 0.5mm; font-family: "Courier New", monospace; }
+  .box svg { display: block; width: 100%; height: auto; margin: 1.5mm 0; }
+  .ticks td { height: 6mm; }
+  .foot { margin-top: 3mm; font-size: 9pt; border-top: 1px solid var(--line); padding-top: 2mm; }
+  .nowrap { white-space: nowrap; }
+  @page { size: A4; margin: 10mm; }
+  @media print {
+    body { font-size: 10pt; }
+    .page { padding: 0; max-width: none; }
+    .banner { background: none; }
+    th { background: #eee !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    a { color: inherit; text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ───────────────────────────── PAGE 1 ───────────────────────────── -->
+<section class="page">
+
+  <h1>Equal groups → multiplication</h1>
+  <p class="sub">Ages 6–10 &middot; 40 minutes &middot; one teacher, any class size &middot; no devices, no projector, no printing required</p>
+
+  <div class="banner">
+    <b>Unreviewed draft.</b> No teacher has checked this card. Teach it, then answer the only question that matters:
+    <span class="say">could you teach this tomorrow with what your school has?</span> Mark anything that is wrong, too slow, or likely to be misread.
+  </div>
+
+  <h2>Before class — three things only</h2>
+  <ol>
+    <li><b>Objects or none?</b> One set per row, or fingers and chalk marks. Decide now, not in front of the class. If you use objects, plan the sentence that links each one to the idea &mdash; objects handed out without that link teach much less than objects explained.</li>
+    <li><b>Write phase 2 on the board before pupils arrive.</b> Four lines. Writing while sixty pupils wait is where lessons die.</li>
+    <li><b>Fix the pairs and pick six to watch</b> — two likely to struggle, two middle, two fast. You are not marking sixty books.</li>
+  </ol>
+
+  <h2>The lesson</h2>
+
+  <div class="phase">
+    <p><b>1. Introduce &mdash; 5 min</b></p>
+    <p>Twelve stones in a mess on the ledge, spread out. <span class="say">&ldquo;How many? How did you count them?&rdquo;</span> Take three answers before confirming. Then group the same twelve into three clear groups of four. <span class="say">&ldquo;Did I add any? Did I take any away?&rdquo;</span> No. <b>Same total, different arrangement.</b></p>
+    <p>Board: <span class="mono">4 + 4 + 4 = 12</span> beside <span class="mono">3 groups of 4</span>.</p>
+  </div>
+
+  <div class="phase">
+    <p><b>2. Demonstrate &mdash; 10 min</b></p>
+    <p class="mono">5 + 5 = 10 &nbsp;&rarr;&nbsp; 2 &times; 5 = 10<br>
+       2 + 2 + 2 + 2 = 8 &nbsp;&rarr;&nbsp; 4 &times; 2 = 8<br>
+       4 + 4 + 4 = 12 &nbsp;&rarr;&nbsp; 3 &times; 4 = 12</p>
+    <p><span class="say">&ldquo;The first number tells you how many groups. The second tells you how many in each group.&rdquo;</span></p>
+    <p>Then <span class="mono">4 &times; 3</span>: <span class="say">&ldquo;Why did the total go up by four, not by one?&rdquo;</span> &mdash; one more in <i>each</i> of four groups is four more. Give it thirty seconds of silence.</p>
+    <p><b>Double count &mdash; say both numbers.</b> <span class="say">&ldquo;One group of four, two groups of four, three groups of four &mdash; twelve.&rdquo;</span> A pupil who counts only the stones has counted; a pupil who counts the groups and the stones has started multiplicative thinking. Repeated addition alone leaves an additive model that fails later with fractions, scaling and <span class="mono">&times; 0</span>. This sentence is the cheapest correction in the lesson.</p>
+  </div>
+
+  <div class="phase">
+    <p><b>3. Guided practice &mdash; 10 min</b></p>
+    <p>Pairs build, then write or say: <b>3 groups of 6</b> &middot; <b>5 groups of 2</b> &middot; <b>2 &times; 7</b>. Walk and look at six pairs only; their errors decide phase 5.</p>
+  </div>
+
+  <div class="phase">
+    <p><b>4. Independent practice &mdash; 10 min</b></p>
+    <p>Draw 4 groups of 3 &middot; write <span class="mono">2+2+2+2+2</span> as a multiplication &middot; <span class="mono">6 &times; 2</span> &middot; a bench has 4 legs, how many legs on 5 benches? &middot; <i>(hard)</i> I have 12 stones and put 3 in each group &mdash; how many groups?</p>
+    <p class="sub">Answers: <span class="mono">3+3+3+3=12, 4&times;3=12</span> &middot; <span class="mono">5&times;2=10</span> &middot; <span class="mono">12</span> &middot; <span class="mono">20</span> &middot; <span class="mono">4 groups</span></p>
+  </div>
+
+  <div class="phase">
+    <p><b>5. Check understanding &mdash; 5 min</b></p>
+    <p>Whole class, thirty seconds: <span class="say">&ldquo;Show me on your fingers: 3 &times; 5.&rdquo;</span> Count the wrong and the silent &mdash; that number, not the individual, is what you act on. Then three written items, books closed, from your six sampled pupils only.</p>
+  </div>
+
+  <h2>Three things not to say</h2>
+  <ul>
+    <li><b>&ldquo;Multiplication is just adding.&rdquo;</b> It is the door, not the definition &mdash; it fails at <span class="mono">0 &times; 4</span> and at scaling. Say: <span class="say">&ldquo;we can write it as adding, and we can also just know it.&rdquo;</span></li>
+    <li><b>&ldquo;Multiplication always makes the number bigger.&rdquo;</b> False at <span class="mono">&times; 0</span>, <span class="mono">&times; 1</span> and fractions. Say: <span class="say">&ldquo;with these numbers, the total grows.&rdquo;</span></li>
+    <li><b>Two different words for &ldquo;groups of&rdquo;.</b> One term, the one in the textbook, for the whole lesson.</li>
+  </ul>
+
+</section>
+
+<!-- ───────────────────────────── PAGE 2 ───────────────────────────── -->
+<section class="page">
+
+  <h1>Six boxes &mdash; draw these, nothing to read</h1>
+  <p class="sub">Draw one at a time on the board, or hand out this page. Pupils answer in books, on slates, or aloud. Score out of six.</p>
+
+  <div class="boxes">
+
+    <div class="box">
+      <div class="n">Box 1</div>
+      <svg viewBox="0 0 120 50" role="img" aria-label="Three plates with four dots on each">
+        <g stroke="#000" fill="none" stroke-width="1.4">
+          <circle cx="20" cy="25" r="14"/><circle cx="60" cy="25" r="14"/><circle cx="100" cy="25" r="14"/>
+        </g>
+        <g fill="#000">
+          <circle cx="15" cy="20" r="2.6"/><circle cx="25" cy="20" r="2.6"/><circle cx="15" cy="30" r="2.6"/><circle cx="25" cy="30" r="2.6"/>
+          <circle cx="55" cy="20" r="2.6"/><circle cx="65" cy="20" r="2.6"/><circle cx="55" cy="30" r="2.6"/><circle cx="65" cy="30" r="2.6"/>
+          <circle cx="95" cy="20" r="2.6"/><circle cx="105" cy="20" r="2.6"/><circle cx="95" cy="30" r="2.6"/><circle cx="105" cy="30" r="2.6"/>
+        </g>
+      </svg>
+      <div class="ask">Write the multiplication.</div>
+      <div class="ans">3 &times; 4 = 12</div>
+    </div>
+
+    <div class="box">
+      <div class="n">Box 2</div>
+      <svg viewBox="0 0 120 50" role="img" aria-label="Two nests with five eggs each">
+        <g stroke="#000" fill="none" stroke-width="1.4">
+          <ellipse cx="32" cy="30" rx="22" ry="12"/><ellipse cx="90" cy="30" rx="22" ry="12"/>
+        </g>
+        <g fill="#000">
+          <circle cx="20" cy="26" r="2.6"/><circle cx="30" cy="22" r="2.6"/><circle cx="40" cy="26" r="2.6"/><circle cx="25" cy="33" r="2.6"/><circle cx="36" cy="33" r="2.6"/>
+          <circle cx="78" cy="26" r="2.6"/><circle cx="88" cy="22" r="2.6"/><circle cx="98" cy="26" r="2.6"/><circle cx="83" cy="33" r="2.6"/><circle cx="94" cy="33" r="2.6"/>
+        </g>
+      </svg>
+      <div class="ask">Write it two ways.</div>
+      <div class="ans">5+5=10 &nbsp; 2&times;5=10</div>
+    </div>
+
+    <div class="box">
+      <div class="n">Box 3</div>
+      <svg viewBox="0 0 120 50" role="img" aria-label="Four rows of three dots, last row empty circles">
+        <g fill="#000">
+          <circle cx="35" cy="10" r="3"/><circle cx="55" cy="10" r="3"/><circle cx="75" cy="10" r="3"/>
+          <circle cx="35" cy="22" r="3"/><circle cx="55" cy="22" r="3"/><circle cx="75" cy="22" r="3"/>
+          <circle cx="35" cy="34" r="3"/><circle cx="55" cy="34" r="3"/><circle cx="75" cy="34" r="3"/>
+        </g>
+        <g fill="none" stroke="#000" stroke-width="1.2" stroke-dasharray="2 2">
+          <circle cx="35" cy="46" r="3"/><circle cx="55" cy="46" r="3"/><circle cx="75" cy="46" r="3"/>
+        </g>
+      </svg>
+      <div class="ask">How many when the last row is filled?</div>
+      <div class="ans">12</div>
+    </div>
+
+    <div class="box">
+      <div class="n">Box 4</div>
+      <p class="mono" style="font-size:13pt;margin:5mm 0;">5 + 5 + 5 + 5</p>
+      <div class="ask">Write this as a multiplication.</div>
+      <div class="ans">4 &times; 5 = 20</div>
+    </div>
+
+    <div class="box">
+      <div class="n">Box 5</div>
+      <svg viewBox="0 0 120 50" role="img" aria-label="One group of four dots and one group of six dots">
+        <g fill="none" stroke="#000" stroke-width="1.2" stroke-dasharray="3 2">
+          <rect x="6" y="8" width="34" height="34" rx="2"/>
+          <rect x="52" y="8" width="42" height="34" rx="2"/>
+        </g>
+        <g fill="#000">
+          <circle cx="16" cy="19" r="3"/><circle cx="30" cy="19" r="3"/><circle cx="16" cy="31" r="3"/><circle cx="30" cy="31" r="3"/>
+          <circle cx="61" cy="19" r="3"/><circle cx="73" cy="19" r="3"/><circle cx="85" cy="19" r="3"/>
+          <circle cx="61" cy="31" r="3"/><circle cx="73" cy="31" r="3"/><circle cx="85" cy="31" r="3"/>
+        </g>
+      </svg>
+      <div class="ask">Are these equal groups? yes / no</div>
+      <div class="ans">no</div>
+    </div>
+
+    <div class="box">
+      <div class="n">Box 6</div>
+      <svg viewBox="0 0 120 50" role="img" aria-label="One bench with four legs, and five outlined benches">
+        <g stroke="#000" fill="none" stroke-width="1.4">
+          <path d="M4 12 H26"/><path d="M6 12 V26"/><path d="M10 12 V26"/><path d="M20 12 V26"/><path d="M24 12 V26"/>
+        </g>
+        <g stroke="#000" fill="none" stroke-width="1" stroke-dasharray="2 1.5">
+          <path d="M36 12 H50"/><path d="M37 12 V24"/><path d="M40 12 V24"/><path d="M46 12 V24"/><path d="M49 12 V24"/>
+          <path d="M56 12 H70"/><path d="M57 12 V24"/><path d="M60 12 V24"/><path d="M66 12 V24"/><path d="M69 12 V24"/>
+          <path d="M76 12 H90"/><path d="M77 12 V24"/><path d="M80 12 V24"/><path d="M86 12 V24"/><path d="M89 12 V24"/>
+          <path d="M96 12 H110"/><path d="M97 12 V24"/><path d="M100 12 V24"/><path d="M106 12 V24"/><path d="M109 12 V24"/>
+        </g>
+      </svg>
+      <div class="ask">Five benches, four legs each. How many legs?</div>
+      <div class="ans">20</div>
+    </div>
+
+  </div>
+
+  <p class="sub" style="margin-top:2mm;">Boxes 1, 2 and 4 are the objective. Box 5 is the misconception. Box 6 is transfer. A pupil who scores 5 but not 1 has a writing or copying problem, not a mathematical one &mdash; check it aloud.</p>
+
+  <h2>What a wrong answer means</h2>
+  <table>
+    <tr><th>You see</th><th>It usually means</th><th>Do this now</th></tr>
+    <tr><td>Groups of unequal size</td><td>&ldquo;Equal&rdquo; is not secure</td><td>Stop the class; rebuild with the same number in every group</td></tr>
+    <tr><td><span class="mono">3 &times; 6 = 9</span></td><td>Reading <span class="mono">&times;</span> as &ldquo;plus&rdquo;</td><td>Make them build it; the stones contradict the answer</td></tr>
+    <tr><td><span class="mono">3 &times; 6 = 6 + 6</span></td><td>A group was missed</td><td>Count the groups aloud together, touching each</td></tr>
+    <tr><td>Right answer, cannot explain</td><td>Procedure without meaning</td><td>&ldquo;How many groups? How many in each?&rdquo; before accepting</td></tr>
+    <tr><td>Blank on a word problem</td><td>May be a <i>reading</i> failure</td><td>Read it aloud twice; ask them to say it back. Do not record a maths error yet</td></tr>
+  </table>
+
+  <h2>Tomorrow &mdash; decide before you mark</h2>
+  <ul>
+    <li><b>Most wrong on the fingers check:</b> reteach equal groups with objects. Not arrays.</li>
+    <li><b>Right answers, can&rsquo;t explain:</b> ten minutes on what each number means before new content.</li>
+    <li><b>Most can explain box 5 and the &ldquo;is 4 &times; 3 = 7?&rdquo; item:</b> move to arrays and <span class="mono">3 &times; 4 = 4 &times; 3</span>.</li>
+  </ul>
+
+  <h2>Record &mdash; six pupils, ticks not marks</h2>
+  <table class="ticks">
+    <tr><th style="width:34%">Pupil</th><th>Builds equal groups</th><th>Writes or says the addition</th><th>Says what each number means</th></tr>
+    <tr><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td></tr>
+  </table>
+  <p class="mono" style="font-size:9.5pt;">fingers 3 &times; 5 &mdash; correct ____ &nbsp; wrong ____ &nbsp; silent ____</p>
+  <p class="sub"><b>A dash is not a zero.</b> A pupil who was absent, silent or copying is <b>not assessed</b>.</p>
+
+  <h2>One line home</h2>
+  <p class="say">&ldquo;Ask someone at home to make three groups of four stones with you, and tell them how many.&rdquo;</p>
+  <p class="sub">No worksheet, no reading, no cost, one minute, any language. Not homework. Do not mark it.</p>
+
+  <h2>If it falls apart</h2>
+  <ul>
+    <li><b>20 minutes only:</b> phases 1, 2 and 5. The lesson still works.</li>
+    <li><b>No objects:</b> board groups, fingers, chalk marks on the desk. Say plainly that a drawing records the idea; it does not replace handling objects.</li>
+    <li><b>Objects thrown:</b> that pair works on the board. Remove the objects, never the mathematics.</li>
+    <li><b>Half the class away:</b> do not reteach. Open with the six boxes and carry on. Record who missed what &mdash; that record is the finding.</li>
+    <li><b>If you are unsure of the maths:</b> you do not need to be confident. You need to be willing to let the stones contradict you. If a pupil asks something you cannot answer, say so and write it on the board.</li>
+  </ul>
+
+  <p class="foot">
+    Equal groups &rarr; multiplication, step 1 of 8. Steps 2&ndash;8 (arrays, the 2/5/10 tables, commutativity, 3 and 4 tables, sharing, one-step problems, missing numbers) are named, not written.
+    This card is unreviewed and unvalidated; it is evidence of nothing until a teacher has taught it.
+  </p>
+  <p class="foot">
+    <b>Where the design comes from.</b> Structured pedagogy (lesson plans + materials + ongoing teacher support) is one of three &ldquo;Great Buys&rdquo; in the 2023 GEEAP <i>Smart Buys</i> report, with evidence from Kenya, Liberia and South Africa; the same report rates computer hardware a &ldquo;Bad Buy&rdquo;, which is why this card needs none. Oral, individually administered assessment is the design of the Early Grade Mathematics Assessment (EGMA), built specifically so that a child&rsquo;s reading cannot be mistaken for their mathematics. The double count follows research on multiplicative reasoning, which finds that teaching multiplication only as repeated addition leaves a model that fails with non-whole numbers. Manipulatives are supported by the evidence when the adult makes the link explicit, which is why phase 3 is &ldquo;build, then say, then write&rdquo; and never &ldquo;here are some stones&rdquo;.
+  </p>
+
+</section>
+
+</body>
+</html>

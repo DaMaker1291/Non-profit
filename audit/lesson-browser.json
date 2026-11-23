@@ -1,11 +1,11 @@
 {
   "generatedBy": "scripts/lesson-walk.mjs",
-  "at": "2026-11-12T17:54:53.892Z",
+  "at": "2026-11-19T19:21:49.700Z",
   "command": "npm run verify:lesson",
-  "passed": 989,
+  "passed": 1424,
   "failed": 0,
-  "authoredLessons": 88,
-  "authoredCatalogue": 88,
+  "authoredLessons": 135,
+  "authoredCatalogue": 135,
   "allAuthoredPainted": true,
   "widths": [
     1280,

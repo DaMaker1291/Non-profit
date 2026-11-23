@@ -9,6 +9,8 @@ exports.courseRefusal = courseRefusal;
 exports.specById = specById;
 exports.specsFor = specsFor;
 exports.levelOf = levelOf;
+exports.tiersForSubject = tiersForSubject;
+exports.tierForYear = tierForYear;
 exports.levelForGrade = levelForGrade;
 exports.courseForSubject = courseForSubject;
 exports.coversSubject = coversSubject;
@@ -16,6 +18,7 @@ exports.specOptionsFor = specOptionsFor;
 exports.chosenSubjects = chosenSubjects;
 exports.specForProfile = specForProfile;
 exports.courseSummaryFor = courseSummaryFor;
+exports.resolveCourse = resolveCourse;
 exports.courseGaps = courseGaps;
 exports.incompleteSubjects = incompleteSubjects;
 exports.difficultyFor = difficultyFor;
@@ -40,16 +43,18 @@ const UK = {
         // in Foundation Paper 1 before this list existed, and a Foundation candidate
         // cannot be examined on a line-curve intersection just because it is one
         // stage below the top of the genome.
-        { id: "foundation", tier: "foundation", name: "Foundation tier", stages: [0, 3], difficulty: 0.45, exclude: ["completing-square", "polynomials", "binomial", "logs", "sim-equations-quad", "surds", "circle-theorems", "trig-rule", "functions", "algebraic-fractions", "bounds"] },
-        { id: "higher", tier: "higher", name: "Higher tier", stages: [0, 4], difficulty: 0.65, exclude: ["logs", "calculus-diff", "calculus-int", "matrices-intro"] },
+        { id: "foundation", tier: "foundation", name: "Foundation tier", stages: [0, 3], difficulty: 0.45, schoolYears: ["Year 10", "Year 11"], exclude: ["completing-square", "polynomials", "binomial", "logs", "sim-equations-quad", "surds", "circle-theorems", "trig-rule", "functions", "algebraic-fractions", "bounds"] },
+        { id: "higher", tier: "higher", name: "Higher tier", stages: [0, 4], difficulty: 0.65, schoolYears: ["Year 10", "Year 11"], exclude: ["logs", "calculus-diff", "calculus-int", "matrices-intro"] },
     ],
+    // GCSE Computer Science is not tiered (J277/8525 are single-tier, grades 9–1).
+    subjectTiers: { computing: [] },
 };
 const UK_ALEVEL = {
     id: "uk-alevel", country: "GB", board: "aqa", name: "A-Level",
     coverage: { maths: [2, 5], physics: [2, 3], chemistry: [2, 4], biology: [1, 3], computing: [1, 3] },
     levels: [
-        { id: "as", tier: "advanced", name: "AS", stages: [2, 4], difficulty: 0.75 },
-        { id: "a2", tier: "degree", name: "A2", stages: [2, 5], difficulty: 0.9 },
+        { id: "as", tier: "advanced", name: "AS", stages: [2, 4], difficulty: 0.75, schoolYears: ["Year 12"] },
+        { id: "a2", tier: "degree", name: "A2", stages: [2, 5], difficulty: 0.9, schoolYears: ["Year 13"] },
     ],
 };
 const IGCSE = {
@@ -63,17 +68,17 @@ const IGCSE = {
     syllabi: { chemistry: "2026–2028" },
     coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 3] },
     levels: [
-        { id: "core", tier: "foundation", name: "Core", stages: [0, 2], difficulty: 0.4 },
-        { id: "extended", tier: "higher", name: "Extended", stages: [0, 4], difficulty: 0.65, exclude: ["logs", "calculus-diff", "calculus-int"] },
+        { id: "core", tier: "foundation", name: "Core", stages: [0, 2], difficulty: 0.4, schoolYears: ["Year 10", "Year 11"] },
+        { id: "extended", tier: "higher", name: "Extended", stages: [0, 4], difficulty: 0.65, schoolYears: ["Year 10", "Year 11"], exclude: ["logs", "calculus-diff", "calculus-int"] },
     ],
 };
 const IB = {
     id: "int-ib", country: "INT", board: "ib", name: "International Baccalaureate",
     coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 4], biology: [0, 3], computing: [0, 3] },
     levels: [
-        { id: "myp", tier: "junior", name: "MYP", stages: [0, 2], difficulty: 0.45 },
-        { id: "sl", tier: "advanced", name: "Diploma SL", stages: [0, 4], difficulty: 0.7 },
-        { id: "hl", tier: "degree", name: "Diploma HL", stages: [0, 5], difficulty: 0.9 },
+        { id: "myp", tier: "junior", name: "MYP", stages: [0, 2], difficulty: 0.45, schoolYears: ["Year 10", "Year 11"] },
+        { id: "sl", tier: "advanced", name: "Diploma SL", stages: [0, 4], difficulty: 0.7, schoolYears: ["Year 12", "Year 13"] },
+        { id: "hl", tier: "degree", name: "Diploma HL", stages: [0, 5], difficulty: 0.9, schoolYears: ["Year 12", "Year 13"] },
     ],
 };
 const US_CORE = {
@@ -136,11 +141,11 @@ const IN_CBSE = {
     id: "in-cbse", country: "IN", board: "cbse", name: "CBSE",
     coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 4], biology: [0, 3], computing: [0, 3] },
     levels: [
-        { id: "class8-9", tier: "junior", name: "Class 8–9", stages: [0, 2], difficulty: 0.4 },
+        { id: "class8-9", tier: "junior", name: "Class 8–9", stages: [0, 2], difficulty: 0.4, schoolYears: ["Class 8", "Class 9"] },
         // CBSE Class 10 trigonometry is ratios and identities; the sine and cosine
         // rules arrive at Class 11.
-        { id: "class10", tier: "foundation", name: "Class 10", stages: [0, 3], difficulty: 0.55, exclude: ["trig-rule"] },
-        { id: "class11-12", tier: "advanced", name: "Class 11–12", stages: [0, 5], difficulty: 0.85 },
+        { id: "class10", tier: "foundation", name: "Class 10", stages: [0, 3], difficulty: 0.55, schoolYears: ["Class 10"], exclude: ["trig-rule"] },
+        { id: "class11-12", tier: "advanced", name: "Class 11–12", stages: [0, 5], difficulty: 0.85, schoolYears: ["Class 11", "Class 12"] },
     ],
 };
 const IN_ICSE = {
@@ -174,9 +179,9 @@ const KE = {
     id: "ke-kcse", country: "KE", board: "kenyan", name: "KCSE (Kenya)",
     coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 3] },
     levels: [
-        { id: "junior", tier: "junior", name: "Grade 7–9", stages: [0, 2], difficulty: 0.4 },
-        { id: "form3", tier: "foundation", name: "Form 3", stages: [0, 3], difficulty: 0.55 },
-        { id: "form4", tier: "higher", name: "Form 4 (KCSE)", stages: [0, 4], difficulty: 0.7, include: ["trig-rule", "completing-square", "surds"] },
+        { id: "junior", tier: "junior", name: "Grade 7–9", stages: [0, 2], difficulty: 0.4, schoolYears: ["Form 1", "Form 2"] },
+        { id: "form3", tier: "foundation", name: "Form 3", stages: [0, 3], difficulty: 0.55, schoolYears: ["Form 3"] },
+        { id: "form4", tier: "higher", name: "Form 4 (KCSE)", stages: [0, 4], difficulty: 0.7, schoolYears: ["Form 4"], include: ["trig-rule", "completing-square", "surds"] },
     ],
 };
 const TZ = {
@@ -265,16 +270,16 @@ const CM_GCE_O = {
     id: "cm-gce-o", country: "CM", board: "gce", name: "GCE Ordinary Level",
     coverage: { maths: [0, 3], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 2] },
     levels: [
-        { id: "form4", tier: "junior", name: "Form 4", stages: [0, 2], difficulty: 0.45 },
-        { id: "form5", tier: "foundation", name: "Form 5 · GCE O Level", stages: [0, 3], difficulty: 0.6 },
+        { id: "form4", tier: "junior", name: "Form 4", stages: [0, 2], difficulty: 0.45, schoolYears: ["Form 4"] },
+        { id: "form5", tier: "foundation", name: "Form 5 · GCE O Level", stages: [0, 3], difficulty: 0.6, schoolYears: ["Form 5"] },
     ],
 };
 const CM_GCE_A = {
     id: "cm-gce-a", country: "CM", board: "gce", name: "GCE Advanced Level",
     coverage: { maths: [2, 5], physics: [2, 3], chemistry: [2, 4], biology: [1, 3], computing: [1, 3] },
     levels: [
-        { id: "lower6", tier: "advanced", name: "Lower Sixth", stages: [2, 4], difficulty: 0.78 },
-        { id: "upper6", tier: "degree", name: "Upper Sixth · GCE A Level", stages: [2, 5], difficulty: 0.9 },
+        { id: "lower6", tier: "advanced", name: "Lower Sixth", stages: [2, 4], difficulty: 0.78, schoolYears: ["Lower Sixth"] },
+        { id: "upper6", tier: "degree", name: "Upper Sixth · GCE A Level", stages: [2, 5], difficulty: 0.9, schoolYears: ["Upper Sixth"] },
     ],
 };
 const CM_BEPC = {
@@ -395,9 +400,9 @@ const INDEPENDENT = {
     id: "any-independent", country: "XX", board: "state", name: "Independent · skills pathway",
     coverage: { maths: [0, 5], physics: [1, 3], chemistry: [0, 4], biology: [0, 3], computing: [0, 3] },
     levels: [
-        { id: "foundations", tier: "primary", name: "Foundations", stages: [0, 1], difficulty: 0.35 },
-        { id: "core", tier: "foundation", name: "Core", stages: [0, 3], difficulty: 0.55 },
-        { id: "advanced", tier: "advanced", name: "Advanced", stages: [0, 5], difficulty: 0.8 },
+        { id: "foundations", tier: "primary", name: "Foundations", stages: [0, 1], difficulty: 0.35, schoolYears: ["Foundations"] },
+        { id: "core", tier: "foundation", name: "Core", stages: [0, 3], difficulty: 0.55, schoolYears: ["Core"] },
+        { id: "advanced", tier: "advanced", name: "Advanced", stages: [0, 5], difficulty: 0.8, schoolYears: ["Advanced"] },
     ],
 };
 exports.SPECIFICATIONS = [
@@ -592,12 +597,60 @@ function levelOf(spec, levelId) {
         return null;
     return spec.levels.find((l) => l.id === levelId) ?? null;
 }
-/** Match a stored grade ("Form 4", "Class 10") to the level that teaches it. */
-function levelForGrade(spec, grade) {
-    if (!grade)
+/** THE TIERS A QUALIFICATION ACTUALLY OFFERS FOR ONE SUBJECT.
+ *
+ *  `subjectTiers` is a restriction list, not an addition: absent means every
+ *  level applies (the common case), a named list narrows it, and an EMPTY list
+ *  means the subject is untiered — the course needs no tier because the
+ *  qualification has none for it. Deriving the list here rather than at each
+ *  call site is what stops a picker from asking a computing learner to choose
+ *  between Foundation and Higher on an untiered GCSE. */
+function tiersForSubject(spec, subject) {
+    const allowed = subject ? spec.subjectTiers?.[subject] : undefined;
+    if (!allowed)
+        return spec.levels;
+    return spec.levels.filter((l) => allowed.includes(l.id));
+}
+/** WHICH TIER A SCHOOL YEAR SITS — the ONE place the two concepts are joined.
+ *
+ *  Declared data first (`SpecLevel.schoolYears`): a KCSE Form 4 candidate sits
+ *  the Form 4 examination, and CBSE Class 10 sits the Class 10 course, because
+ *  the qualification says so. When two tiers declare the same year the answer is
+ *  genuinely ambiguous (GCSE Foundation and Higher both span Years 10–11) and
+ *  this returns null — the tier is a real choice and must be asked for.
+ *
+ *  THERE IS NO SECOND BRANCH. The old implementation was
+ *  `name.includes(grade) || grade.includes(name)`, a substring test that read the
+ *  year "Core" as Cambridge IGCSE's Core tier and "Class 1" as "Class 10": a
+ *  coincidence of spelling presented to the learner as their examination tier.
+ *  It was replaced for one release by an exact-name match, which fixed the
+ *  substring errors but still joined the two concepts by how a level happened to
+ *  be spelled; that is gone too. A qualification that has not declared the link
+ *  in `schoolYears` has not stated it, so the answer is null and the learner is
+ *  asked once. Backward compatibility is not lost: a stored `specLevel` is still
+ *  the learner's answer (`resolveCourse` reads it first), and every course whose
+ *  data does tie year to tier now says so in data — see the `schoolYears` on
+ *  GCSE, A-Level, IGCSE, IB, CBSE, KCSE, the independent bands and the Cameroon
+ *  GCE forms. */
+function tierForYear(spec, year, subject) {
+    if (!year)
         return null;
-    const g = grade.toLowerCase();
-    return spec.levels.find((l) => l.name.toLowerCase().includes(g) || g.includes(l.name.toLowerCase())) ?? null;
+    const tiers = tiersForSubject(spec, subject);
+    const declared = tiers.filter((l) => l.schoolYears?.includes(year));
+    if (declared.length === 1)
+        return declared[0];
+    // More than one tier for this year is a CHOICE, and no tier for it means the
+    // qualification does not tie this year to one — both answer null. There is
+    // deliberately no name-matching fallback: a qualification that has not declared
+    // the relationship has not stated it, and the learner is asked once instead of
+    // being placed by a coincidence of spelling.
+    return null;
+}
+/** Match a stored school year to the tier that examines it, if the qualification
+ *  declares one. Kept as the public name every existing caller uses; the rule
+ *  itself lives in `tierForYear`, which cannot invent a tier from a substring. */
+function levelForGrade(spec, grade, subject) {
+    return tierForYear(spec, grade, subject);
 }
 /**
  * The course in force for ONE subject.
@@ -693,7 +746,15 @@ function specForProfile(profile, subject) {
     // one selection quietly becomes a curriculum for every subject — biology work
     // would then be planned against a coverage set with no biology in it.
     if (explicit && (!subject || coversSubject(explicit, subject))) {
-        const lvl = levelOf(explicit, p.specLevel) ?? levelForGrade(explicit, p.grade) ?? explicit.levels[0];
+        // THE TIER IS READ THROUGH THIS SUBJECT'S TIER LIST. A level the
+        // qualification has but does not offer for this subject is not this
+        // course's tier, and the year answers it only where the qualification
+        // declares that it does (`tierForYear`).
+        const offered = tiersForSubject(explicit, subject);
+        const lvl = offered.find((l) => l.id === p.specLevel) ??
+            tierForYear(explicit, p.grade, subject) ??
+            offered[0] ??
+            explicit.levels[0];
         return { spec: explicit, level: lvl };
     }
     // With a subject in hand, only qualifications that teach it are candidates —
@@ -715,11 +776,16 @@ function specForProfile(profile, subject) {
         ? pool.filter((s) => s.board === p.board || s.id.includes(p.exam.toLowerCase()))
         : [];
     const spec = byBoard[0] ?? byExam[0] ?? pool[0] ?? INDEPENDENT;
-    const level = levelForGrade(spec, p.grade) ?? spec.levels[0];
+    const level = tierForYear(spec, p.grade, subject) ?? tiersForSubject(spec, subject)[0] ?? spec.levels[0];
     return { spec, level };
 }
 function courseSummaryFor(profile, subject) {
     const active = specForProfile(profile, subject);
+    // ONE RESOLUTION, so the summary cannot state a tier the course gate calls
+    // unanswered. `subject` is optional on this function because some readers have
+    // exactly one course; the resolution needs one, so the single-course answer is
+    // used in that case (the same rule `courseForSubject` applies).
+    const resolved = subject ? resolveCourse(profile, subject) : null;
     return {
         specificationId: active.spec.id,
         country: active.spec.country,
@@ -729,25 +795,12 @@ function courseSummaryFor(profile, subject) {
         tierKey: active.level.tier,
         levelId: active.level.id,
         difficulty: active.level.difficulty,
+        year: resolved?.year ?? profile.grade ?? "",
+        tierConfirmed: resolved ? resolved.source !== "fallback" : true,
         terms: termsFor(active.spec.board),
     };
 }
-/**
- * What one subject's course still has NOT decided, named field by field.
- *
- * The list is deliberately short, and it is the whole of the requirement: where
- * the learner studies (a mapped country, or the explicit independent route),
- * what year they are in, which qualification and tier they sit (or an explicit
- * independent course). Anything beyond that would be configuration for its own
- * sake.
- *
- * An empty `spec` is only honest where the learner's country offered no
- * qualifications to choose from. Where options existed, silence is not
- * "independent" — it is the silent default `specForProfile` used to fall back
- * to, and refusing it is the point: a recommendation must never rest on a
- * course the learner did not choose.
- */
-function courseGaps(profile, subject) {
+function resolveCourse(profile, subject) {
     const c = courseForSubject(profile, subject);
     // EVERY country that names somewhere has a route, because an unnamed one is
     // not the learner's fault and must not be a wall. This read `?? (c.country
@@ -770,8 +823,22 @@ function courseGaps(profile, subject) {
     // real tiers, so the learner still has to choose a qualification and a level.
     // Falling back here does not weaken the requirement; it removes a demand the
     // product cannot honour.
+    // WHICH SYSTEM'S YEARS THIS COURSE ACTUALLY HAS. The qualification's own
+    // pathway answers it, because a qualification is offered by exactly one
+    // pathway and that pathway's years are the years its learner declares. Falling
+    // back to the country/pathway record is right only while no qualification has
+    // been chosen — which is the state the course step starts in.
+    //
+    // Without this the two halves disagreed: /curriculum offered a qualification's
+    // own years (Years 10–13 for Cambridge IGCSE) while this gate measured the
+    // year group against the pathway in force (the independent pathway's
+    // Foundations / Core / Advanced, for a country with no mapped route), so
+    // choosing "Year 10" and pressing Save produced a course this function called
+    // incomplete for ever. The screen's own comment forbids exactly that loop.
     const route = c.country
-        ? (0, curriculum_1.routeForPathwayId)(c.country, c.pathway) ?? (0, curriculum_1.curriculumFor)(c.country) ?? curriculum_1.INDEPENDENT_ROUTE
+        ? (0, curriculum_1.routeForPathwayId)(c.country, (0, registry_1.pathwayForSpec)(c.country, c.spec)?.id) ??
+            (0, curriculum_1.routeForPathwayId)(c.country, c.pathway) ??
+            (0, curriculum_1.curriculumFor)(c.country) ?? curriculum_1.INDEPENDENT_ROUTE
         : null;
     const out = [];
     if (!route)
@@ -791,18 +858,47 @@ function courseGaps(profile, subject) {
         out.push("pathway");
     if (route && !route.grades.includes(c.grade ?? ""))
         out.push("grade");
-    const spec = specById(c.spec);
-    if (!spec)
+    // A qualification that does not contain the subject is not this subject's
+    // course, whatever else it gets right.
+    const spec = specById(c.spec) ?? null;
+    const covered = spec ? coversSubject(spec, subject) : false;
+    if (!covered)
         out.push("spec");
-    else {
-        // A qualification that does not contain the subject is not this subject's
-        // course, whatever else it gets right.
-        if (!spec.coverage[subject])
-            out.push("spec");
-        if (!spec.levels.some((l) => l.id === c.specLevel))
-            out.push("specLevel");
-    }
-    return out;
+    // THE TIER LIST COMES FROM THE QUALIFICATION AND THE SUBJECT — not from the
+    // country's route, and not from every level the qualification has.
+    const tiers = covered && spec ? tiersForSubject(spec, subject) : [];
+    // A tier is ANSWERED only when the record names one this subject offers. A
+    // stored tier from another course (a GCSE "higher" left on a record now
+    // pointing at IGCSE) is not an answer to this course's question.
+    const stored = c.specLevel ? tiers.find((l) => l.id === c.specLevel) ?? null : null;
+    const byYear = covered && spec ? tierForYear(spec, c.grade, subject) : null;
+    const answered = stored ?? byYear;
+    // A REAL CHOICE THAT HAS NOT BEEN MADE IS A GAP, not a default. One tier means
+    // there is nothing to choose; an empty list means the qualification is untiered
+    // for this subject and asking would be asking a question the exam does not put.
+    if (tiers.length > 1 && !answered)
+        out.push("specLevel");
+    const effective = answered ?? tiers[0] ?? spec?.levels[0] ?? INDEPENDENT.levels[0];
+    const source = stored
+        ? "chosen"
+        : byYear ? "year" : "single";
+    return {
+        spec,
+        year: c.grade ?? "",
+        years: route?.grades ?? [],
+        tiers,
+        tier: stored,
+        effective,
+        source: tiers.length > 1 && !answered ? "fallback" : source,
+        gaps: out,
+        complete: out.length === 0,
+    };
+}
+/** What one subject's course still has NOT decided. Delegates to
+ *  `resolveCourse`, so the gate the screens read and the gate the API enforces
+ *  cannot drift apart. */
+function courseGaps(profile, subject) {
+    return resolveCourse(profile, subject).gaps;
 }
 /** Every DECLARED subject whose course is not yet complete, with the fields
  *  still missing. This is the gate enrolment (and the API behind it) uses, so a

@@ -69,7 +69,7 @@ All commands were run in this checkout against isolated scratch stores. `npm run
 | `npm run verify:assignment-browser` | **29 passed, 0 failed** |
 | `npm run verify:assignment-lifecycle` | **33 passed, 0 failed** |
 | `npm run verify:live-browser` at 390×844 | **26 passed, 0 failed** |
-| `npm run verify:offline-browser` | **25 passed, 0 failed** |
+| `npm run verify:offline-browser` | **45 passed, 0 failed** |
 | `npm run verify:classroom-restart` | **46 passed, 0 failed** |
 | `npm run verify:permissions` | **87 passed, 0 failed** |
 

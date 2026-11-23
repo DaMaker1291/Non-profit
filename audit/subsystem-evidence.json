@@ -1,20 +1,41 @@
 {
   "contract": "openmind.subsystem-evidence/1.0",
-  "recordedAt": "2026-11-11",
+  "recordedAt": "2026-11-13T23:27:24.932Z",
   "environment": {
     "store": "isolated scratch directories; the live .openmind-data store was not opened",
-    "offlineRun": "production build, network-disabled browser restart",
+    "offlineRun": "production build on 127.0.0.1:4174 with /tmp/om-offline-assess-store; authored offline assessment after a network-disabled browser restart",
+    "graphRun": "production build on 127.0.0.1:4174 with OPENMIND_DATA_DIR=/tmp/om-graph-store",
+    "kioskRun": "production build on 127.0.0.1:4174 with OPENMIND_DATA_DIR=/tmp/om-graph-store",
     "teacherRun": "development server on 4175 with a scratch store",
-    "securityRun": "development server on 4173 with a scratch store; production-check also ran the authorization matrix"
+    "securityRun": "development server on 4173 with a scratch store; production-check also ran the authorization matrix",
+    "printRun": "production build on 127.0.0.1:4174; Chrome print-to-PDF, including authored table and plot pages",
+    "localContentRun": "scratch directory, loopback HTTP; no live store opened"
   },
   "subsystems": {
+    "LOW-RESOURCE-001": {
+      "status": "BROWSER_VERIFIED",
+      "evidence": [
+        "scripts/low-resource-check.mjs: 2744 passed, 0 failed — 135 worksheets, 135 separate keys, 135 teacher guides with four temporary groups, 135 presenter runs, all eight authored paper kinds, five declared classroom conditions, structured number/graph/read-off/plot/table forms, no key fields in a pupil sheet, group evidence excluded, answer-bearing pages excluded from the service-worker cache",
+        "scripts/verify-print-browser.mjs: 101 passed, 0 failed — Chrome print-to-PDF; authored data-charts table, motion-graphs plot and rates-reaction practical-planning pages printed and visually inspected; default and large-class teacher guides are 6-page A4 PDFs with run-of-show and four-group tables at zero horizontal overflow and no row splits; 539-page all-Maths set; separate 3-page teacher key; no pupil key text",
+        "scripts/verify-low-bandwidth.mjs: worksheet 54.1 KiB / 16,947 ms at 50 kbps + 300 ms; 3G lesson 16.1 KiB / 549 ms; budgets 250 KiB and 2.5 MiB, no video",
+        "scripts/verify-offline-browser.mjs: 45 passed, 0 failed — two learners on one browser profile, offline hand-back, queue retained and scoped, offline restart, single sync, duplicate refused",
+        "scripts/verify-teacher-cache.mjs: 10 passed, 0 failed (prior run) — no key/presenter response in CacheStorage; planted stale entry not served",
+        "scripts/verify-kiosk-identity.mjs: 105 passed, 0 failed (prior run) — kiosk identity, PIN reissue, rate limits, revocation, authority matrix",
+        "scripts/verify-local-content.mjs: 30 passed, 0 failed — 135 lessons, 137 files, SHA-256 from disk, no learner records/keys, read-only HTTP, traversal refused",
+        "Curriculum reconciliation: 135 concepts, 135 authored, 0 outlines; 67 maths, 18 physics, 16 chemistry, 16 biology, 18 computing; 451 assessment items"
+      ],
+      "remainingWork": "Physical printing/scanning, real low-cost Android or old school hardware, memory/CPU/thermal measurement, a real school LAN, 2G/3G carrier measurement, teacher review, learner trials and translated/RTL print are not verified. The assessment matrix retains 51 lessons with a recommended-format gap. See docs/LOW_RESOURCE_ACCEPTANCE.md and docs/PAPER_OFFLINE_AUDIT.md."
+    },
     "OFFLINE-001": {
       "status": "BROWSER_VERIFIED",
       "evidence": [
-        "scripts/verify-offline-browser.mjs: 25 passed, 0 failed — downloaded Fractions, production service worker, offline reload, browser restart, local-only queue, reconnect, exactly one ledger event, duplicate replay refused, sign-out cleanup",
-        "scripts/production-check.mjs: offline sync protocol — dedupe, refusals, paging, replay"
+        "scripts/offline-assessment-check.mjs: 551 passed, 0 failed — deterministic authored offline formats selected; online graders reused; partial credit, criteria and device event provenance",
+        "scripts/verify-offline-assessment-browser.mjs: 22 passed, 0 failed — downloaded photosynthesis authored gap-fill (5/5) and matching (5/5) after browser restart offline; local-only labels; scoped draft; one queued event each; two ledger events after reconnect; device provenance; 10/10 projected marks and mastery",
+        "scripts/verify-offline-browser.mjs: 45 passed, 0 failed — learner A hand-back with queue retained, learner B cannot see A pack/answers/queue, offline restart as B, A returns and exactly one event, duplicate replay refused",
+        "scripts/verify-offline-sync.mjs: 32 passed, 0 failed — dedupe, refusals, paging, device clock",
+        "Offline assessment excludes prose constructed response and code; the printed worksheet is the written route and the teacher key remains separate"
       ],
-      "remainingWork": "Re-run after any change to the service worker, offline store or sync protocol. External media remains link-only unless redistribution permission exists."
+      "remainingWork": "Extended prose and code are not locally marked; a device cannot execute code or judge prose without a teacher/runner. Physical offline devices and real school storage limits are not measured."
     },
     "TEACH-001": {
       "status": "BROWSER_VERIFIED",
@@ -35,6 +56,77 @@
         "scripts/production-check.mjs: authorization matrix and offline sync protocol PASS"
       ],
       "remainingWork": "Re-run after any auth or API change. External legal and data-protection review remains required; no compliance claim is made."
+    },
+    "TEACHER-CACHE-001": {
+      "status": "BROWSER_VERIFIED",
+      "evidence": [
+        "scripts/verify-teacher-cache.mjs: 10 passed, 0 failed — authenticated key and presenter rendered, 41 cache entries inspected with zero key/presenter responses, sign-out hand-back marker, offline key/presenter attempts exposed no answers, a planted openmind-v2 entry was not served"
+      ],
+      "remainingWork": "A browser profile shared by a teacher and a learner on a real managed device was not tested; the service-worker policy is browser-verified on Chrome only."
+    },
+    "LOCAL-CONTENT-001": {
+      "status": "AUTOMATED_VERIFIED",
+      "evidence": [
+        "scripts/local-content-pack.mjs: 135 lessons, 137 files, per-file SHA-256 verified from disk; no learner records, accounts or teacher keys",
+        "scripts/verify-local-content.mjs: 30 passed, 0 failed — scratch rebuild, every byte count and SHA-256, no profiles/accounts/papers/classes/rooms/erasures/evidence or secret/password/key fields, GET/HEAD 200, POST 405, encoded traversal 404, unknown file 404, Cache-Control no-store",
+        "scripts/serve-local-content.mjs: read-only HTTP mirror, LAN bind by default"
+      ],
+      "remainingWork": "No real school LAN or USB round-trip was performed. Integrity is a checksum, not a signature; teacher-controlled signed updates and client merge are not implemented."
+    },
+    "ASSESSMENT-001": {
+      "status": "BROWSER_VERIFIED",
+      "evidence": [
+        "scripts/assessment-format-matrix.mjs: 135 lessons audited; 84 carry every recommended assessed format, 51 have at least one recommended-format gap. Teaching figures are no longer counted as assessment items; multiple-choice is recorded as the generated retrieval surface",
+        "npm run verify: 4631 passed, 0 failed — gap-fill, matching, ordering, diagram, short-answer, structured method/answer, graph/plot/read-off/table, partial credit, units, criteria traceability and unreviewed refusal",
+        "scripts/verify-offline-assessment-browser.mjs: 22 passed, 0 failed — authored gap-fill and matching mark locally with criteria after restart and sync once",
+        "scripts/verify-print-browser.mjs: 101 passed, 0 failed — all eight authored paper kinds plus structured table and plot pages, separate key, default and large-class teacher guides",
+        "Assessment counts: 451 items — 273 short-answer, 148 constructed-response, 18 code, 6 structured, 1 gap-fill, 2 matching, 1 ordering, 2 diagram; structured forms number 6, graph 2, read-off 3, plot 1, table 1. Practical-planning items at rates-reaction/a4 and energy-changes/a4"
+      ],
+      "remainingWork": "The 51 recommended-format gaps are a content-review queue: 30 graph, 19 diagram and 12 practical, with overlap. Computing constructed-response was an audit error: the contract forbids that kind. Numerical is now recommended only where a calculation is taught. Short-answer, constructed-response, numerical, code, debugging and transfer have no remaining gap. Teacher review of item validity and mark schemes remains required. Human judgement is still needed for prose."
+    },
+    "PAPER-001": {
+      "status": "BROWSER_VERIFIED",
+      "evidence": [
+        "scripts/verify-print-browser.mjs: 101 passed, 0 failed; 11 lessons/batches including authored data-charts table, motion-graphs plot and rates-reaction practical-planning page; 539-page whole-Maths set; separate 3-page key; default and large-class teacher guides",
+        "Visual inspection of rendered PDF pages: the authored table keeps its categories/angle row on one page; the plot prompt, grid and read-off instructions remain together after the page-break CSS fix",
+        "No pupil sheet contains “Model answer” or “Teacher answer”; key route is separate and authenticated",
+        "docs/SUBJECT_REVIEW_PACK.md: five representative lessons across five subjects with explanations, worked examples, assessment, marking and misconceptions"
+      ],
+      "remainingWork": "Physical printing/scanning, photocopy legibility, duplex pagination, colour-vision print, RTL/non-Latin editions and teacher approval are not verified. Only English print exists; two machine translations are unreviewed."
+    },
+    "RELEASE-001": {
+      "status": "RELEASE_READY",
+      "evidence": [
+        "OPENMIND_CHECK_UI=1 npm run production-check: PASS, 31 recorded checks, 0 failed; database configuration is a stated skip",
+        "typecheck pass; npm run verify 4631 passed, 0 failed, including 2744 low-resource assertions and the country-profile check; storage conformance 138 passed, 1 stated skip; disk headroom 11.3 GB",
+        "verify:q pass; content release pass; local content 30/0; curriculum and paper-shape gates pass; option gate pass; content platform 72/0; structured audit 230 checks/0 failures",
+        "production build and standalone server start; static assets, render 37/0, smoke 21/0; permissions 87/0; offline sync 32/0",
+        "development server starts; e2e 892 passed, 0 failed; UI walk 73 passed, 0 failed",
+        "print walk 101/0; offline assessment walk 22/0; measured bandwidth pass; generated files restored"
+      ],
+      "remainingWork": "This is software release readiness, not educational approval. Postgres is not configured (the database step is a stated skip), and physical hardware, real carriers, school LAN, translated/RTL print, teacher review and learner outcomes remain external. See docs/FINAL_QUALITY_REGISTER.md."
+    },
+    "ADAPTIVE-001": {
+      "status": "AUTOMATED_VERIFIED",
+      "evidence": [
+        "npm run reliability: held-out mastery Brier 0.276 vs the learner-own-rate baseline 0.311 (n=327); the 0.65 threshold separates 65.3% correct among established calls from 49.1% among not-yet calls",
+        "npm run benchmark: 43 learners; plan names a documented weak concept 76.7%, top action is one 25.6%, coverage 40.5%; 90-learner cohort, 0 invariant violations; 52 of 90 return to a weak concept",
+        "Benchmark reports 1 named adversarial capability gap and 4/8 Section G hint-reliance cells not held; hint reliance is invisible below the established bar",
+        "The conventional specification-order rule scores 0.0% on the weak-concept question by construction; that is a structural difference, not a learning gain"
+      ],
+      "remainingWork": "Both instruments use a seeded synthetic cohort. Neither measures whether following the recommendation improves learning; that needs real learners, a baseline and a delayed test. One adversarial expectation and four hint-reliance cells remain unresolved and must not be reported as full adaptive validity."
+    },
+    "COUNTRY-001": {
+      "status": "INITIAL_RESEARCH / AUTOMATED_VERIFIED INDEX",
+      "evidence": [
+        "scripts/country-research.mjs --check: 70 national routes, 13 with collected research, 57 NOT_RESEARCHED, 0 missing required sections; every profile carries one of the agreed statuses",
+        "docs/country-research/COUNTRY_RESEARCH_STATE.json: 13 INITIAL_RESEARCH, 0 CURRICULUM_MAPPED, 0 HUMAN_REVIEWED, 0 SCHOOL_VALIDATED; income group is unknown where not checked",
+        "docs/country-research/COUNTRY_COMPARISON.md and COUNTRY_PRODUCT_REQUIREMENTS.md: figures carry year, population, source, method, confidence and limitations; national averages are not presented as every school",
+        "scripts/low-resource-check.mjs: 2744 passed, 0 failed — 135 teacher guides carry the selected classroom routine, prior checks, misconceptions, four temporary groups and an answer-free assessment list; no-student-devices, shared-devices, large-class, multilingual and limited-materials modes change the group routine and prompts; every mode records no learner answers",
+        "scripts/school-reality-check.mjs: 110 passed, 0 failed — 8 synthetic scenarios cover all 7 archetypes and 1,080 lesson-scenario combinations; every combination has a teacher guide, worksheet, separate key, presenter routine and deterministic offline assessment; Chichewa, Nepali and Kinyarwanda are declared unsupported rather than silently mapped to English",
+        "npm run typecheck pass; npm run build pass; npm run verify 4631 engine assertions, 2744 low-resource assertions, 110 school-reality assertions, 551 offline authored assertions, country check pass"
+      ],
+      "remainingWork": "57 routes are NOT_RESEARCHED; no country curriculum mapping has a subject-specialist review; only one reviewed-language pair exists (French fractions) and it is not a country localisation claim; 0 teachers and 0 learners have reviewed the country materials; no school partner, consent, safeguarding approval or learner pilot exists. Country research is not a curriculum alignment claim."
     }
   }
 }

@@ -1,7 +1,7 @@
 {
   "suite": "storage-conformance",
   "spec": "docs/STORAGE_SPEC.md §6",
-  "generatedAt": "2026-11-11T19:09:20.615Z",
+  "generatedAt": "2026-11-18T16:55:42.968Z",
   "storeIsTemporary": true,
   "backendsTested": [
     "file"

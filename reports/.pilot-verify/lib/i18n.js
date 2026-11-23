@@ -16,6 +16,7 @@ exports.fill = fill;
 exports.localeFor = localeFor;
 exports.dueLabel = dueLabel;
 const i18n_recovery_1 = require("./i18n-recovery");
+const i18n_verify_1 = require("./i18n-verify");
 const i18n_curriculum_1 = require("./i18n-curriculum");
 const i18n_device_1 = require("./i18n-device");
 const i18n_kiosk_1 = require("./i18n-kiosk");
@@ -1049,7 +1050,7 @@ const en = {
     "onb.signOut": "Sign out",
     "onb.claim": "Bring this device's progress with me",
     "onb.claimFailed": "This account already has saved work, so this device's guest progress was left alone.",
-    "onb.verifyNote": "OpenMind sends no verification emails — your address is only used to sign in.",
+    "onb.verifyNote": "Your address is only used to sign in. You can confirm it from your account page.",
     "pp.title": "Exam papers",
     "pp.lead": "Sit a full paper under its own time limit and mark rules, then read the mark scheme and your grade estimate.",
     "pp.honest": "Every question is written by OpenMind — none is a copy of a copyrighted past paper. Each row says whether the paper's shape is your awarding body's own or an OpenMind practice set.",
@@ -2679,7 +2680,7 @@ const es = {
     "onb.signOut": "Cerrar sesión",
     "onb.claim": "Llevar el progreso de este dispositivo",
     "onb.claimFailed": "Esta cuenta ya tiene trabajo guardado, así que el progreso invitado de este dispositivo no se ha tocado.",
-    "onb.verifyNote": "OpenMind no envía correos de verificación; tu dirección solo se usa para iniciar sesión.",
+    "onb.verifyNote": "Tu dirección solo se usa para iniciar sesión. Puedes confirmarla desde la página de tu cuenta.",
     "pp.title": "Exámenes oficiales",
     "pp.lead": "Resuelve un examen completo con su tiempo y criterios, y luego revisa el solucionario y tu nota estimada.",
     "pp.honest": "Todas las preguntas las redacta OpenMind: ninguna copia un examen oficial con derechos de autor. Cada fila indica si la estructura del examen es la de tu organismo examinador o una práctica de OpenMind.",
@@ -4310,7 +4311,7 @@ const fr = {
     "onb.signOut": "Se déconnecter",
     "onb.claim": "Emporter la progression de cet appareil",
     "onb.claimFailed": "Ce compte a déjà des données ; la progression invitée de cet appareil n'a pas été touchée.",
-    "onb.verifyNote": "OpenMind n'envoie pas d'e-mail de vérification ; votre adresse sert uniquement à vous connecter.",
+    "onb.verifyNote": "Ton adresse sert uniquement à te connecter. Tu peux la confirmer depuis la page de ton compte.",
     "pp.title": "Sujets d'examen",
     "pp.lead": "Faites un sujet complet avec sa durée et ses barèmes, puis lisez le corrigé et votre note estimée.",
     "pp.honest": "Chaque question est rédigée par OpenMind — aucune ne reproduit une épreuve protégée par le droit d'auteur. Chaque ligne précise si la structure de l'épreuve est celle de votre organisme ou un entraînement OpenMind.",
@@ -5941,7 +5942,7 @@ const pt = {
     "onb.signOut": "Sair",
     "onb.claim": "Levar o progresso deste aparelho",
     "onb.claimFailed": "Esta conta já tem trabalho salvo, então o progresso de convidado deste aparelho não foi alterado.",
-    "onb.verifyNote": "O OpenMind não envia e-mails de verificação; seu endereço serve apenas para entrar.",
+    "onb.verifyNote": "O teu endereço só é usado para entrar. Podes confirmá-lo na página da tua conta.",
     "pp.title": "Provas oficiais",
     "pp.lead": "Faça uma prova completa com seu tempo e critérios, depois veja o gabarito e a nota estimada.",
     "pp.honest": "Todas as perguntas são redigidas pelo OpenMind — nenhuma reproduz um exame protegido por direitos de autor. Cada linha indica se a estrutura do exame é a do seu organismo examinador ou um conjunto de prática do OpenMind.",
@@ -7554,7 +7555,7 @@ const ar = {
     "onb.signOut": "تسجيل الخروج",
     "onb.claim": "نقل تقدم هذا الجهاز معي",
     "onb.claimFailed": "هذا الحساب فيه عمل محفوظ، لذلك لم يُغيّر تقدم الزائر على هذا الجهاز.",
-    "onb.verifyNote": "لا يرسل OpenMind رسائل تحقق — يُستخدم بريدك لتسجيل الدخول فقط.",
+    "onb.verifyNote": "يُستخدم عنوانك لتسجيل الدخول فقط. يمكنك تأكيده من صفحة حسابك.",
     "pp.title": "أوراق الامتحانات",
     "pp.lead": "احضر ورقة كاملة بوقتها ومعايير تصحيحها، ثم اقرأ نموذج الإجابة وتقدير درجتك.",
     "pp.honest": "كل سؤال من إعداد OpenMind، ولا نسخة من ورقة امتحان محمية بحقوق النشر. ويوضّح كل سطر إن كانت بنية الورقة من هيئة الامتحانات الخاصة بك أم تدريبًا من OpenMind.",
@@ -9167,7 +9168,7 @@ const sw = {
     "onb.signOut": "Toka",
     "onb.claim": "Chukua maendeleo ya kifaa hiki",
     "onb.claimFailed": "Akaunti hii ina kazi iliyohifadhiwa, hivyo maendeleo ya mgeni kwenye kifaa hiki hayakuguswa.",
-    "onb.verifyNote": "OpenMind hutatuma barua pepe za uthibitisho — anwani yako inatumika kuingia tu.",
+    "onb.verifyNote": "Anwani yako inatumika kuingia tu. Unaweza kuithibitisha kutoka ukurasa wa akaunti yako.",
     "pp.title": "Mitihani ya kitaifa",
     "pp.lead": "Fanya mtihani kamili kwa muda wake na kanuni zake, kisha soma mwongozo wa alama na kadirio la daraja lako.",
     "pp.honest": "Kila swali limeandikwa na OpenMind — hakuna linalonakiliwa kutoka karatasi ya mitihani yenye hakimiliki. Kila mstari hueleza kama muundo wa karatasi ni wa bodi yako au mazoezi ya OpenMind.",
@@ -10780,7 +10781,7 @@ const hi = {
     "onb.signOut": "साइन आउट",
     "onb.claim": "इस डिवाइस की प्रगति साथ ले चलें",
     "onb.claimFailed": "इस खाते में पहले से काम सहेजा है, इसलिए इस डिवाइस की अतिथि प्रगति वैसी ही रही।",
-    "onb.verifyNote": "OpenMind सत्यापन ईमेल नहीं भेजता — पता केवल साइन इन के लिए है।",
+    "onb.verifyNote": "आपका पता केवल साइन इन के लिए उपयोग होता है। आप इसे अपने खाता पृष्ठ से पुष्ट कर सकते हैं।",
     "pp.title": "परीक्षा पत्र",
     "pp.lead": "पूरा पेपर उसी समय-सीमा और मूल्यांकन नियमों से हल करें, फिर उत्तर-योजना और अनुमानित ग्रेड देखें।",
     "pp.honest": "हर प्रश्न OpenMind लिखता है — कोई भी कॉपीराइट वाले पुराने पेपर की नकल नहीं है। हर पंक्ति बताती है कि पेपर की संरचना आपके बोर्ड की है या OpenMind का अभ्यास सेट।",
@@ -12393,7 +12394,7 @@ const id = {
     "onb.signOut": "Keluar",
     "onb.claim": "Bawa kemajuan perangkat ini",
     "onb.claimFailed": "Akun ini sudah punya pekerjaan tersimpan, jadi kemajuan tamu di perangkat ini dibiarkan.",
-    "onb.verifyNote": "OpenMind tidak mengirim email verifikasi — alamatmu hanya dipakai untuk masuk.",
+    "onb.verifyNote": "Alamatmu hanya dipakai untuk masuk. Kamu bisa mengonfirmasinya dari halaman akun.",
     "pp.title": "Kertas ujian",
     "pp.lead": "Kerjakan satu kertas penuh dengan batas waktu dan aturan penilaiannya, lalu baca kunci jawaban dan perkiraan nilaimu.",
     "pp.honest": "Setiap soal ditulis oleh OpenMind — tidak ada yang menyalin kertas ujian berhak cipta. Setiap baris menyebutkan apakah struktur kertas itu milik badan ujian Anda atau set latihan OpenMind.",
@@ -14006,7 +14007,7 @@ const tl = {
     "onb.signOut": "Mag-sign out",
     "onb.claim": "Isama ang progreso sa device na ito",
     "onb.claimFailed": "May nakatagong gawain na ang account na ito, kaya hindi ginalaw ang guest progress sa device na ito.",
-    "onb.verifyNote": "Walang verification email ang OpenMind — ginagamit lang ang address para makapasok.",
+    "onb.verifyNote": "Ang address mo ay ginagamit lang para makapasok. Makukumpirma mo ito sa page ng account mo.",
     "pp.title": "Mga exam paper",
     "pp.lead": "Sagutan ang buong papel sa sarili nitong oras at panuntunan, tapos tingnan ang mark scheme at tantyang grado.",
     "pp.honest": "Isinulat ng OpenMind ang bawat tanong — walang kinopya sa papel na may karapatang-ari. Sinasabi ng bawat hanay kung ang istruktura ng papel ay ng inyong board o pang-ensayong set ng OpenMind.",
@@ -15697,7 +15698,7 @@ const de = {
     "onb.signOut": "Abmelden",
     "onb.claim": "Fortschritt dieses Geräts mitnehmen",
     "onb.claimFailed": "Dieses Konto hat schon gespeicherte Arbeit, daher blieb der Gast-Fortschritt unverändert.",
-    "onb.verifyNote": "OpenMind sendet keine Bestätigungs-E-Mails — die Adresse dient nur zur Anmeldung.",
+    "onb.verifyNote": "Deine Adresse wird nur zum Anmelden verwendet. Du kannst sie auf deiner Kontoseite bestätigen.",
     "pp.title": "Prüfungspapiere",
     "pp.lead": "Schreibe eine ganze Klausur mit ihrer Zeit und ihren Regeln, dann lies den Erwartungshorizont und deine geschätzte Note.",
     "pp.honest": "Jede Aufgabe wird von OpenMind geschrieben — keine ist eine Kopie einer urheberrechtlich geschützten Prüfung. Jede Zeile sagt, ob die Struktur der Prüfung von Ihrer Prüfungsbehörde stammt oder ein OpenMind-Übungssatz ist.",
@@ -17369,7 +17370,7 @@ const ja = {
     "onb.signOut": "ログアウト",
     "onb.claim": "この端末の学習記録を引き継ぐ",
     "onb.claimFailed": "このアカウントには保存済みの学習があるため、端末のゲスト記録はそのままにしました。",
-    "onb.verifyNote": "OpenMind は確認メールを送りません。アドレスはログインだけに使います。",
+    "onb.verifyNote": "アドレスはサインインにのみ使われます。アカウントページから確認できます。",
     "pp.title": "過去問・模試",
     "pp.lead": "本番と同じ時間・採点基準で1枚解き、模範解答と推定評価を確認します。",
     "pp.honest": "すべての問題は OpenMind が作成したもので、著作権のある過去問の複製ではありません。各行に、その構成が受験機関のものか OpenMind の練習セットかを示します。",
@@ -18951,7 +18952,7 @@ const zh = {
     "onb.signOut": "退出登录",
     "onb.claim": "带上这台设备的进度",
     "onb.claimFailed": "该账户已有保存的学习记录，因此这台设备的访客进度保持不动。",
-    "onb.verifyNote": "OpenMind 不发送验证邮件——邮箱仅用于登录。",
+    "onb.verifyNote": "你的地址仅用于登录。你可以在账户页面确认它。",
     "pp.title": "考试试卷",
     "pp.lead": "按考试的时间和评分规则完整做一套卷，然后看评分标准和预估成绩。",
     "pp.honest": "每道题都由 OpenMind 编写，并非复制受版权保护的试卷。每行标明该试卷的结构来自你的考试机构，还是 OpenMind 的练习卷。",
@@ -20533,7 +20534,7 @@ const fa = {
     "onb.signOut": "خروج",
     "onb.claim": "پیشرفت این دستگاه را همراه ببر",
     "onb.claimFailed": "این حساب از قبل کار ذخیره‌شده دارد، پس پیشرفت مهمان روی این دستگاه دست‌نخورده ماند.",
-    "onb.verifyNote": "OpenMind ایمیل تأیید نمی‌فرستد — نشانی شما فقط برای ورود استفاده می‌شود.",
+    "onb.verifyNote": "نشانی شما فقط برای ورود استفاده می‌شود. می‌توانید آن را از صفحهٔ حساب خود تأیید کنید.",
     "pp.title": "آزمون‌های رسمی",
     "pp.lead": "یک برگه کامل را با زمان و قواعد تصحیح خودش بدهید، سپس کلید پاسخ و نمره تخمینی را ببینید.",
     "pp.honest": "هر پرسش را OpenMind مینویسد و هیچکدام رونوشت برگهای با حق نشر نیست. هر سطر میگوید ساختار برگه از سازمان آزمون شماست یا مجموعهٔ تمرین OpenMind.",
@@ -22115,7 +22116,7 @@ const ur = {
     "onb.signOut": "سائن آؤٹ",
     "onb.claim": "اس ڈیوائس کی پیش رفت ساتھ لے جائیں",
     "onb.claimFailed": "اس اکاؤنٹ میں پہلے سے محفوظ کام ہے، اس لیے اس ڈیوائس کی مہمان پیش رفت برقرار رہی۔",
-    "onb.verifyNote": "OpenMind تصدیقی ای میل نہیں بھیجتا — پتہ صرف سائن ان کے لیے ہے۔",
+    "onb.verifyNote": "آپ کا پتہ صرف سائن اِن کے لیے استعمال ہوتا ہے۔ آپ اسے اپنے اکاؤنٹ صفحے سے تصدیق کر سکتے ہیں۔",
     "pp.title": "امتحانی پرچے",
     "pp.lead": "پورا پرچہ اپنے وقت اور اصولوں کے مطابق حل کریں، پھر جواب اور اندازہ گریڈ دیکھیں۔",
     "pp.honest": "ہر سوال OpenMind لکھتا ہے — کوئی بھی کاپی رائٹ پرچے کی نقل نہیں۔ ہر سطر بتاتی ہے کہ پرچے کی ساخت آپ کے بورڈ کی ہے یا OpenMind کا مشقی سیٹ۔",
@@ -23779,7 +23780,7 @@ exports.bn = {
     "onb.signOut": "সাইন আউট",
     "onb.claim": "এই ডিভাইসের অগ্রগতি সঙ্গে নিন",
     "onb.claimFailed": "এই অ্যাকাউন্টে আগেই সংরক্ষিত কাজ আছে, তাই এই ডিভাইসের অতিথি অগ্রগতি অপরিবর্তিত রাখা হয়েছে।",
-    "onb.verifyNote": "OpenMind কোনো যাচাইকরণ ইমেইল পাঠায় না — ঠিকানা শুধু সাইন ইনেই ব্যবহৃত হয়।",
+    "onb.verifyNote": "আপনার ঠিকানা শুধু সাইন ইনে ব্যবহৃত হয়। অ্যাকাউন্ট পৃষ্ঠা থেকে এটি নিশ্চিত করতে পারেন।",
     "pp.title": "পরীক্ষার প্রশ্নপত্র",
     "pp.lead": "নিজের সময় ও নম্বরের নিয়মে পুরো প্রশ্নপত্র দিন, তারপর মার্ক স্কিম ও আনুমানিক গ্রেড দেখুন।",
     "pp.honest": "প্রতিটি প্রশ্ন OpenMind লেখে — কোনোটিই কপিরাইটযুক্ত আগের প্রশ্নপত্রের নকল নয়। প্রতিটি সারি বলে দেয় প্রশ্নপত্রের গঠন আপনার বোর্ডের, না কি OpenMind-এর অনুশীলন সেট।",
@@ -24292,7 +24293,7 @@ exports.DICTS = {
 // Each source is merged SEPARATELY. Spreading two language maps into one object
 // would keep only the second map's entry for a language both define — the
 // failure is silent and it removes keys that were already working.
-for (const source of [i18n_recovery_1.RECOVERY_STRINGS, i18n_curriculum_1.CURRICULUM_STRINGS, i18n_device_1.DEVICE_STRINGS, i18n_kiosk_1.KIOSK_STRINGS, i18n_lessons_1.LESSON_STRINGS, i18n_lessons_1.VIDEO_META_STRINGS, i18n_atlas_1.ATLAS_STRINGS, i18n_atlas_extra_1.ATLAS_EXTRA_STRINGS, i18n_theory_1.THEORY_STRINGS, SUBJECT_STRINGS, i18n_learning_1.LEARNING_STRINGS]) {
+for (const source of [i18n_recovery_1.RECOVERY_STRINGS, i18n_verify_1.VERIFY_STRINGS, i18n_curriculum_1.CURRICULUM_STRINGS, i18n_device_1.DEVICE_STRINGS, i18n_kiosk_1.KIOSK_STRINGS, i18n_lessons_1.LESSON_STRINGS, i18n_lessons_1.VIDEO_META_STRINGS, i18n_atlas_1.ATLAS_STRINGS, i18n_atlas_extra_1.ATLAS_EXTRA_STRINGS, i18n_theory_1.THEORY_STRINGS, SUBJECT_STRINGS, i18n_learning_1.LEARNING_STRINGS]) {
     for (const [code, extra] of Object.entries(source)) {
         const dict = exports.DICTS[code];
         if (!dict)
@@ -24305,7 +24306,7 @@ for (const source of [i18n_recovery_1.RECOVERY_STRINGS, i18n_curriculum_1.CURRIC
 }
 // `en` is the fallback for a missing key, so it must carry them even if a caller
 // reaches it directly rather than through DICTS.
-for (const source of [i18n_recovery_1.RECOVERY_STRINGS, i18n_curriculum_1.CURRICULUM_STRINGS, i18n_device_1.DEVICE_STRINGS, i18n_kiosk_1.KIOSK_STRINGS, i18n_lessons_1.LESSON_STRINGS, i18n_lessons_1.VIDEO_META_STRINGS, i18n_atlas_1.ATLAS_STRINGS, i18n_atlas_extra_1.ATLAS_EXTRA_STRINGS, i18n_theory_1.THEORY_STRINGS, SUBJECT_STRINGS, i18n_learning_1.LEARNING_STRINGS]) {
+for (const source of [i18n_recovery_1.RECOVERY_STRINGS, i18n_verify_1.VERIFY_STRINGS, i18n_curriculum_1.CURRICULUM_STRINGS, i18n_device_1.DEVICE_STRINGS, i18n_kiosk_1.KIOSK_STRINGS, i18n_lessons_1.LESSON_STRINGS, i18n_lessons_1.VIDEO_META_STRINGS, i18n_atlas_1.ATLAS_STRINGS, i18n_atlas_extra_1.ATLAS_EXTRA_STRINGS, i18n_theory_1.THEORY_STRINGS, SUBJECT_STRINGS, i18n_learning_1.LEARNING_STRINGS]) {
     for (const [key, value] of Object.entries(source.en)) {
         if (!(key in en))
             en[key] = value;

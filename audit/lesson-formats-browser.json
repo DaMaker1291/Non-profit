@@ -1,0 +1,23 @@
+{
+  "generatedBy": "scripts/lesson-formats-browser-check.mjs",
+  "at": "2026-11-12T23:33:02.113Z",
+  "passed": 20,
+  "failed": 0,
+  "lessons": [
+    "fractions",
+    "photosynthesis",
+    "what-is-code",
+    "electricity-circuits"
+  ],
+  "formats": [
+    "gap-fill",
+    "matching",
+    "ordering",
+    "diagram",
+    "structured"
+  ],
+  "widths": [
+    320
+  ],
+  "note": "Browser-driven submissions, not render-only. The evidence ledger is read back after submission."
+}

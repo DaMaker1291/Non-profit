@@ -31,7 +31,9 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SOURCES = exports.PROJECTION_VERSION = exports.EVIDENCE_SCHEMA_VERSION = void 0;
 exports.isDeviceReported = isDeviceReported;
+exports.isTeacherReported = isTeacherReported;
 exports.answerEvidence = answerEvidence;
+exports.teacherAnswerEvidence = teacherAnswerEvidence;
 exports.hintEvidence = hintEvidence;
 exports.deviceClaimAt = deviceClaimAt;
 exports.newEvidenceId = newEvidenceId;
@@ -78,6 +80,11 @@ function isDeviceReported(e) {
         return true;
     return e.type === "answer_submitted" && e.deviceAt !== null;
 }
+/** A paper result a teacher entered. Distinct from both server-observed digital
+ *  work and a device's own claim. */
+function isTeacherReported(e) {
+    return e.provenance === "teacher";
+}
 /** Build a server-observed answer event. The ONE constructor the live routes
  *  use, so provenance cannot be forgotten on a new call site. */
 function answerEvidence(input) {
@@ -103,6 +110,46 @@ function answerEvidence(input) {
         tags: input.tags ?? [],
         deviceAt: input.deviceAt ?? null,
         certainty: input.certainty ?? null,
+    };
+}
+/** A paper mark entered by a teacher. This is the ONLY constructor that mints
+ *  `provenance: "teacher"`; the device ingestion door's validator cannot. */
+function teacherAnswerEvidence(input) {
+    return {
+        type: "answer_submitted",
+        id: newEvidenceId(),
+        schemaVersion: exports.EVIDENCE_SCHEMA_VERSION,
+        learnerId: input.learnerId,
+        provenance: "teacher",
+        at: input.at,
+        source: "assessment",
+        subject: input.subject,
+        conceptId: input.conceptId,
+        specificationId: input.specificationId,
+        questionId: input.questionId,
+        // A partial mark is not a mastery success, but it is not a failure either.
+        // The score carries how much was earned; `correct` stays the all-marks
+        // claim, exactly as it does for a server-marked structured item.
+        correct: input.awarded >= input.max,
+        chosen: -1,
+        givenValue: null,
+        mode: input.observed ? "independent" : "guided",
+        hints: 0,
+        score: { awarded: Math.max(0, input.awarded), max: input.max },
+        ms: null,
+        tags: input.tags ?? [],
+        deviceAt: null,
+        certainty: null,
+        teacherEntry: {
+            assessmentVersion: input.assessmentVersion,
+            rubric: input.rubric,
+            teacherAccountId: input.teacherAccountId,
+            teacherName: input.teacherName,
+            enteredAt: input.at,
+            observed: input.observed,
+            evidenceQuality: input.evidenceQuality,
+            groupId: input.groupId ?? null,
+        },
     };
 }
 /**
@@ -403,6 +450,12 @@ function projectLearner(events) {
     for (const e of ordered) {
         switch (e.type) {
             case "answer_submitted": {
+                // GROUP OR UNOBSERVED PAPER WORK IS NOT ONE PUPIL'S MASTERY. It stays in
+                // the ledger with its teacher metadata, but it is deliberately invisible
+                // to the learner model: an entire group's correct answer cannot prove
+                // any individual could do it.
+                if (e.teacherEntry && !e.teacherEntry.observed)
+                    break;
                 totals.answers += 1;
                 if (e.correct)
                     totals.correct += 1;
@@ -596,7 +649,10 @@ function reconcile(projection, progress) {
 function impactSnapshot(events) {
     const ordered = orderEvents(events);
     const p = projectLearner(ordered);
-    const answers = ordered.filter((e) => e.type === "answer_submitted");
+    // Group/unobserved paper work is excluded here for exactly the reason the
+    // projection excludes it: it is not one learner's measurement. The ledger
+    // keeps it; the impact report must not count it as an individual outcome.
+    const answers = ordered.filter((e) => e.type === "answer_submitted" && !(e.teacherEntry && !e.teacherEntry.observed));
     const measuredAnswers = answers.filter((e) => e.source === "diagnostic" || e.source === "past_paper" || e.source === "assessment");
     const rate = (list) => (list.length ? { asked: list.length, correct: list.filter((a) => a.correct).length } : null);
     // The baseline is the EARLIEST measuring sitting, taken from the events that
@@ -633,6 +689,9 @@ function impactSnapshot(events) {
     const device = ordered.filter(isDeviceReported).length;
     if (device)
         unmeasured.push(`${device} of ${ordered.length} events were answered or reported on a device, not observed by the server as they happened`);
+    const teacherEntered = answers.filter((a) => a.teacherEntry).length;
+    if (teacherEntered)
+        unmeasured.push(`${teacherEntered} answer(s) were marked on paper and entered by a teacher; the entry is observed, the pupil's writing was not`);
     return {
         learnerId: p.learnerId,
         period: { from: p.firstAt, to: p.lastAt },

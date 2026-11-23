@@ -227,7 +227,15 @@ function buildPlan(conceptId) {
     const figure = SUPPLEMENTAL_FIGURES[conceptId];
     return {
         conceptId,
-        objective: `${c.title.toLowerCase()} in a problem, and explain why it works: ${c.blurb}`,
+        // THE OBJECTIVE COMPLETES "By the end you can", THE EYEBROW THE PAGE PRINTS
+        // ABOVE IT. The previous template pasted a lower-cased title into
+        // "… in a problem, and explain why it works:", which rendered "By the end
+        // you can addition in a problem…" — a sentence with no verb — and
+        // "what is code? in a problem…" for the one question-shaped title. The
+        // title is QUOTED rather than lower-cased, because that is the only form
+        // that stays grammatical for every title in the genome, and the two things
+        // the learner will do are stated as verbs.
+        objective: `Explain the idea "${c.title}", then use it in a problem and say why the method works.`,
         intuition: lens.intuition,
         idea,
         traps,

@@ -146,13 +146,70 @@ gap:
 
 | Clause | Where it stands | What closes it |
 |---|---|---|
-| no textbook, no subject teacher | lesson plans teach a sequence; 15 of 135 concepts authored | author + subject-review the course that the pilot uses |
-| **in the language they are taught in** | the mechanism exists (`lib/lesson-plans-intl.ts`); **one** lesson is translated (French, `fractions`) | bilingual maths teachers, per course, recorded in the same field |
+| no textbook, no subject teacher | 135 authored lessons; 21 concepts have an authored pilot plan; 0 teacher-reviewed | subject-review the lessons the pilot uses (start with the five-subject pack) |
+| **in the language they are taught in** | the mechanism exists (`lib/lesson-plans-intl.ts`); **two** complete machine translations exist (`place-value` in Spanish and French), neither human-reviewed | bilingual teachers to translate and review a whole course, recorded in the same field |
 | their own board's paper | 19 of 72 countries on a published shape, 53 of 67 blueprints cited | the boards of the pilot district, researched and cited |
 | gains measurably | no study yet | this protocol |
 | record survives a restart | the deployment refuses to pretend; the live demo is labelled ephemeral | a host with a real disk, then the restart drill |
 | belongs to them | export and erasure exist | consent and retention practice in the pilot |
 | marginal cost near zero | not yet measured | §6 |
+
+## 8a. Review before recruitment
+
+No learner should be recruited into a lesson that a qualified teacher has not
+read. The minimum gate is:
+
+1. A subject teacher reviews the representative lessons in
+   [`docs/SUBJECT_REVIEW_PACK.md`](./SUBJECT_REVIEW_PACK.md) — one each in
+   maths, physics, chemistry, biology and computing — and records a decision
+   against the exact lesson version.
+2. The teacher reviews every lesson the pilot course will actually use, not
+   only the five representatives.
+3. Only after those reviews are recorded does the learner pilot in §2 begin.
+4. The review pack contains content only: no learner names, no class data, no
+   individual results. Reviewing it needs no pupil consent because it holds no
+   pupil data.
+
+A review is not a learner result, and this protocol does not convert one into
+the other. A lesson with no recorded review is reported as unreviewed.
+
+Use [`docs/TEACHER_REVIEW_FORM.md`](./TEACHER_REVIEW_FORM.md) to record the
+per-lesson decision, the evidence for it and the required changes.
+
+## 8b. Secondary measures: what else the pilot must measure
+
+The primary outcome in §2 is independent understanding on a past paper. That
+alone cannot say whether the learner can *use* an idea later, or whether a
+misconception actually changed. Pre-register these secondary measures before
+recruitment:
+
+| Measure | Instrument | Timing | How it is reported |
+|---|---|---|---|
+| **Independent understanding** | A past paper the app's bank does not contain, marked blind to arm | First fortnight and final fortnight | Adjusted post-test difference, with interval (§4) |
+| **Transfer** | Two unseen tasks per course: one near transfer (same idea, new numbers/context) and one far transfer (choose and apply the idea in an unfamiliar situation), scored with a pre-registered rubric | Final fortnight | Proportion meeting each rubric level, by arm |
+| **Delayed retrieval** | A short, closed-book set drawn from the course's retrieval prompts, without the app open | 2 weeks and 6 weeks after the post-test, where the term allows | Mean score and the change from immediate post-test; report attrition |
+| **Misconception resolution** | A pre-registered inventory built from the lessons' named misconceptions: each item offers the misconception as a distractor, so choosing it is evidence the belief is still active | Pre-test, post-test and delayed | Proportion still choosing the misconception, by arm; do not count a correct guess without the reasoning |
+| **Usability** | Observed first session plus a short task-completion log: sign in, find the course, open a lesson, answer one question, find the next step. Record time and where the learner stopped | First two weeks | Completion rate and the most common stopping point; qualitative notes de-identified |
+| **Accessibility** | The learner's own device and access needs, plus a specialist or supervised check of screen-reader, low-vision, motor and colour-vision routes where claimed | Before and during the pilot | Whether the stated alternative worked for that learner; no diagnosis or medical detail recorded |
+| **Device reality** | Learners per device, whether the same device is shared, offline use and sync failures | Throughout | Counts and a plain description; not a judgement about the learner |
+
+These are **secondary and explanatory**, not substitutes for the primary
+outcome. A good usability score does not show learning, and a positive transfer
+result does not rescue a primary result whose interval includes zero. Report
+all pre-registered measures, including the ones that did not move.
+
+### What the pilot must not do
+
+- Do not put a learner's name, email, free-text comment or other identifying
+detail in the analysis file. Use a study code held separately by the school.
+- Do not treat a teacher's lesson review as a learner result, or a learner's
+  opinion as evidence of understanding.
+- Do not infer accessibility from a software assertion. The browser checks
+  prove a route exists; only a person using their own assistive setup can say
+  whether it works for them.
+- Do not collect data informally before consent, even to “see whether the pilot
+  is worth running”. A convenience sample gathered without consent is not a
+  pilot.
 
 ## 9. Decision rule
 

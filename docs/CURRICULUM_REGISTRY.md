@@ -42,6 +42,41 @@ A pathway carries the years **in the system's own name** ("Form 5", "3e", "Year 
 examinations it leads to, the awarding bodies, the specifications those qualifications map
 onto, and the sources the structure was read from.
 
+### Year and tier are two different answers
+
+The pathway owns the **school year** in the system's own name ("Year 10", "Form 4", "Class
+10", "Core band"). The specification owns the **examination tier** it examines at
+("Foundation", "Higher", "Core", "Extended", "SL", "HL"). They are separate fields on the
+learner's record (`grade`, `specLevel`) and separate lists on screen, because they are
+separate questions:
+
+- **The tier list is per subject.** `Specification.subjectTiers` restricts the
+  qualification's levels to the subjects they apply to; `tiersForSubject(spec, subject)` is
+  the only reader. GCSE Computer Science declares `computing: []` — untiered — so the screen
+  says *"This qualification has no tiers for this subject"* instead of offering Foundation and
+  Higher, and `resolveCourse` reports it complete with `source: "single"`.
+- **A year answers a tier only where the qualification declares it.** `SpecLevel.schoolYears`
+  is that declaration: a KCSE Form 4 candidate sits the Form 4 examination and a CBSE Class 10
+  candidate sits the Class 10 course, because the data says so. Where two tiers declare the
+  same year — GCSE Foundation and Higher both span Years 10–11, IB SL and HL both span Years
+  12–13 — `tierForYear` returns **null**, and the learner is asked.
+- **There is no name-matching fallback.** The old code joined the two with a substring test
+  (`name.includes(grade) || grade.includes(name)`), which read the year "Core" as Cambridge
+  IGCSE's Core tier. A qualification that has not declared the link has not stated it, so the
+  gap is reported rather than filled.
+- **Incomplete is not confirmed.** `resolveCourse` returns `complete: false`, names the gap
+  (`specLevel`), and labels the tier it serves with as `source: "fallback"`;
+  `CourseSummary.tierConfirmed` is false. The curriculum screen then keeps Save disabled and
+  shows the depth card only once a tier is actually answered.
+- **Stored records still read their own answers.** A saved `specLevel` is the learner's
+  answer (`source: "chosen"`), so existing profiles keep their course without a data rewrite.
+  A tier stored for a *different* qualification is refused, not carried over.
+
+The tests for all of the above — GCSE (tiered maths, untiered computing), Cambridge IGCSE
+(Core/Extended ambiguity), IB (SL/HL ambiguity, MYP years), CBSE and KCSE (year→tier declared)
+and the independent bands — run in `scripts/verify-engines.mjs` under *"A school year is not an
+examination tier"*.
+
 ### The review ladder — a label that cannot overclaim
 
 | Label | Means | Presently |

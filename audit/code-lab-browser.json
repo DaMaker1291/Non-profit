@@ -1,0 +1,115 @@
+{
+  "generatedBy": "scripts/code-lab-check.mjs",
+  "at": "2026-11-12T23:31:09.111Z",
+  "lessons": [
+    {
+      "concept": "lists-arrays",
+      "loaded": true,
+      "ran": true,
+      "fullJourney": true
+    },
+    {
+      "concept": "ai-basics",
+      "loaded": true,
+      "ran": true,
+      "fullJourney": false
+    },
+    {
+      "concept": "algorithms-search",
+      "loaded": true,
+      "ran": true,
+      "fullJourney": false
+    },
+    {
+      "concept": "algorithms-sort",
+      "loaded": true,
+      "ran": true,
+      "fullJourney": false
+    },
+    {
+      "concept": "binary-data",
+      "loaded": true,
+      "ran": true,
+      "fullJourney": false
+    },
+    {
+      "concept": "complexity",
+      "loaded": true,
+      "ran": true,
+      "fullJourney": false
+    },
+    {
+      "concept": "conditionals",
+      "loaded": true,
+      "ran": true,
+      "fullJourney": false
+    },
+    {
+      "concept": "cybersecurity",
+      "loaded": true,
+      "ran": true,
+      "fullJourney": false
+    },
+    {
+      "concept": "databases-sql",
+      "loaded": true,
+      "ran": true,
+      "fullJourney": false
+    },
+    {
+      "concept": "dictionaries",
+      "loaded": true,
+      "ran": true,
+      "fullJourney": false
+    },
+    {
+      "concept": "functions-code",
+      "loaded": true,
+      "ran": true,
+      "fullJourney": false
+    },
+    {
+      "concept": "loops",
+      "loaded": true,
+      "ran": true,
+      "fullJourney": false
+    },
+    {
+      "concept": "networks",
+      "loaded": true,
+      "ran": true,
+      "fullJourney": false
+    },
+    {
+      "concept": "recursion",
+      "loaded": true,
+      "ran": true,
+      "fullJourney": false
+    },
+    {
+      "concept": "statistics-data",
+      "loaded": true,
+      "ran": true,
+      "fullJourney": false
+    },
+    {
+      "concept": "variables",
+      "loaded": true,
+      "ran": true,
+      "fullJourney": false
+    },
+    {
+      "concept": "web-stack",
+      "loaded": true,
+      "ran": true,
+      "fullJourney": false
+    },
+    {
+      "concept": "what-is-code",
+      "loaded": true,
+      "ran": true,
+      "fullJourney": false
+    }
+  ],
+  "note": "Every authored code item had its own editor, sandbox and runner exercised. lists-arrays additionally had a real edit, reset and repaired pass. A passed stdout check is practice feedback, not a recorded mark."
+}
