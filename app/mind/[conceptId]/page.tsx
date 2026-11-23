@@ -217,6 +217,8 @@ export default function ConceptMindPage() {
                   <span className="grow small">
                     {ct.concept} <span className="muted">· {ct.kind}</span>
                     {ct.offline && <span className="muted"> · {t("evv.offline")}</span>}
+                    {ct.teacherEntered && <span className="muted"> · teacher-entered{ct.observed === false ? " (group/unobserved)" : " (observed)"}</span>}
+                    {ct.teacherEntered && <span className="muted"> · teacher-entered{ct.observed === false ? " (group/unobserved)" : " (observed)"}</span>}
                   </span>
                   <span className="mono small muted" style={{ width: 52, textAlign: "end" }}>{ct.when}</span>
                 </div>

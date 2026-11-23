@@ -70,13 +70,16 @@ export default function NumericAnswer({
   // the box the learner is typing in.
   const mounted = useRef(false);
   useEffect(() => {
-    if (!mounted.current) { mounted.current = true; inputRef.current?.focus(); return; }
+    // Focus without stealing the scroll position: the practice view has already
+    // been scrolled to its top, and a default focus can move it back down to the
+    // box by a few dozen pixels.
+    if (!mounted.current) { mounted.current = true; inputRef.current?.focus({ preventScroll: true }); return; }
     setValue("");
     setTouched(false);
     setUnusable(false);
     // The next question is the thing to answer now, so the caret belongs here
     // again — a learner should not have to hunt for the box once per item.
-    inputRef.current?.focus();
+    inputRef.current?.focus({ preventScroll: true });
   }, [questionId]);
 
   const empty = value.trim() === "";

@@ -1,5 +1,5 @@
 import type { LessonFigureSpec } from "@/lib/lesson-figure";
-import { barLayout, treeLayout, vennLayout } from "@/lib/lesson-figure";
+import { barLayout, scatterLayout, treeLayout, vennLayout } from "@/lib/lesson-figure";
 
 // THE LESSON'S DRAWING, WITH THE CAPTION THE AUTHOR WROTE.
 //
@@ -175,6 +175,135 @@ function Bar({ spec }: { spec: Extract<LessonFigureSpec, { kind: "bar" }> }) {
   );
 }
 
+function Scatter({ spec }: { spec: Extract<LessonFigureSpec, { kind: "scatter" }> }) {
+  const L = scatterLayout(spec);
+  const tick = (value: number) => Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)));
+  return (
+    <svg
+      viewBox={`0 0 ${L.width} ${L.height}`}
+      role="presentation"
+      aria-hidden="true"
+      focusable="false"
+      style={{ width: "100%", height: "auto", display: "block" }}
+    >
+      {L.yTicks.map((entry) => (
+        <g key={`y-${entry.value}`}>
+          <line
+            x1={L.plot.x}
+            y1={entry.position}
+            x2={L.plot.x + L.plot.w}
+            y2={entry.position}
+            stroke="var(--line)"
+            strokeWidth={1}
+            opacity={0.45}
+          />
+          <text
+            x={L.plot.x - 6}
+            y={entry.position}
+            textAnchor="end"
+            dominantBaseline="middle"
+            fontSize={18}
+            fill="var(--text-muted)"
+          >
+            {tick(entry.value)}
+          </text>
+        </g>
+      ))}
+      {L.xTicks.map((entry) => (
+        <g key={`x-${entry.value}`}>
+          <line
+            x1={entry.position}
+            y1={L.plot.y}
+            x2={entry.position}
+            y2={L.plot.y + L.plot.h}
+            stroke="var(--line)"
+            strokeWidth={1}
+            opacity={0.45}
+          />
+          <line
+            x1={entry.position}
+            y1={L.plot.y + L.plot.h}
+            x2={entry.position}
+            y2={L.plot.y + L.plot.h + 4}
+            stroke="var(--text-muted)"
+            strokeWidth={1}
+          />
+          <text
+            x={entry.position}
+            y={L.plot.y + L.plot.h + 17}
+            textAnchor="middle"
+            fontSize={18}
+            fill="var(--text-muted)"
+          >
+            {tick(entry.value)}
+          </text>
+        </g>
+      ))}
+      <line
+        x1={L.plot.x}
+        y1={L.plot.y}
+        x2={L.plot.x}
+        y2={L.plot.y + L.plot.h}
+        stroke="var(--text)"
+        strokeWidth={1.6}
+      />
+      <line
+        x1={L.plot.x}
+        y1={L.plot.y + L.plot.h}
+        x2={L.plot.x + L.plot.w}
+        y2={L.plot.y + L.plot.h}
+        stroke="var(--text)"
+        strokeWidth={1.6}
+      />
+      <text
+        x={L.plot.x + L.plot.w / 2}
+        y={L.height - 8}
+        textAnchor="middle"
+        fontSize={19}
+        fontWeight={600}
+        fill="var(--text)"
+      >
+        {spec.xLabel}
+      </text>
+      <text
+        transform={`translate(12 ${L.plot.y + L.plot.h / 2}) rotate(-90)`}
+        textAnchor="middle"
+        fontSize={19}
+        fontWeight={600}
+        fill="var(--text)"
+      >
+        {spec.yLabel}
+      </text>
+      {L.line && (
+        <line
+          data-scatter-line="fitted"
+          x1={L.line.start.cx}
+          y1={L.line.start.cy}
+          x2={L.line.end.cx}
+          y2={L.line.end.cy}
+          stroke="var(--text-muted)"
+          strokeWidth={2}
+          strokeDasharray="6 4"
+        />
+      )}
+      {L.points.map((point, index) => (
+        <circle
+          key={`${point.x}-${point.y}-${index}`}
+          data-scatter-point={index}
+          data-x={point.x}
+          data-y={point.y}
+          cx={point.cx}
+          cy={point.cy}
+          r={4.5}
+          fill="var(--accent)"
+          stroke="var(--surface)"
+          strokeWidth={1.4}
+        />
+      ))}
+    </svg>
+  );
+}
+
 export function LessonFigure({
   spec,
   caption,
@@ -188,11 +317,13 @@ export function LessonFigure({
 }) {
   return (
     <div className="authored-figure" data-figure={spec.kind} style={{ marginTop: 12 }}>
-      <div style={{ maxWidth: 440, margin: "0 auto" }}>
+      <div style={{ maxWidth: spec.kind === "scatter" ? 320 : 440, margin: "0 auto" }}>
         {spec.kind === "venn" ? (
           <Venn spec={spec} />
         ) : spec.kind === "tree" ? (
           <Tree spec={spec} showPaths={showPaths} />
+        ) : spec.kind === "scatter" ? (
+          <Scatter spec={spec} />
         ) : (
           <Bar spec={spec} />
         )}

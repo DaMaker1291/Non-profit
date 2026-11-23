@@ -40,7 +40,8 @@ import { ANSWERS_PER_LEARNER } from "@/lib/server/rate-limit";
 // with no key returns null and is never graded — a constructed response is
 // marked against criteria by a person, not scored by vocabulary.
 import { authoredLessonFor } from "@/lib/lessons/authored";
-import { gradeAuthoredAssessment } from "@/lib/lesson-assessment";
+import { gradeAuthoredAssessment, gradeStructuredAssessment } from "@/lib/lesson-assessment";
+import { gradeLessonInteraction } from "@/lib/lesson-interactions";
 // Structured lesson activities are marked from the same pure model the page
 // draws: a Venn selection, a region probability, or a completed tree. The client
 // supplies the response, never the key.
@@ -96,7 +97,14 @@ interface AnswerBody {
 }
 interface PeerBody { action: "peer"; id: string; conceptId: string; strong: boolean; secret?: string }
 interface LessonCheckBody {
-  action: "lessonCheck"; id: string; conceptId: string; itemId: string; answer: string; secret?: string;
+  action: "lessonCheck"; id: string; conceptId: string; itemId: string;
+  /** A single-answer item. Kept for every existing lesson assessment. */
+  answer?: string;
+  /** A structured item: one entry per part, in the item's own order. */
+  answers?: string[];
+  /** Optional working for each structured part; a missing entry is no working. */
+  working?: string[];
+  secret?: string;
 }
 interface ProbabilityActivityBody {
   action: "probabilityActivity"; id: string; conceptId: string; activityId: string;
@@ -700,18 +708,59 @@ export async function POST(req: Request): Promise<NextResponse> {
       const { conceptId, itemId, answer } = body;
       if (
         typeof conceptId !== "string" || !conceptId ||
-        typeof itemId !== "string" || !itemId ||
-        typeof answer !== "string"
+        typeof itemId !== "string" || !itemId
       ) {
         return NextResponse.json({ error: "bad request" }, { status: 400 });
       }
       const lesson = authoredLessonFor(conceptId);
       const item = lesson?.assessment.find((a) => a.id === itemId);
       if (!lesson || !item) return NextResponse.json({ error: "no such assessment" }, { status: 404 });
-      const graded = gradeAuthoredAssessment(item, answer);
-      // Null means this item has no key: the page offers the marking criteria
-      // instead, and the server refuses to invent a verdict.
-      if (graded === null) return NextResponse.json({ error: "not gradable" }, { status: 400 });
+
+      let graded = false;
+      let structuredGrade: ReturnType<typeof gradeStructuredAssessment> = null;
+      if (item.gaps || item.matching || item.ordering || item.diagram) {
+        if (
+          !Array.isArray(body.answers) ||
+          body.answers.some((a) => typeof a !== "string")
+        ) {
+          return NextResponse.json({ error: "bad request" }, { status: 400 });
+        }
+        structuredGrade = gradeLessonInteraction(item, body.answers);
+        if (!structuredGrade || structuredGrade.answered === 0) {
+          return NextResponse.json({ error: "not gradable" }, { status: 400 });
+        }
+        graded = structuredGrade.awarded === structuredGrade.marks;
+      } else if (item.structured) {
+        // One answer per part and no more: a shorter or longer array would
+        // silently shift a correct part's mark onto its neighbour.
+        if (
+          !Array.isArray(body.answers) ||
+          body.answers.length !== item.structured.parts.length ||
+          body.answers.some((a) => typeof a !== "string")
+        ) {
+          return NextResponse.json({ error: "bad request" }, { status: 400 });
+        }
+        const working = Array.isArray(body.working)
+          ? body.working.slice(0, item.structured.parts.length).map((w) => typeof w === "string" ? w : "")
+          : [];
+        structuredGrade = gradeStructuredAssessment(item, body.answers, working);
+        // An item with no parts or an unscored reflection is not gradable. An
+        // all-blank submission is a client bug, not a zero-mark answer: it is
+        // refused rather than recorded as a failed attempt.
+        if (!structuredGrade || structuredGrade.answered === 0) {
+          return NextResponse.json({ error: "not gradable" }, { status: 400 });
+        }
+        graded = structuredGrade.awarded === structuredGrade.marks;
+      } else {
+        if (typeof answer !== "string") {
+          return NextResponse.json({ error: "bad request" }, { status: 400 });
+        }
+        const marked = gradeAuthoredAssessment(item, answer);
+        // Null means this item has no key: the page offers the marking criteria
+        // instead, and the server refuses to invent a verdict.
+        if (marked === null) return NextResponse.json({ error: "not gradable" }, { status: 400 });
+        graded = marked;
+      }
       const upd = await withLearnerState(body.id, async (ctx, state) => {
         checkPresentedSecret(state, body.secret, kioskFor);
         const p = (state.progress[conceptId] ??= emptyProgress());
@@ -727,6 +776,13 @@ export async function POST(req: Request): Promise<NextResponse> {
           specificationId: state.profile.spec ?? null,
           questionId: `lesson:${conceptId}:${itemId}`,
           correct: graded,
+          // A structured item's partial credit is evidence, not an annotation:
+          // the score is what the projection carries into marksAwarded /
+          // marksAvailable. A full-mark answer is also `correct`; a partial one
+          // is deliberately not, and its score says how much was earned.
+          ...(structuredGrade
+            ? { score: { awarded: structuredGrade.awarded, max: structuredGrade.marks } }
+            : {}),
           // −1 is "typed", never a real option index.
           chosen: -1,
           mode: "independent",
@@ -738,7 +794,18 @@ export async function POST(req: Request): Promise<NextResponse> {
         } catch {
           return { error: "evidence_not_recorded" as const };
         }
-        return { correct: graded, modelAnswer: item.modelAnswer, marking: item.marking };
+        return {
+          correct: graded,
+          modelAnswer: item.modelAnswer,
+          marking: item.marking,
+          ...(structuredGrade
+            ? {
+                awarded: structuredGrade.awarded,
+                marks: structuredGrade.marks,
+                parts: structuredGrade.parts,
+              }
+            : {}),
+        };
       });
       if (!upd) return NextResponse.json({ error: "not found" }, { status: 404 });
       const r = upd.result as { error?: string };

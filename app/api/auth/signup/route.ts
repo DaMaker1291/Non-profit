@@ -12,6 +12,10 @@ import { readBody, sessionTokenFor, str, withSession } from "../_shared";
 // A sign-up IS the creation of a learner record, so a deployment whose store has
 // refused learner data must refuse the sign-up too — with its reason, not a 500.
 import { storeWriteRefusalNow } from "@/lib/server/write-refusal";
+// The confirmation message. It runs AFTER the account exists, and its result is
+// reported rather than thrown: a mail provider having a bad minute must never turn
+// a created account into a failed sign-up (see lib/server/mail.ts).
+import { sendVerificationEmail } from "@/lib/server/verification";
 
 const SUBJECTS: SubjectId[] = ["maths", "physics", "chemistry", "biology", "computing"];
 const ROLES: AccountRole[] = ["student", "teacher", "org"];
@@ -132,6 +136,10 @@ export async function POST(req: Request): Promise<NextResponse> {
   // sign-up — rare, and NOT a reason to fail the learner's enrolment. They can mint
   // one from a session later (POST /api/auth/recovery-code), and the UI says so.
   const recoveryCode = await mintRecoveryCodeFor(account.id);
+  // A deployment with no mail key answers `unconfigured` here, and the account
+  // stays honestly unverified — the same state the app was in before a mail door
+  // existed, said out loud to the surface that can explain it.
+  const verification = await sendVerificationEmail(account);
   const token = await sessionTokenFor(account);
   return withSession(
     {
@@ -139,6 +147,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       profile: publicProfileState(state),
       secret,
       ...(recoveryCode ? { recoveryCode } : {}),
+      verification,
     },
     token,
     200,

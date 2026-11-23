@@ -20,7 +20,7 @@ import { loadLocalProfileId, useI18n, useProfile } from "@/lib/client";
 import * as api from "@/lib/api/client";
 import { curriculumFor, routeForPathwayId, INDEPENDENT_ROUTE } from "@/lib/curriculum";
 import {
-  defaultPathwayFor, initialPathwayFor, mappingReviewKey, nationalPathwaysFor, pathwayChoices, pathwayForCountry,
+  defaultPathwayFor, initialPathwayFor, mappingReviewKey, nationalPathwaysFor, pathwayChoices, pathwayForCountry, pathwayForSpec,
 } from "@/lib/curricula/registry";
 import { mappingCitation, mappingForSpec } from "@/lib/curricula/mappings";
 // THE NAME OF A MISSING PART OF A COURSE HAS ONE OWNER. Home's card, and this
@@ -36,8 +36,8 @@ import {
   NATIONAL_ROUTE_COUNT,
   coverageReport,
   incompleteSubjects,
-  levelForGrade,
-  levelOf,
+  tiersForSubject,
+  tierForYear,
   specForProfile,
   specById,
   specOptionsFor,
@@ -121,7 +121,23 @@ export default function CurriculumPage() {
   // model still has the independent pathway, and it still has grades to choose
   // from. Without it the grade control here was a placeholder with an empty
   // list — a course that could never be completed for 53 of the original 70 countries.
-  const route = routeForPathwayId(country, pathway) ?? curriculumFor(country) ?? INDEPENDENT_ROUTE;
+  //
+  // THE YEAR LIST FOLLOWS THE QUALIFICATION, NOT ONLY THE COUNTRY. It was
+  // resolved from the country's pathway alone, so a learner in a country with no
+  // mapped national route read the INDEPENDENT pathway's bands ("Foundations /
+  // Core / Advanced") as SCHOOL YEARS while the qualification they had just
+  // picked was Cambridge IGCSE, whose own years are 10–13 — and "Core" was then
+  // both a year group and a tier on the same screen. `pathwayForSpec` is the one
+  // owner of "which system offers this course"; the country's pathway still
+  // answers while nothing has been chosen, because then the select really is
+  // asking about the system rather than about a qualification inside it.
+  const courseSpecId = specId ?? profile?.subjectCourses?.[subject]?.spec ?? null;
+  const specPathway = pathwayForSpec(country, courseSpecId);
+  const route =
+    (specPathway ? routeForPathwayId(country, specPathway.id) : null) ??
+    routeForPathwayId(country, pathway) ??
+    curriculumFor(country) ??
+    INDEPENDENT_ROUTE;
   // Only the qualifications that actually contain THIS subject — offering a
   // maths-only paper as a Biology course would be a choice that cannot be saved —
   // AND only those the chosen education system leads to.
@@ -161,12 +177,25 @@ export default function CurriculumPage() {
   const chosenSpec = specId
     ? (specById(specId) ?? baseChoices[0] ?? null)
     : hasStoredCourse ? (specById(storedCourse!.spec!) ?? null) : null;
-  const pickedLevel = chosenSpec ? levelOf(chosenSpec, levelId ?? undefined) : null;
-  const storedLevel = chosenSpec && !specId ? levelOf(chosenSpec, storedCourse?.specLevel) : null;
-  const gradeLevel = chosenSpec ? levelForGrade(chosenSpec, profile?.grade ?? "") : null;
+  // ── YEAR AND TIER ARE TWO ANSWERS, AND THE LISTS COME FROM DIFFERENT PLACES ─
+  //
+  // The TIER options are the qualification's tiers FOR THIS SUBJECT
+  // (`tiersForSubject`): GCSE Computer Science is untiered, so asking a computing
+  // learner to choose Foundation or Higher asks a question their exam does not
+  // put. The YEAR options are the pathway's school years — a different list, and
+  // never the same thing. A year answers the tier only where the qualification
+  // DECLARES that it does (`tierForYear`), which is why a GCSE Year 11 learner
+  // still has to choose Foundation or Higher while a KCSE Form 4 learner does
+  // not: Form 4 IS the examination there.
+  const tiers = chosenSpec ? tiersForSubject(chosenSpec, subject) : [];
+  const pickedLevel = chosenSpec ? (tiers.find((l) => l.id === levelId) ?? null) : null;
+  const storedLevel = chosenSpec && !specId ? (tiers.find((l) => l.id === storedCourse?.specLevel) ?? null) : null;
+  const gradeLevel = chosenSpec ? tierForYear(chosenSpec, profile?.grade ?? "", subject) : null;
   const levelAnswer = pickedLevel ?? storedLevel ?? gradeLevel;
-  const chosenLevel = levelAnswer ?? chosenSpec?.levels[0] ?? null;
-  const needsLevel = Boolean(chosenSpec) && chosenSpec!.levels.length > 1 && !levelAnswer;
+  const chosenLevel = levelAnswer ?? tiers[0] ?? null;
+  // NOTHING TO CHOOSE IS NOT A MISSING ANSWER. One tier means the qualification
+  // decided it; no tiers means it is untiered for this subject.
+  const needsLevel = Boolean(chosenSpec) && tiers.length > 1 && !levelAnswer;
   // THE YEAR GROUP IS PART OF THE COURSE (`courseGaps` says so), so it is part of
   // this gate too. It was not: a learner could answer the qualification and the
   // tier, press Save, read "Saved ✓" — and Home would still say "needs: year
@@ -364,6 +393,23 @@ export default function CurriculumPage() {
       <h1>{t("curr.title")}</h1>
       <p className="lead">{t("curr.sub")}</p>
 
+      {/* WHY THIS SCREEN, WHEN THE SHELL SENT YOU HERE.
+          `lib/app-state.ts` makes the course a REQUIRED field and routes every
+          enrolled learner without one to this page — so a first-time learner
+          presses "Start learning", finishes three setup screens, and lands on a
+          settings form headed "Your curriculum" with nothing saying why the
+          first question they expected is not here. A page that arrives by
+          redirection has to name the reason, or it reads as the wrong page.
+
+          The sentence is `state.needsOnboarding`, which the lifecycle already
+          carries for exactly this state and which is authored in all fifteen
+          dictionaries — the same string /onboarding prints when it bounces a
+          learner back. No new copy, and the route contract cannot drift from
+          what the screen says. */}
+      {profile && incompleteSubjects(profile).length > 0 && (
+        <p className="small muted" style={{ marginTop: -6 }}>{t("state.needsOnboarding")}</p>
+      )}
+
       {/* What the country's system looks like, and which course is in force. */}
       <section className="card soft" style={{ padding: 20, marginBottom: 18 }}>
         <p className="small muted" style={{ margin: 0 }}>
@@ -390,7 +436,15 @@ export default function CurriculumPage() {
           </label>
           <label className="field">
             <span>{t("onb.grade")}</span>
-            <select value={grade} onChange={(e) => setGradeId(e.target.value)}>
+            {/* THE CONTROL SHOWS WHAT THE GATE THINKS. A stored year group that
+                belongs to a DIFFERENT course ("Core" from the skills pathway,
+                after switching to Cambridge IGCSE) is not one of these options,
+                and a `<select>` whose value matches no option renders the first
+                one — so the box would read "I'm learning independently" while
+                `needsGrade` said the year group was answered, or the reverse.
+                Showing the prompt until the answer is one of THIS course's years
+                keeps the visible state and the gate the same fact. */}
+            <select value={route.grades.includes(grade) ? grade : ""} onChange={(e) => setGradeId(e.target.value)}>
               <option value="">{t("onb.independent")}</option>
               {(route?.grades ?? []).map((g) => <option key={g} value={g}>{g}</option>)}
             </select>
@@ -484,6 +538,14 @@ export default function CurriculumPage() {
         </div>
         <div className="rowline" style={{ marginTop: 12, display: "block" }}>
           <label className="small muted" htmlFor="curr-level">{t("curr.level")}</label>
+          {/* AN UNTIERED SUBJECT SAYS SO, from the qualification's own data —
+              `subjectTiers` in lib/specifications.ts — rather than drawing a
+              control with nothing real inside it. This is not the tier field
+              being hidden to avoid the year/tier question: the question does not
+              exist for this subject, and the sentence is the answer. */}
+          {chosenSpec && tiers.length === 0 ? (
+            <p className="small muted" style={{ marginTop: 6 }}>{t("curr.untiered")}</p>
+          ) : (
           <select
             id="curr-level"
             className="mono"
@@ -500,12 +562,14 @@ export default function CurriculumPage() {
             {/* A prompt, not an answer: the first tier used to be painted as the
                 learner's own choice. */}
             {(!chosenSpec || needsLevel) && <option value="" disabled>{t("onb.pickLevel")}</option>}
-            {chosenSpec && active.spec.levels.map((l) => (
+            {/* THIS SUBJECT'S TIERS, not every level the qualification owns. */}
+            {chosenSpec && tiers.map((l) => (
               <option key={l.id} value={l.id}>
                 {levelLabel(lang, l.tier, l.name)}
               </option>
             ))}
           </select>
+          )}
         </div>
         <div className="actions" style={{ marginTop: 12 }}>
           <button className="btn" onClick={save} disabled={!canSave}>{saved ? t("curr.saved") : t("curr.save")}</button>
@@ -651,8 +715,16 @@ export default function CurriculumPage() {
       </section>}
 
       {/* The tier chooses the depth, which is what makes Foundation and Higher
-          genuinely different work rather than a label. */}
-      {chosenSpec && <section className="card soft" style={{ padding: 20, marginBottom: 18 }}>
+          genuinely different work rather than a label.
+
+          NOT WHILE THE TIER IS UNANSWERED. The percentage is read from `active`,
+          which falls back to the first tier for display, so a GCSE maths learner
+          who had not chosen a tier was shown "Practice pitches to this depth for
+          your tier: 45%" — the Foundation figure presented as if it were theirs,
+          under a line saying the tier was still to choose. Two statements, one of
+          them a guess wearing a number. The card appears once there is an answer;
+          until then "Still to choose: Level" is the only claim on the page. */}
+      {chosenSpec && !needsLevel && <section className="card soft" style={{ padding: 20, marginBottom: 18 }}>
         <p className="eyebrow" style={{ margin: 0 }}><span className="no">2</span> {t("curr.depth")}</p>
         <p className="small" style={{ margin: "6px 0 0" }}>
           {t("curr.depthNote")} <span className="mono">{Math.round(active.level.difficulty * 100)}%</span>

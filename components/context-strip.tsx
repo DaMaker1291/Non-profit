@@ -32,7 +32,7 @@ import { usePathname } from "next/navigation";
 import { useI18n, useProfile } from "@/lib/client";
 import { boardName } from "@/lib/curriculum";
 import { COUNTRIES } from "@/lib/i18n";
-import { specForProfile, type ActiveSpec } from "@/lib/specifications";
+import { incompleteSubjects, specForProfile, type ActiveSpec } from "@/lib/specifications";
 import { SUBJECT_LABELS } from "@/lib/subjects";
 import type { SubjectId } from "@/lib/types";
 
@@ -56,11 +56,24 @@ export function ContextStrip() {
 
   // A course that cannot be resolved is reported as ABSENT, never guessed: an
   // honest gap is better than naming a qualification this learner never chose.
+  //
+  // AND AN UNCHOSEN COURSE IS ONE OF THOSE. `specForProfile` still answers with
+  // the qualification's FIRST tier for a learner who holds no course, because
+  // the serve needs a difficulty band — but that answer must not be shown as a
+  // course somebody chose. It made this strip read "Cambridge IGCSE ·
+  // Mathematics Core" on /curriculum while that same screen printed "Still to
+  // choose: Qualification", left the tier select disabled and refused Save:
+  // the header asserted exactly the tier the course gate refuses to assume, on
+  // the screen asking the learner to choose it. `incompleteSubjects` is the
+  // gate's own test, so the strip and the gate cannot disagree.
+  const courseIncomplete = incompleteSubjects(p).some((x) => x.subject === subject);
   let active: ActiveSpec | null = null;
-  try {
-    active = specForProfile(p, subject);
-  } catch {
-    active = null;
+  if (!courseIncomplete) {
+    try {
+      active = specForProfile(p, subject);
+    } catch {
+      active = null;
+    }
   }
 
   const country = COUNTRIES.find((c) => c.code === p.country)?.name ?? "";

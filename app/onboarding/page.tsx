@@ -132,6 +132,10 @@ function OnboardingFlow() {
   // can be skipped is a code that will be skipped.
   const [recoveryCode, setRecoveryCode] = useState("");
   const [recoveryFresh, setRecoveryFresh] = useState(false);
+  // Did a confirmation link actually go out? `false` on a deployment with no mail
+  // key, and then the sign-up screen says nothing rather than promising an inbox
+  // that will stay empty — the account page is where that state is explained.
+  const [verifySent, setVerifySent] = useState(false);
   const [pendingTarget, setPendingTarget] = useState("");
   // The recovery form itself: a lost password, a code, and the new one.
   const [recoverOpen, setRecoverOpen] = useState(false);
@@ -503,6 +507,7 @@ function OnboardingFlow() {
             subjects, claimCurrent: claim && guestHere, role,
           });
           minted = created.recoveryCode ?? "";
+          if (created.verification?.sent) setVerifySent(true);
         } else if (mode === "signin") {
           // The account step has already done this in the ordinary flow. This
           // is the recovery path, and the guard makes a second submission on a
@@ -774,6 +779,7 @@ function OnboardingFlow() {
         <p className="eyebrow">{t("rec.title")}</p>
         <h1>{t(recoveryFresh ? "rec.new" : "rec.title")}</h1>
         <p className="lead">{t("rec.lead")}</p>
+        {verifySent && <p className="small muted">{t("ver.sent")}</p>}
         <div className="card" style={{ marginTop: 16, textAlign: "center" }}>
           <p className="mono" style={{ fontSize: 26, letterSpacing: 2, margin: "10px 0" }} aria-live="polite">
             {recoveryCode}

@@ -6,23 +6,56 @@ import { generateQuestion } from "@/lib/questions";
 import { lessonStatus, PILOT_SEQUENCE } from "@/lib/pilot";
 import { planFor, teachingLanguages } from "@/lib/lesson-plans";
 import { languageProfile } from "@/lib/language-profile";
+import { AUTHORED_LESSONS, authoredLessonFor } from "@/lib/lessons/authored";
+import { offlineAssessmentItems } from "@/lib/offline-assessment";
+import type { OfflinePlan } from "@/lib/offline-pack";
 
 export const dynamic = "force-dynamic";
 
 /**
  * GET /api/offline-pack — a package a learner can keep on the device.
  *
- * WHAT IS SELECTABLE, AND WHY. Only the authored pilot lessons are eligible:
- * they carry a complete OpenMind-authored plan, and their rights basis is the
- * repository's own MIT licence rather than an imported text with unclear
- * permissions. This endpoint does not claim educator approval — `review` says
- * exactly what the lesson's review state is.
+ * WHAT IS SELECTABLE, AND WHY. Every lesson with an OpenMind-authored plan —
+ * the original pilot set and the full authored curriculum — is eligible. Their
+ * rights basis is the repository's own MIT licence rather than an imported
+ * text with unclear permissions. This endpoint does not claim educator
+ * approval — `review` says exactly what the lesson's review state is.
+ *
+ * A lesson authored after the pilot has no `lesson-plans` plan. It is packaged
+ * from its AuthoredLesson instead, so the offline copy is still the authored
+ * teaching rather than a placeholder. The generated multiple-choice practice
+ * is the same bank the rest of the product uses.
  *
  * THE ANSWER KEY IS PART OF THE PACK. That is the point of an offline activity:
  * the device has to mark the answer without a server. The resulting evidence is
  * later ingested with `provenance: "device"` — real work, disclosed as
  * unverified — through /api/evidence. Online serving never uses this path.
  */
+const OFFLINE_IDS: readonly string[] = Array.from(new Set([
+  ...PILOT_SEQUENCE,
+  ...AUTHORED_LESSONS.map((l) => l.conceptId),
+]));
+
+/** A compact offline plan from the authored contract. It is deliberately a
+ *  translation of the same fields the printed sheet uses, not a new summary. */
+function authoredOfflinePlan(conceptId: string): OfflinePlan | null {
+  const l = authoredLessonFor(conceptId, "en");
+  if (!l) return null;
+  return {
+    objective: l.objectives[0]?.statement ?? l.curriculum.reference,
+    intuition: l.introduction.hook,
+    idea: l.explanation.flatMap((e) => [e.heading, ...e.paragraphs]),
+    traps: l.misconceptions.map((m) => ({ move: m.belief, why: m.whyItFails })),
+    usedFor: l.curriculum.reference,
+    figure: null,
+    workedExamples: l.workedExamples.map((w) => ({
+      prompt: w.prompt,
+      steps: w.steps.map((s) => `${s.move} — ${s.why}`),
+      answer: w.answer,
+    })),
+  };
+}
+
 export async function GET(req: Request): Promise<NextResponse> {
   const url = new URL(req.url);
   const me = await authorisedProfile(req, url.searchParams.get("id"), url.searchParams.get("secret"));
@@ -35,8 +68,8 @@ export async function GET(req: Request): Promise<NextResponse> {
 
   if (url.searchParams.get("list") === "1") {
     return NextResponse.json({
-      concepts: PILOT_SEQUENCE
-        .filter((id) => planFor(id) !== null)
+      concepts: OFFLINE_IDS
+        .filter((id) => planFor(id) !== null || authoredLessonFor(id) !== null)
         .map((id) => {
           const c = getConcept(id);
           const status = lessonStatus(id);
@@ -59,7 +92,7 @@ export async function GET(req: Request): Promise<NextResponse> {
   }
 
   const conceptId = url.searchParams.get("concept") ?? "";
-  if (!PILOT_SEQUENCE.includes(conceptId)) {
+  if (!OFFLINE_IDS.includes(conceptId)) {
     return NextResponse.json({ error: "not an offline lesson" }, { status: 400 });
   }
   // A pack is labelled with the language its teaching is ACTUALLY in. When a
@@ -68,8 +101,10 @@ export async function GET(req: Request): Promise<NextResponse> {
   const language = packLanguage(conceptId);
   const teachingTranslated = language === requestedLanguage;
   const questionsTranslated = requestedLanguage === "en";
-  const plan = planFor(conceptId, language);
+  const plan = planFor(conceptId, language) ?? authoredOfflinePlan(conceptId);
   if (!plan) return NextResponse.json({ error: "no complete lesson" }, { status: 404 });
+  const authored = authoredLessonFor(conceptId, "en");
+  const assessments = authored ? offlineAssessmentItems(authored) : [];
   const concept = getConcept(conceptId);
   const questions = [0, 1, 2]
     .map((i) => generateQuestion(conceptId, `offline:${me.profile.id}:${conceptId}:${i}`))
@@ -83,6 +118,7 @@ export async function GET(req: Request): Promise<NextResponse> {
     language,
     requestedLanguage,
     questionLanguage: "en",
+    assessmentLanguage: "en",
     teachingTranslated,
     questionsTranslated,
     complete: teachingTranslated && questionsTranslated,
@@ -103,5 +139,6 @@ export async function GET(req: Request): Promise<NextResponse> {
       workedExamples: plan.workedExamples ?? [],
     },
     questions,
+    assessments,
   });
 }

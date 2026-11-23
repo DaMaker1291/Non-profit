@@ -12,7 +12,8 @@
 // that accepted (or de-duplicated) the event earns the synced state.
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { loadLocalProfileId, loadLocalProfileSecret } from "@/lib/client";
+import OfflineAuthoredAssessment from "@/components/offline-authored-assessment";
+import { loadLocalProfileId, loadLocalProfileSecret, signOut } from "@/lib/client";
 import { EVIDENCE_DOOR, offlinePack, offlinePackList } from "@/lib/api/client";
 import {
   clearOfflineLearner,
@@ -28,6 +29,8 @@ import {
   type OfflinePack,
 } from "@/lib/offline-pack";
 import { enqueueAnswer, flushQueue, postAnswer, queueSummary, setSyncScope } from "@/lib/sync-queue";
+import { offlineAssessmentEvent, type OfflineMark } from "@/lib/offline-assessment";
+import type { AssessmentItem } from "@/lib/lesson-contract";
 import type { Question } from "@/lib/types";
 
 interface ListedConcept { id: string; title: string; subject: string | null; review: string }
@@ -43,6 +46,7 @@ export default function OfflineStudyPage() {
   const [pending, setPending] = useState(0);
   const [refused, setRefused] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -62,10 +66,22 @@ export default function OfflineStudyPage() {
     setBusy(true);
     try {
       const r = await flushQueue();
+      // A HANDOVER CAN HAPPEN WHILE THIS REQUEST IS IN FLIGHT. The learner who
+      // started it is captured in `learnerId`; if the device now names someone
+      // else (or nobody), this result belongs to the previous person and must
+      // not be written back under their key after sign-out. This is how a
+      // cleared draft reappeared under A while B was signing in.
+      if (!learnerId || loadLocalProfileId() !== learnerId) return;
       refreshQueue();
       if (r.pending === 0 && r.refused === 0) {
         setDraft((d) => {
-          if (!d) return d;
+          // AN EMPTY DRAFT IS NOT WORK. `loadOfflineDraft` returns an empty
+          // object for a lesson this learner has not answered, and this effect
+          // runs on every online mount — so saving unconditionally wrote an
+          // empty `openmind:offline-draft:<id>:<concept>` key for every visitor,
+          // which then looked like the previous learner's work on a shared
+          // device. Only an existing draft that holds answers is rewritten.
+          if (!d || Object.keys(d.answers).length === 0) return d;
           const answers = Object.fromEntries(Object.entries(d.answers).map(([k, a]) => [
             k, a.status === "queued" ? { ...a, status: "synced" as const } : a,
           ]));
@@ -179,6 +195,9 @@ export default function OfflineStudyPage() {
       body: { id: learnerId, secret, events: [event] },
       deviceAt: at,
     });
+    // Same rule on the answer path: an online submission that resolves after a
+    // hand-back must not restore the previous learner's draft on this device.
+    if (loadLocalProfileId() !== learnerId) return;
     const sent = out.kind === "sent" ? await out.res.json().catch(() => null) : null;
     const status: OfflineAnswer["status"] = out.kind === "sent"
       ? ((sent?.accepted ?? 0) > 0 || (sent?.duplicates ?? 0) > 0 ? "synced" : "refused")
@@ -190,6 +209,76 @@ export default function OfflineStudyPage() {
     if (status === "synced") setMessage("Synced — this answer has been received and recorded.");
     else if (status === "refused") setError("The server refused this answer. It was not recorded.");
     else setMessage("Not yet synced. Your answer is saved on this device and will retry.");
+  };
+
+  const answerAssessment = async (
+    item: AssessmentItem,
+    mark: OfflineMark,
+    response: string[],
+    working: string[],
+  ) => {
+    if (!learnerId || !secret || !pack || !draft) return;
+    if (draft.answers[item.id]) return;
+    const submissionId = newOfflineSubmissionId();
+    const at = Date.now();
+    const event = offlineAssessmentEvent(learnerId, pack, item, mark, at, submissionId);
+    const first: OfflineDraft = {
+      ...draft,
+      answers: {
+        ...draft.answers,
+        [item.id]: {
+          questionId: event.questionId,
+          assessment: true,
+          itemId: item.id,
+          response,
+          working,
+          awarded: mark.awarded,
+          marks: mark.marks,
+          parts: mark.parts,
+          correct: mark.correct,
+          at,
+          submissionId,
+          eventId: event.id,
+          status: "queued",
+        },
+      },
+      updatedAt: at,
+    };
+    setDraft(first);
+    saveOfflineDraft(learnerId, first);
+    setMessage(navigator.onLine
+      ? "Submitting your assessment…"
+      : "Assessment marked on this device. It has not reached OpenMind's server.");
+
+    if (!navigator.onLine) {
+      enqueueAnswer({
+        submissionId,
+        url: EVIDENCE_DOOR,
+        body: { id: learnerId, secret, events: [event] },
+        deviceAt: at,
+        queuedAt: at,
+      });
+      refreshQueue();
+      return;
+    }
+
+    const out = await postAnswer(EVIDENCE_DOOR, {
+      submissionId,
+      body: { id: learnerId, secret, events: [event] },
+      deviceAt: at,
+    });
+    if (loadLocalProfileId() !== learnerId) return;
+    const sent = out.kind === "sent" ? await out.res.json().catch(() => null) : null;
+    const status: OfflineAnswer["status"] = out.kind === "sent"
+      ? ((sent?.accepted ?? 0) > 0 || (sent?.duplicates ?? 0) > 0 ? "synced" : "refused")
+      : out.kind === "refused" ? "refused" : "queued";
+    const final = { ...first, answers: { ...first.answers, [item.id]: { ...first.answers[item.id], status } } };
+    setDraft(final);
+    saveOfflineDraft(learnerId, final);
+    refreshQueue();
+    if (status === "synced") setMessage("Synced — this assessment has been received and recorded.");
+    else if (status === "refused") setError("The server refused this assessment. It was not recorded.");
+    else setMessage("Not yet synced. Your assessment is saved on this device and will retry.");
   };
 
   if (!learnerId) {
@@ -208,7 +297,8 @@ export default function OfflineStudyPage() {
         <p className="eyebrow">Offline learning</p>
         <h1>Download a lesson</h1>
         <p className="lead">
-          These are OpenMind-authored pilot lessons. The pack includes the teaching and three questions;
+          These are OpenMind-authored lessons. The pack includes the teaching, the lesson's keyed
+          assessment where it can be marked on a device, and three practice questions;
           this device can mark them without a connection and send the evidence when it reconnects.
         </p>
         {!online && <p className="note">You are offline. Lessons already downloaded on this device are listed below.</p>}
@@ -299,8 +389,24 @@ export default function OfflineStudyPage() {
         ))}
       </section>
 
+      <OfflineAuthoredAssessment
+        pack={pack}
+        draft={draft}
+        onSubmit={(item, mark, response, working) => void answerAssessment(item, mark, response, working)}
+      />
+
       <section style={{ marginTop: 20 }}>
-        <p className="eyebrow">Your turn</p>
+        <p className="eyebrow">More practice</p>
+        {/* THE PACK NOW CARRIES THE AUTHORED KEYED ITEMS ABOVE. What it still
+            cannot carry honestly is prose needing a human, and code needing a
+            runner. The written route remains the printed worksheet, and the
+            teacher key stays on its own teacher-only page. */}
+        <p className="small note">
+          These generated questions are extra marked practice. For prose, code and the
+          full written assessment, use the printable worksheet; the teacher answer key
+          is a separate, teacher-only page.
+          {pack.subject ? <> <Link href={`/print/${pack.subject}/${pack.conceptId}`}>Open the printable worksheet →</Link></> : null}
+        </p>
         {pack.questions.map((q, qi) => {
           const a = draft?.answers[q.id];
           return (
@@ -345,6 +451,32 @@ export default function OfflineStudyPage() {
             setMessage("This learner's downloaded packs and drafts were removed from this device.");
           }}
         >Remove this lesson from this device</button>
+        {/* A SHARED HANDSET MUST BE HANDED BACK EVEN WITH NO NETWORK. The
+            sign-out is local-first (see `signOut`): packs and drafts go, the
+            unsynchronised queue stays scoped to this learner, and the next
+            person cannot inherit the identity or the answers on screen. */}
+        <button
+          className="btn ghost small"
+          disabled={leaving}
+          onClick={async () => {
+            setLeaving(true);
+            await signOut();
+            // STAY ON THIS DEVICE'S CACHED PAGE. A redirect to /onboarding is
+            // a network navigation; offline it lands on a browser error page,
+            // which is not a hand-back a learner can understand. Clearing the
+            // local identity is the hand-back, and this screen then renders its
+            // own sign-in prompt from the cached app shell.
+            setLearnerId(null);
+            setSecret(null);
+            setPack(null);
+            setDraft(null);
+            setPending(0);
+            setRefused(0);
+            setMessage("");
+          }}
+        >
+          {leaving ? "Handing back…" : "Hand back this device"}
+        </button>
         <Link href="/offline" className="btn ghost small">← Offline plan</Link>
       </div>
     </main>

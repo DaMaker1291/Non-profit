@@ -23,6 +23,8 @@ import {
 import { liveRoster, memberEvidence, memberRoster, resolveMembers } from "@/lib/server/class-view";
 import { SUBJECT_IDS } from "@/lib/subjects";
 import { courseRefusal, specById } from "@/lib/specifications";
+import { classroomDeclared, normalizeClassroom } from "@/lib/classroom-context";
+import { getConcept } from "@/lib/genome";
 import type { ClassRoster, ProfileState, SubjectId } from "@/lib/types";
 
 /** A new class code is a thirty-day code. It is not permanent by default; a
@@ -32,6 +34,18 @@ const JOIN_CODE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 /** A display/administration field: trim, bound, and treat blank as absent. */
 function classText(value: unknown, max: number): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim().slice(0, max) : undefined;
+}
+
+/** A classroom the teacher actually declared, or nothing.
+ *
+ *  `normalizeClassroom` drops every value outside a closed list rather than
+ *  coercing it, so a caller that sends `devices: "sometimes"` stores no device
+ *  answer at all. Storing an empty normalisation as if it were an answer is the
+ *  defect this guards: "not declared" and "nothing available" must stay
+ *  distinguishable, because they produce different lesson plans. */
+function classroomForStore(raw: unknown): ClassRoster["classroom"] {
+  const profile = normalizeClassroom(raw);
+  return classroomDeclared(profile) ? profile : undefined;
 }
 
 export async function GET(req: Request): Promise<NextResponse> {
@@ -167,6 +181,12 @@ interface Body {
    *  it is taught. Validated against the class's subject (lib/specifications#
    *  courseRefusal), so a course the subject is not part of is refused by name. */
   specificationId?: string | null;
+  /** THE ROOM, as its teacher declared it. Normalised by lib/classroom-context
+   *  and stored only if it carries a fact; `null` clears it back to undeclared. */
+  classroom?: unknown;
+  /** The lesson the teacher is preparing for this class, validated against the
+   *  genome and the class's own subject. */
+  focusConceptId?: string | null;
   /** Class administration metadata; all optional and length-bounded below. */
   school?: string;
   academicYear?: string;
@@ -303,6 +323,12 @@ export async function POST(req: Request): Promise<NextResponse> {
           // Present from birth, so the console can render the co-teacher list
           // and the API shape does not change when the first invitation lands.
           coTeacherAccountIds: [],
+          // The room it is taught in, when the caller declared one at creation.
+          // The setup flow usually adds it later, which is the point of a quick
+          // start: a teacher can make a class in one field and describe the room
+          // once they are in front of it.
+          classroom: classroomForStore(body.classroom),
+          focusConceptId: null,
         }));
         return NextResponse.json({ cls });
       }
@@ -507,6 +533,27 @@ export async function POST(req: Request): Promise<NextResponse> {
           }
           if (body.subject !== undefined) cls.subject = subject;
           if (body.specificationId !== undefined) cls.specificationId = body.specificationId;
+          // THE CLASSROOM, as declared. `null` clears it back to "not declared";
+          // any other value is normalised and stored only if it carries a fact.
+          if (body.classroom !== undefined) {
+            cls.classroom = body.classroom === null ? undefined : classroomForStore(body.classroom);
+          }
+          // The lesson being prepared. Validated against the genome and the
+          // class's own subject, so a stale or mistyped id cannot become a
+          // teacher's saved plan for a lesson this class does not sit.
+          if (body.focusConceptId !== undefined) {
+            if (body.focusConceptId === null) {
+              cls.focusConceptId = null;
+            } else {
+              const id = classText(body.focusConceptId, 80);
+              const concept = id ? getConcept(id) : undefined;
+              if (!concept) return { error: "unknown concept" as const, status: 400 as const };
+              if (cls.subject && concept.subject !== cls.subject) {
+                return { error: "concept_outside_subject" as const, status: 400 as const };
+              }
+              cls.focusConceptId = concept.id;
+            }
+          }
           return { updated: true as const };
         });
         if (!upd) return NextResponse.json({ error: "not found" }, { status: 404 });

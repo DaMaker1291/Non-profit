@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { fetchProfile, loadLocalProfileId, loadLocalProfileSecret, mintRecoveryCode, rememberOnDevice, saveProfilePatch, signOut, updateAccount, useAccount, useI18n } from "@/lib/client";
+import { fetchProfile, loadLocalProfileId, loadLocalProfileSecret, mintRecoveryCode, rememberOnDevice, resendVerification, saveProfilePatch, signOut, updateAccount, useAccount, useI18n } from "@/lib/client";
 import * as api from "@/lib/api/client";
 import { ApiError } from "@/lib/api/client";
 import AttachAccount from "@/components/attach-account";
@@ -60,6 +60,11 @@ export default function AccountPage() {
   const [eraseWord, setEraseWord] = useState("");
   const [erasing, setErasing] = useState(false);
   const [eraseErr, setEraseErr] = useState("");
+  // ── Email confirmation ──
+  // The status line below is the SAME fact for every learner on a deployment with
+  // no mail key (`unconfigured`), and the button says so instead of leaving them
+  // pressing a control that cannot work.
+  const [verifyMsg, setVerifyMsg] = useState("");
 
   useEffect(() => {
     const id = loadLocalProfileId();
@@ -99,6 +104,15 @@ export default function AccountPage() {
   useEffect(() => {
     setSchool(profile?.profile.school ?? "");
   }, [profile]);
+
+  async function resendVerify() {
+    setVerifyMsg("");
+    // `resendVerification` never throws: it answers `sent` or the reason it could
+    // not, which is the difference between "check your inbox" and "this server
+    // cannot send mail" — two sentences a learner acts on differently.
+    const r = await resendVerification();
+    setVerifyMsg(r.sent ? t("ver.sent") : r.reason === "unconfigured" ? t("ver.notConfigured") : t("ver.err"));
+  }
 
   async function joinClass() {
     const code = classCode.trim().toUpperCase();
@@ -317,7 +331,24 @@ export default function AccountPage() {
         <>
           <h1>{session.account.email}</h1>
           <p className="lead">{t("acct.lead")}</p>
-          <p className="small muted">{t("onb.verifyNote")}</p>
+          {/* IS THIS ADDRESS PROVED? A fact about the account, stated on the page
+              that owns the account rather than buried in a sign-up note. */}
+          <p className="small muted">
+            {session.account.verified ? t("ver.verified") : t("ver.unverified")}
+          </p>
+          {!session.account.verified && (
+            <p className="small" style={{ marginTop: 8 }}>
+              <button
+                className="btn ghost small"
+                type="button"
+                disabled={busy}
+                onClick={() => void resendVerify()}
+              >
+                {t("ver.resend")}
+              </button>
+              {verifyMsg && <span className="muted" style={{ marginLeft: 10 }}>{verifyMsg}</span>}
+            </p>
+          )}
 
           <div className="exercise" style={{ marginTop: 20 }}>
             <div style={{ display: "flex", gap: 24, marginBottom: 16 }}>

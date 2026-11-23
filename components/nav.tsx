@@ -8,7 +8,6 @@ import { ContextStrip } from "@/components/context-strip";
 import { Icon, type IconName } from "@/components/icons";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { ctitle, levelLabel } from "@/lib/content-i18n";
-import { CONCEPTS } from "@/lib/genome";
 import { incompleteSubjects, specForProfile } from "@/lib/specifications";
 import { SUBJECT_LABELS } from "@/lib/subjects";
 import type { SubjectId } from "@/lib/types";
@@ -299,13 +298,34 @@ export function Topbar() {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
 
+  /* THE BAR DOES NOT DOWNLOAD THE CURRICULUM. `@/lib/genome` owns each concept's
+     teaching text as well as its identity, and importing it here — in the layout,
+     so on every route — put ~577 KiB compressed of lesson prose into the first
+     download of the landing page, sign-up, the dashboard and the timetable: code
+     for lessons a first-time visitor has not asked for. The bar needs two facts
+     about a concept, its id and its subject, so it asks for them when they can
+     matter: when the search box opens, and on a concept page (which loads the
+     genome for its own reasons, so this costs nothing there). Until then the
+     index is null and the bar does not pretend to know it. */
+  const [index, setIndex] = useState<{ id: string; subject: SubjectId }[] | null>(null);
+  const onConceptPage = path.startsWith("/learn/");
+  useEffect(() => {
+    if (index) return;
+    if (!open && !onConceptPage) return;
+    let alive = true;
+    void import("@/lib/genome").then((m) => {
+      if (alive) setIndex(m.CONCEPTS.map((c) => ({ id: c.id, subject: c.subject })));
+    });
+    return () => { alive = false; };
+  }, [open, onConceptPage, index]);
+
   const results = useMemo(() => {
     const needle = q.trim().toLowerCase();
     // Two characters: one letter matches most of the genome, which is not a
     // search result, it is the whole curriculum.
-    if (needle.length < 2) return [];
-    return CONCEPTS.filter((c) => ctitle(lang, c.id).toLowerCase().includes(needle) || c.id.includes(needle)).slice(0, 6);
-  }, [q, lang]);
+    if (needle.length < 2 || !index) return [];
+    return index.filter((c) => ctitle(lang, c.id).toLowerCase().includes(needle) || c.id.includes(needle)).slice(0, 6);
+  }, [q, lang, index]);
 
   // Escape closes, as it does everywhere. `aria-expanded` on the input is what
   // tells a screen reader the list exists at all.
@@ -335,7 +355,7 @@ export function Topbar() {
   const parent = path.startsWith("/learn/")
     ? (() => {
       const conceptId = path.split("/")[3] ?? "";
-      const s = CONCEPTS.find((c) => c.id === conceptId)?.subject;
+      const s = index?.find((c) => c.id === conceptId)?.subject;
       return s ? t(SUBJECT_LABELS[s] ?? `subj.${s}`) : "";
     })()
     : "";
@@ -379,7 +399,10 @@ export function Topbar() {
           onChange={(e) => { setQ(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
         />
-        {open && q.trim().length >= 2 && (
+        {/* No box until the index is here: an empty "nothing matched" while the
+            index is still arriving would be a claim about the curriculum the bar
+            has not checked yet. */}
+        {open && q.trim().length >= 2 && index && (
           <div className="search-results">
             {results.length === 0 ? (
               <p className="empty">{t("learn.notFound")}</p>

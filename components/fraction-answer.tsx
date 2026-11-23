@@ -44,11 +44,11 @@ export default function FractionAnswer({
   // follows, and for the same reason: the control survives the question swap in
   // the React tree, and a stale fraction is an attempt the learner never made.
   useEffect(() => {
-    if (!mounted.current) { mounted.current = true; topRef.current?.focus(); return; }
+    if (!mounted.current) { mounted.current = true; topRef.current?.focus({ preventScroll: true }); return; }
     setNumerator("");
     setDenominator("");
     setTouched(false);
-    topRef.current?.focus();
+    topRef.current?.focus({ preventScroll: true });
   }, [questionId]);
 
   const num = numerator.trim();

@@ -1217,6 +1217,14 @@ h3 { font-weight: 650; letter-spacing: 0; font-size: var(--t16); margin: 0 0 6px
   border-radius: var(--radius-input); color: var(--text);
 }
 .qcode + span { display: inline; }
+
+/* An authored code block keeps its own line breaks and indentation, but a long
+   token (a chained selector, a recursive call) has no space to wrap at. Without
+   this, the token's min-content width widens the figure and then the page on a
+   phone: measured at 320 px, web-stack painted 455 px of code into a 174 px
+   block. `anywhere` also lowers the min-content width that caused the widening. */
+.authored-block { min-width: 0; max-width: 100%; }
+.code-block { max-width: 100%; overflow-wrap: anywhere; }
 .qprompt > span + .qcode, .qtext > span + .qcode { margin-top: 12px; }
 
 /* ── MATHS, SET AS MATHS (lib/math-text.ts, components/math-text.tsx) ──────

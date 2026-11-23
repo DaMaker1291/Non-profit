@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { AuthoredLesson } from "@/lib/lesson-contract";
 import { AssessmentBlock } from "./authored-assessment";
 import { LessonFigure } from "./lesson-figure";
@@ -35,6 +36,13 @@ export function AuthoredLessonReading({
 }) {
   return (
     <div className="authored-lesson" data-contract={lesson.contract}>
+      {/* The same lesson in the forms a low-resource classroom can actually
+          use. Print is answer-free; the teacher-led route is the one that
+          carries answer notes, so it asks for a teaching account. */}
+      <nav className="card soft" aria-label="Other ways to use this lesson" style={{ marginBottom: 18, display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <Link className="btn secondary" href={`/print/${lesson.subject}/${lesson.conceptId}`}>Printable worksheet</Link>
+        <Link className="btn ghost" href={`/teach/${lesson.subject}/${lesson.conceptId}`}>Teacher-led / group mode</Link>
+      </nav>
       {lesson.objectives.length > 0 && (
         <section className="card" style={{ marginBottom: 18 }} aria-label="Lesson objectives">
           <p className="eyebrow" style={{ margin: 0 }}>By the end you can</p>

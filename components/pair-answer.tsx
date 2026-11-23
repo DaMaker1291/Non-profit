@@ -37,11 +37,11 @@ export default function PairAnswer({
   const mounted = useRef(false);
 
   useEffect(() => {
-    if (!mounted.current) { mounted.current = true; xRef.current?.focus(); return; }
+    if (!mounted.current) { mounted.current = true; xRef.current?.focus({ preventScroll: true }); return; }
     setX("");
     setY("");
     setTouched(false);
-    xRef.current?.focus();
+    xRef.current?.focus({ preventScroll: true });
   }, [questionId]);
 
   const xs = x.trim();

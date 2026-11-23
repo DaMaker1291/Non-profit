@@ -8,10 +8,95 @@ import { KioskBar } from "@/components/kiosk-bar";
 import { Footer } from "@/components/footer-note";
 import { RouteGuard } from "@/components/route-guard";
 
+/**
+ * THE PUBLIC ORIGIN, in one place.
+ *
+ * Canonical URLs, Open Graph images, the sitemap and the robots file must all
+ * name the SAME origin, or a crawler is told two different things about one page
+ * and indexes neither well. `NEXT_PUBLIC_SITE_URL` is the operator's declaration
+ * (Render sets it, a self-host sets its own); the fallback is the deployment this
+ * repository is published at, so a clone that sets nothing still emits absolute
+ * URLs rather than relative ones — which Open Graph refuses.
+ */
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://openmind-ew2i.onrender.com").replace(/\/+$/, "");
+
+/**
+ * WHAT A SEARCH RESULT SEES.
+ *
+ * The title and description are written for the query a learner actually types
+ * ("free learning app", "maths practice", "GSCE revision") while staying true to
+ * the product: it IS free, it IS a learning app, and the practice IS graded by
+ * the server. No keyword is claimed that the app cannot show when the result is
+ * clicked — a page that ranks for a promise it does not keep costs the next click
+ * as well as this one.
+ *
+ * `metadataBase` is what turns every relative URL in this object into the absolute
+ * one Open Graph requires; without it the build warns and the tags ship relative,
+ * which most scrapers ignore.
+ */
 export const metadata: Metadata = {
-  title: "OpenMind — learn anything, your way",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "OpenMind — a free learning app for maths, science and computing",
+    template: "%s · OpenMind",
+  },
   description:
-    "Free, open-source, multilingual learning network: adaptive diagnostics, unlimited server-graded practice, misconception tracking and a Socratic tutor — in your language, on any phone.",
+    "A free learning app for maths, physics, chemistry, biology and computing: a real diagnostic, unlimited server-graded practice, misconception tracking and a tutor that explains the next step — in 15 languages, on any phone.",
+  applicationName: "OpenMind",
+  keywords: [
+    "learning app",
+    "free learning app",
+    "maths practice",
+    "science revision",
+    "GCSE maths",
+    "A-level physics",
+    "adaptive learning",
+    "open source education",
+    "online tutor",
+  ],
+  authors: [{ name: "OpenMind" }],
+  creator: "OpenMind",
+  publisher: "OpenMind",
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName: "OpenMind",
+    title: "OpenMind — a free learning app for maths, science and computing",
+    description:
+      "Real diagnostic questions, unlimited server-graded practice and a tutor that explains the next step. Free, open source, 15 languages, any phone.",
+    url: SITE_URL,
+    locale: "en_GB",
+    images: [{ url: "/icons/icon-512.png", width: 512, height: 512, alt: "OpenMind" }],
+  },
+  twitter: {
+    card: "summary",
+    title: "OpenMind — a free learning app for maths, science and computing",
+    description:
+      "Real diagnostic questions, unlimited server-graded practice and a tutor that explains the next step. Free and open source.",
+    images: ["/icons/icon-512.png"],
+  },
+  /**
+   * INDEXING IS ALLOWED, WITH THE PRIVATE DOORS NAMED. `robots.ts` carries the
+   * same list for the crawler that reads robots.txt; this covers the ones that
+   * only read the tag. Neither is a security control — every one of these routes
+   * refuses without a session — it stops a learner's dashboard being indexed.
+   */
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 },
+  },
+  /**
+   * GOOGLE SEARCH CONSOLE OWNERSHIP.
+   *
+   * The meta-tag method, because a Render subdomain cannot have the DNS record a
+   * domain property needs. Set `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` to the
+   * content value Search Console gives you and redeploy; the tag appears on every
+   * page. Absent when unset, so a clone emits nothing it cannot back.
+   */
+  verification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }
+    : undefined,
   /**
    * THE SAME MANIFEST THE STATIC TWIN PUBLISHES, deliberately — one file in
    * `public/`, not one per surface. It is what makes the app installable: with
@@ -94,6 +179,44 @@ export const viewport: Viewport = {
 // globals.css), so setting them before the shell paints is the difference
 // between a preference and a flash. Measured by `npm run verify:a11y`:
 // with the classes stored, `<html>` carries them before the first paint.
+/** The three things a search engine may take as fact about this site. */
+const STRUCTURED_DATA = JSON.stringify({
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      url: `${SITE_URL}/`,
+      name: "OpenMind",
+      description: "A free learning app for maths, science and computing, with server-graded practice in 15 languages.",
+      inLanguage: "en",
+      publisher: { "@id": `${SITE_URL}/#organization` },
+    },
+    {
+      "@type": "EducationalOrganization",
+      "@id": `${SITE_URL}/#organization`,
+      name: "OpenMind",
+      url: `${SITE_URL}/`,
+      logo: `${SITE_URL}/icons/icon-512.png`,
+      description: "Open-source, multilingual learning platform for schools and independent learners.",
+    },
+    {
+      "@type": "SoftwareApplication",
+      name: "OpenMind",
+      applicationCategory: "EducationalApplication",
+      operatingSystem: "Any",
+      url: `${SITE_URL}/`,
+      offers: { "@type": "Offer", price: "0", priceCurrency: "GBP" },
+      featureList: [
+        "Adaptive diagnostic",
+        "Server-graded practice with marking explanations",
+        "Misconception tracking",
+        "Works offline and on low-bandwidth connections",
+      ],
+    },
+  ],
+});
+
 const THEME_BOOT = `try{var t=localStorage.getItem("openmind:theme");if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t);var a=JSON.parse(localStorage.getItem("openmind:access")||"{}");var c=[];var s=typeof a.textScale==="number"?a.textScale:(a.largeText?1:0);if(s>=2)c.push("access-xlarge");else if(s>=1)c.push("access-large");if(a.roomy)c.push("access-roomy");if(a.highContrast)c.push("access-contrast");if(a.reduceMotion)c.push("access-calm");if(c.length)document.documentElement.className+=(document.documentElement.className?" ":"")+c.join(" ");if(a.preferSpeech)document.documentElement.classList.add("access-voice-first")}catch(e){}`;
 
 /**
@@ -118,6 +241,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* First child of the body on purpose: it must run before the shell
             below it is painted. See THEME_BOOT. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
+        {/* STRUCTURED DATA, in the shell so it is in the first HTML byte of every
+            page rather than something a crawler must execute JavaScript to see.
+            It states only what the app can prove: it is a free educational
+            application, and this is its web site. No aggregate rating, no review
+            count — those are the fields a rich result is easiest to fake with
+            and hardest to defend when a reviewer asks where the number came from. */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: STRUCTURED_DATA }}
+        />
         <I18nProvider>
           <AppProvider>
             <AccessProvider>
