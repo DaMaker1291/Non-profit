@@ -25,6 +25,7 @@ import { SUBJECT_IDS } from "@/lib/subjects";
 import { courseRefusal, specById } from "@/lib/specifications";
 import { classroomDeclared, normalizeClassroom } from "@/lib/classroom-context";
 import { getConcept } from "@/lib/genome";
+import { normalizeClassLevels } from "@/lib/right-level-serve";
 import type { ClassRoster, ProfileState, SubjectId } from "@/lib/types";
 
 /** A new class code is a thirty-day code. It is not permanent by default; a
@@ -184,6 +185,10 @@ interface Body {
   /** THE ROOM, as its teacher declared it. Normalised by lib/classroom-context
    *  and stored only if it carries a fact; `null` clears it back to undeclared. */
   classroom?: unknown;
+  /** HANDLE -> WORKING RUNG (0–5), from the right-level screen. Validated by
+   *  lib/right-level-serve#normalizeClassLevels: an unknown handle or a value
+   *  outside 0–5 is dropped, never clamped, and `null` clears the placement. */
+  levels?: unknown;
   /** The lesson the teacher is preparing for this class, validated against the
    *  genome and the class's own subject. */
   focusConceptId?: string | null;
@@ -537,6 +542,22 @@ export async function POST(req: Request): Promise<NextResponse> {
           // any other value is normalised and stored only if it carries a fact.
           if (body.classroom !== undefined) {
             cls.classroom = body.classroom === null ? undefined : classroomForStore(body.classroom);
+          }
+          // THE PLACEMENT, ON THE SERVER.
+          // It lives on the class because it is a fact about that teacher's
+          // room, and it is written through this door because only the class's
+          // OWN teacher may set it — the same authority that sets its work.
+          // The browser copy on /teacher/right-level is a convenience; this is
+          // the one `/api/next` reads.
+          if (body.levels !== undefined) {
+            if (body.levels === null) {
+              cls.levels = undefined;
+              cls.levelsUpdatedAt = undefined;
+            } else {
+              const next = normalizeClassLevels(body.levels, Object.keys(cls.students ?? {}));
+              cls.levels = next;
+              cls.levelsUpdatedAt = next ? Date.now() : undefined;
+            }
           }
           // The lesson being prepared. Validated against the genome and the
           // class's own subject, so a stale or mistyped id cannot become a

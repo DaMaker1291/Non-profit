@@ -1272,6 +1272,22 @@ export interface ClassRoster {
    *  from "no devices": the plan then says what it assumed rather than printing
    *  a fact nobody gave (lib/classroom-context.ts). */
   classroom?: ClassroomProfile;
+  /** HANDLE -> WORKING RUNG (0–5), set by the class's teacher from the
+   *  right-level screen. This is the SERVER's copy, and it exists because the
+   *  first version kept it in the teacher's browser: a level that lives on one
+   *  device cannot change what a child is taught, so the feature informed a
+   *  human and left `/api/next` serving grade-level content.
+   *
+   *  `number`, not the engine's `RungLevel` union, because this is a STORED
+   *  field read back from JSON: a value outside 0–5 must be treatable as absent
+   *  rather than trusted. `lib/right-level-serve#normalizeClassLevels` is the
+   *  one place that validates it on the way in, and the resolver re-checks on
+   *  the way out. Absent means the teacher has not placed the class, which is
+   *  different from rung 0. */
+  levels?: Record<string, number>;
+  /** When the levels were last set, so a stale placement is visible rather than
+   *  silently treated as current. */
+  levelsUpdatedAt?: number;
   /** The lesson the teacher is preparing for this class. A teacher who leaves
    *  the setup flow and comes back on another device lands on the lesson they
    *  chose, not on an empty picker. */

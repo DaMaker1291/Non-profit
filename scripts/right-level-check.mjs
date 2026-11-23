@@ -19,6 +19,7 @@ compileEngines();
 const require = createRequire(import.meta.url);
 const rl = require("../.verify/right-level.js");
 const sheet = require("../.verify/right-level-sheet.js");
+const serve = require("../.verify/right-level-serve.js");
 const genome = require("../.verify/genome.js");
 const curriculum = require("../.verify/curriculum.js");
 
@@ -308,6 +309,49 @@ ok(
 ok(sheet.sheetDate("nonsense", "2026-01-01") === "2026-01-01", "an invalid date falls back rather than seeding from garbage");
 ok(sheet.sheetDate("2026-11-23", "2026-01-01") === "2026-11-23", "a valid date is used as given");
 ok(sheet.bandSheets(sheet.parseBands("1:5,2:9"), DATE).length === 2, "one sheet per band in the link");
+
+// ── THE RUNG CHANGES WHAT IS SERVED ────────────────────────────────────────
+// This is the assertion the audit's Phase 4 asked for: a placement that only
+// informs a human changes nothing for the child.
+const deep = genome.CONCEPTS.filter((c) => c.stage >= 3).map((c) => c.id);
+ok(deep.length > 0, "the genome holds concepts above stage 2 to test with");
+const deepId = deep[0];
+const placed = serve.servedForRung(deepId, 2);
+ok(placed.changed === true, `a stage-3 concept is not served to rung 2 (${deepId})`);
+ok(placed.conceptId === "addition", "rung 2's substitution is the rung's own concept (addition)");
+ok(serve.rungConceptId(0) === "place-value", "rung 0 opens at the lowest concept the app has");
+ok(placed.from === deepId, "the adjustment reports what was asked for");
+ok(serve.servedForRung("place-value", 2).changed === false, "a stage-0 concept passes unchanged at rung 2");
+ok(serve.servedForRung(deepId, null).reason === "no-level", "no placement changes nothing");
+ok(serve.servedForRung(deepId, undefined).changed === false, "an absent rung is not rung 0");
+ok(serve.servedForRung("not-a-concept", 2).reason === "unknown-concept", "an unknown concept is reported, not guessed");
+const beyondFive = genome.CONCEPTS.filter((c) => c.stage > serve.RUNG_STAGE_CEILING[5]).map((c) => c.id);
+ok(beyondFive.length > 0 ? serve.servedForRung(beyondFive[0], 5).changed === true : true, "rung 5 still caps above its own ceiling");
+ok(serve.servedForRung(deepId, 5).changed === false, "a concept at rung 5's ceiling is served unchanged");
+ok(serve.servedForRung(deepId, 0).belowContent === true, "rung 0 admits the app has nothing below place value");
+
+for (let level = 1; level <= 5; level += 1) {
+  ok(
+    serve.RUNG_STAGE_CEILING[level] >= serve.RUNG_STAGE_CEILING[level - 1],
+    `the stage ceiling does not fall from rung ${level - 1} to ${level}`,
+  );
+}
+
+const mapped = serve.adjustActions(
+  [{ conceptId: deepId, title: "a" }, { conceptId: "place-value", title: "b" }, { title: "paper reminder" }],
+  2,
+);
+ok(mapped[0].conceptId === "addition", "an above-rung recommendation is substituted with the rung's concept");
+ok(mapped[1].conceptId === "place-value", "a within-rung recommendation is left alone");
+ok(!("conceptId" in mapped[2]), "a recommendation with no concept passes through untouched");
+ok(mapped.length === 3, "no action is dropped");
+
+const stored = serve.normalizeClassLevels({ amina: 2, joseph: 4, stranger: 3, bad: 9, worse: "2" }, ["amina", "joseph", "bad", "worse"]);
+ok(JSON.stringify(stored) === JSON.stringify({ amina: 2, joseph: 4 }), "a level for a non-member or outside 0–5 is dropped, never clamped");
+ok(serve.normalizeClassLevels({}, ["a"]) === undefined, "an empty placement is 'not placed', not an empty record");
+ok(serve.rungForHandle({ a: 3 }, "a") === 3, "a stored rung is read back");
+ok(serve.rungForHandle({ a: 3 }, "b") === null, "a member with no level is unplaced");
+ok(serve.rungForHandle({ a: 99 }, "a") === null, "a corrupted stored value is absent, not a level");
 
 console.log(`  ${passed} passed, ${failed} failed`);
 if (failed > 0) {

@@ -6,6 +6,9 @@ import { authorizeLearner } from "@/lib/server/capability";
 import { incompleteSubjects } from "@/lib/specifications";
 import { ctitle } from "@/lib/content-i18n";
 import { translator } from "@/lib/i18n";
+import { listClasses } from "@/lib/server/store";
+import { adjustActions, rungForHandle } from "@/lib/right-level-serve";
+import type { RungLevel } from "@/lib/right-level";
 
 /** GET /api/next?id=... — the central decision API.
  *
@@ -42,9 +45,36 @@ export async function GET(req: Request): Promise<NextResponse> {
   // the only place a reason could come out in the wrong language. The teaching
   // language wins when a learner has named one, exactly as the pack resolves it.
   const lang = ctx.model.profile.teachingLang ?? ctx.model.profile.language ?? "en";
-  const actions = decide(ctx, { max: 6, tt: translator(lang), title: (cid) => ctitle(lang, cid) });
+  const recommendations = decide(ctx, { max: 6, tt: translator(lang), title: (cid) => ctitle(lang, cid) });
+
+  // ── THE TEACHER'S PLACEMENT CHANGES THE RECOMMENDATION ────────────────
+  // The rung is stored on the class (`levels`, written by the teacher's own
+  // account through POST /api/classes), and this is the door that has to read
+  // it: a pupil placed at rung 2 was being recommended stage-3 work, which is
+  // exactly the defect right-level placement exists to prevent. A learner in
+  // several classes is served at the LOWEST rung set for them, because the
+  // cautious reading is the one that cannot teach over a child's head, and no
+  // placement at all leaves the decision exactly as it was.
+  let rung: RungLevel | null = null;
+  try {
+    const classes = await listClasses();
+    for (const cls of classes) {
+      if (!cls.levels) continue;
+      const handle = Object.entries(cls.membersById ?? {}).find(([, learnerId]) => learnerId === id)?.[0];
+      const candidate = rungForHandle(cls.levels, handle);
+      if (candidate !== null && (rung === null || candidate < rung)) rung = candidate;
+    }
+  } catch {
+    // A class read that fails must not fail the learner's decision: the
+    // recommendation degrades to the un-placed one, which is what it was.
+    rung = null;
+  }
+  const actions: typeof recommendations = adjustActions(recommendations, rung);
+  const adjusted = actions.filter((a, i) => a.conceptId !== recommendations[i]?.conceptId).length;
+
   return NextResponse.json({
     actions,
+    rightLevel: { rung, adjusted },
     // The decision's provenance travels with it: which projection produced the
     // model, how much ledger it was decided from, and what the evidence cannot
     // account for. A caller can disclose all three rather than guess.

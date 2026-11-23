@@ -16,7 +16,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useProfile } from "@/lib/client";
-import { classes as fetchClasses } from "@/lib/api/client";
+import * as api from "@/lib/api/client";
 import type { ClassRoster } from "@/lib/types";
 import {
   assessClass,
@@ -73,11 +73,12 @@ export default function RightLevelPage() {
   const [clsId, setClsId] = useState<string>("");
   const [overrides, setOverrides] = useState<Record<string, AssessedLevel>>({});
   const [history, setHistory] = useState<Record<string, LevelObservation[]>>({});
+  const [saveNote, setSaveNote] = useState("");
 
   useEffect(() => {
     if (!me) return;
     let alive = true;
-    fetchClasses(me)
+    api.classes(me)
       .then((j) => {
         if (!alive) return;
         setRows(j.classes ?? []);
@@ -104,7 +105,19 @@ export default function RightLevelPage() {
       if (!cls) return;
       const next = { ...overrides, [handle]: level };
       setOverrides(next);
+      // KEPT LOCALLY FOR THE OFFLINE CASE, BUT NO LONGER THE SOURCE OF TRUTH.
+      // The level is written to the class on the server, which is the copy
+      // `/api/next` reads: a placement that lives only in this browser cannot
+      // change what the pupil is taught. The local copy is what the screen shows
+      // if the write fails, and the failure is stated rather than swallowed.
       saveLocal(`openmind:right-level:${cls.id}`, next);
+      const numeric = Object.fromEntries(
+        Object.entries(next).filter(([, v]) => typeof v === "number"),
+      ) as Record<string, number>;
+      api
+        .classAction({ action: "update", clsId: cls.id, levels: numeric })
+        .then(() => setSaveNote("Saved to the class. The pupil's next recommendation uses it."))
+        .catch(() => setSaveNote("Saved on this device only — the class could not be reached, so the pupil's serving is unchanged."));
       if (typeof level === "number") {
         const day = new Date().toISOString().slice(0, 10);
         const series = history[handle] ?? [];
@@ -317,8 +330,10 @@ export default function RightLevelPage() {
             </table>
             {members.length === 0 && <p className="small muted">No pupils have joined this class yet.</p>}
             <p className="small muted" style={{ marginBottom: 0 }}>
-              Rungs you enter are kept on this device only, for this class. They are not sent to the server and not shown to pupils.
+              Rungs are saved to the class, where the pupil&apos;s next recommendation reads them. A copy stays on this device so the
+              screen still works offline. Pupils never see the band they are in.
             </p>
+            {saveNote && <p className="small" role="status">{saveNote}</p>}
           </section>
 
           {gains.length > 0 && (

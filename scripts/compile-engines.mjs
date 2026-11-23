@@ -138,6 +138,10 @@ export const ENGINE_SOURCES = [
   // unmapped country is never handed a national course of another country)
   // rather than reading the data file for a string.
   "lib/curricula/registry.ts",
+  // WHAT A COUNTRY CHOICE MEANS (lib/curricula/availability.ts). Compiled
+  // because its six facts are the ones the product used to collapse into one
+  // number, and the gate has to assert them apart.
+  "lib/curricula/availability.ts",
   // WHICH PART OF A COUNTRY DECIDES THE LANGUAGE (lib/regions.ts). Compiled
   // because the suite asserts the table against the fifteen languages
   // lib/i18n.ts actually ships — a region pointing at a language this build
@@ -448,6 +452,10 @@ export const ENGINE_SOURCES = [
   // carry no answer, and the same rung on the same date must draw the same
   // six items or two classes are not sitting the same test.
   "lib/right-level-sheet.ts",
+  // THE RUNG, APPLIED TO THE SERVE. Compiled because its claim is a behaviour,
+  // not a shape: a pupil placed at rung 2 must not be served a stage-3 concept,
+  // and the gate drives that on the real resolver.
+  "lib/right-level-serve.ts",
   "lib/teacher-guide.ts",
   "lib/probability-simulation.ts",
   "lib/probability-activities.ts",
