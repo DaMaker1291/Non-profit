@@ -5,6 +5,11 @@ out
 .DS_Store
 .env*.local
 .env
+# Wrangler's local secret file. It was NOT ignored, and this repository has
+# already been one `git add -A` away from publishing a credential: the same
+# class of accident the .env line exists for, on the file Wrangler reads instead.
+.dev.vars
+.dev.vars.*
 
 # Build and verification artefacts — reproducible, never committed.
 tsconfig.tsbuildinfo
@@ -56,6 +61,13 @@ openmind-data
 # 1.8 GB artefact dump.
 tmp/
 var/
+# The local-content bundle (`npm run content:bundle`) — reproducible output of
+# lib + genome, written to be served, never edited by hand.
+/dist/
+# `verify-pilot` compiles lib/ into this directory to judge it. It is a second
+# compile mirror beside .verify, and it was one `git add -A` from committing
+# generated JavaScript over the sources it mirrors.
+reports/.pilot-verify/
 /freebuff-sites-build/
 /.open-next/
 /.wrangler/
