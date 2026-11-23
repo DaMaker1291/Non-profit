@@ -7,7 +7,7 @@ import { DATA_DIR } from "@/lib/server/store";
 // operator must be able to read both without a stack trace (docs/STORAGE_SPEC.md
 // acceptance 6). `storeKindReport` is reached through `storeReadiness`, which is
 // the rule the write path enforces — one function, three callers, one answer.
-import { envReport, storeReadiness } from "@/lib/env";
+import { envReport, ephemeralHost, storeReadiness } from "@/lib/env";
 // The store's own record of the processes that have opened it: the only
 // MEASUREMENT of persistence available from inside a process, reported beside
 // the declaration and never instead of it.
@@ -117,6 +117,13 @@ export async function GET(): Promise<NextResponse> {
   // The proof of a declared-durable store is the restart drill, which is named
   // in `persistence.evidence` rather than implied by a green tick here.
   const store = storeReadiness(process.env);
+  // The host this process believes it is on, from the markers the platform sets
+  // (lib/env.ts). It is reported because it is the FACT BEHIND `durability`: a
+  // reader who sees `durability:"ephemeral"` and `mode:"accepted-ephemeral"`
+  // without it cannot tell a declared throwaway demo from a mistake, and a
+  // reader who sees `""` knows the question never arose (a laptop, a school
+  // server). Naming the reason is the difference between a verdict and a riddle.
+  const host = ephemeralHost(process.env);
   const boots = recordBoot(DATA_DIR, process.env);
 
   const checks = { data, config, content };
@@ -141,8 +148,15 @@ export async function GET(): Promise<NextResponse> {
          *  this build cannot serve — which is also a `problems` entry, so
          *  readiness is 503 rather than a file store wearing a Postgres name. */
         kind: store.kind,
-        /** What was ASKED for, so a typo is visible beside the refusal. */
+        /** What was ASKED for, so a typo is visible beside the refusal. This is
+         *  the BACKEND variable (`OPENMIND_STORE`), so `""` means "the file
+         *  store, nothing declared" — not "no data directory" (that is
+         *  `persistence`/`codes`). */
         configured: store.configured,
+        /** The platform recognised as one that discards its filesystem, or `""`
+         *  when this is a machine that keeps it. `durability:"ephemeral"` reads
+         *  as an incident without this; beside it, it is a named host. */
+        host,
         /** The file backend is single-process: two servers over one directory
          *  lose each other's writes. A second backend is what removes it. */
         singleInstance: store.kind === "file",

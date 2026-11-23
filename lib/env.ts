@@ -578,19 +578,54 @@ export function envReport(env: Record<string, string | undefined> = {}, facts: E
   // 5. The public origin. Absent means canonical URLs, share metadata and the
   //    sitemap have no origin to name — a note, never an error, because every
   //    learning route works without it.
-  const appUrl = (env.NEXT_PUBLIC_APP_URL ?? "").trim();
-  if (!appUrl) {
+  //
+  //    AND IT HAS TO BE THE NAME THE APP ACTUALLY READS. This block used to
+  //    inspect NEXT_PUBLIC_APP_URL alone, while every reader of an origin
+  //    (`lib/server/seo.ts`, `app/layout.tsx` and the two learn layouts) resolves
+  //    OPENMIND_PUBLIC_URL and then NEXT_PUBLIC_SITE_URL — the name the README
+  //    tells an operator to set. So a deployment that had declared its own
+  //    hostname correctly, under the documented name, would have been told "no
+  //    public origin is declared … the sitemap has no hostname to name" while
+  //    the sitemap was naming it, and a MALFORMED value in the variable that is
+  //    read would have produced no finding at all. The report therefore checks
+  //    the same names in the same order, and any finding it makes names the
+  //    variable that actually holds the value.
+  const ORIGIN_KEYS = ["OPENMIND_PUBLIC_URL", "NEXT_PUBLIC_SITE_URL", "NEXT_PUBLIC_APP_URL"] as const;
+  const declaredOrigins = ORIGIN_KEYS
+    .map((key) => [key, (env[key] ?? "").trim()] as const)
+    .filter(([, value]) => value !== "");
+  if (declaredOrigins.length === 0) {
     notes.push({
-      key: "NEXT_PUBLIC_APP_URL",
+      key: ORIGIN_KEYS.join("/"),
       code: "app_url_unset",
-      detail: "no public origin is declared, so canonical URLs, share metadata and the sitemap have no hostname to name",
+      detail: `no public origin is declared, so canonical URLs, share metadata and the sitemap name this repository's published instance instead of this deployment's own hostname — set ${ORIGIN_KEYS[1]}`,
     });
-  } else if (!/^https?:\/\/[^\s/]+/.test(appUrl)) {
-    problems.push({
-      key: "NEXT_PUBLIC_APP_URL",
-      code: "app_url_bad",
-      detail: "NEXT_PUBLIC_APP_URL must be an absolute URL (for example https://openmind.example.org)",
-    });
+  } else {
+    for (const [key, value] of declaredOrigins) {
+      if (!/^https?:\/\/[^\s/]+/.test(value)) {
+        problems.push({
+          key,
+          code: "app_url_bad",
+          detail: `${key} must be an absolute URL (for example https://openmind.example.org)`,
+        });
+      }
+    }
+    // TWO ORIGINS THAT DISAGREE are the same class of mistake as every other
+    // contradiction here: canonicals, the sitemap and a mailed verification link
+    // would then name different hosts for one site, and which one a reader sees
+    // depends on which reader they are. Saying so beats silently picking one.
+    const distinct = new Set(
+      declaredOrigins
+        .filter(([, value]) => /^https?:\/\//i.test(value))
+        .map(([, value]) => value.replace(/\/+$/, "").toLowerCase()),
+    );
+    if (distinct.size > 1) {
+      problems.push({
+        key: declaredOrigins.map(([key]) => key).join("/"),
+        code: "app_url_conflict",
+        detail: `${declaredOrigins.map(([key]) => key).join(" and ")} name different origins (${[...distinct].join(", ")}), so canonical URLs, the sitemap and a verification mail would each point at a different host — set one origin, or make them identical`,
+      });
+    }
   }
 
   // 6. Where the learning data lives, AND WHETHER IT CAN SURVIVE A REDEPLOY.

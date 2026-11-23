@@ -480,9 +480,12 @@ volumes, or `OPENMIND_ALLOW_EPHEMERAL_STORE=1` and calling it a demo.
 
 **`/api/ready` publishes that judgement as one field, and it is not only for
 humans.** The response carries a `store` block — `kind` (the backend in force),
-`configured` (what the environment ASKED for, so a typo sits beside its
-refusal), `singleInstance` (true for exactly the backend that has the
-constraint), `durability` (`"durable" | "ephemeral" | "unknown"`, derived from
+`configured` (which BACKEND the environment asked for — `OPENMIND_STORE`, so an
+empty string means the file store and nothing declared — so a typo sits beside
+its refusal), `host` (the platform recognised as one that discards its
+filesystem, or `""` on a machine that keeps it: the fact behind `durability`),
+`singleInstance` (true for exactly the backend that has the constraint),
+`durability` (`"durable" | "ephemeral" | "unknown"`, derived from
 the codes above by `lib/env.ts`, which stays the one owner of the judgement) and
 `codes` (those codes verbatim, for a log). `/api/health` carries a four-field
 version of the same block (`kind`, `durability`, `mode`, `writesPermitted`) so an
@@ -606,7 +609,7 @@ Variables that matter:
 | `OPENMIND_AI_BASE_URL` / `OPENMIND_AI_KEY` / `OPENMIND_AI_MODEL` / `OPENMIND_AI_TIMEOUT_MS` | your own model endpoint |
 | `GEMINI_API_KEY` / `OPENAI_API_KEY` / `GROQ_API_KEY` / `OPENROUTER_API_KEY` | vendor AI (any one) |
 | `OPENMIND_IMPACT_KEY` | gate for the aggregate impact report |
-| `NEXT_PUBLIC_APP_URL` | public origin for canonical URLs / sitemap |
+| `OPENMIND_PUBLIC_URL` / `NEXT_PUBLIC_SITE_URL` / `NEXT_PUBLIC_APP_URL` | public origin for canonical URLs, the sitemap, `robots` and mailed links — read in that order, and `/api/ready` validates whichever one you set (a malformed value is named against that variable, and two values that disagree are reported as `app_url_conflict`) |
 | `OPENMIND_DEPLOYMENT_ID` | the release identity shown by `/api/health` |
 
 Rules:

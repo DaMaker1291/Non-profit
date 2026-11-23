@@ -14743,6 +14743,22 @@ console.log("▸ The deployment reports its own configuration, and invents no re
   // 6. The public origin and the AI timeout are validated by shape.
   ok(envMod.envReport({ NEXT_PUBLIC_APP_URL: "openmind.example.org" }).problems.some((p) => p.code === "app_url_bad"),
     "a non-absolute app URL is a problem");
+  // THE ORIGIN THE APP ACTUALLY READS. `NEXT_PUBLIC_SITE_URL` is the name the
+  // README tells an operator to set and the name `lib/server/seo.ts` resolves;
+  // validating only `NEXT_PUBLIC_APP_URL` reported a correctly-configured
+  // deployment as having declared nothing, and never checked the value in use.
+  ok(envMod.envReport({ NEXT_PUBLIC_SITE_URL: "https://openmind.example.org" }).notes
+      .every((n) => n.code !== "app_url_unset"),
+    "an origin declared under the name the app reads (NEXT_PUBLIC_SITE_URL) is not reported as absent");
+  ok(envMod.envReport({ NEXT_PUBLIC_SITE_URL: "openmind.example.org" }).problems
+      .some((p) => p.code === "app_url_bad" && p.key === "NEXT_PUBLIC_SITE_URL"),
+    "and a malformed one is a problem named against THAT variable, not against one nobody set");
+  ok(envMod.envReport({ OPENMIND_PUBLIC_URL: "https://a.example.org", NEXT_PUBLIC_SITE_URL: "https://b.example.org" })
+      .problems.some((p) => p.code === "app_url_conflict"),
+    "two declared origins that disagree are a contradiction rather than a silent pick, because the sitemap and a mailed link would name different hosts");
+  ok(envMod.envReport({ OPENMIND_PUBLIC_URL: "https://a.example.org", NEXT_PUBLIC_SITE_URL: "https://A.example.org/" })
+      .problems.length === 0,
+    "while one origin under two names — differing only by case or a trailing slash — is one declaration, not a conflict");
   ok(envMod.envReport({ NEXT_PUBLIC_APP_URL: "https://openmind.example.org" }).problems.length === 0,
     "an absolute app URL is accepted");
   ok(envMod.envReport({ OPENMIND_AI_TIMEOUT_MS: "10" }).problems.some((p) => p.code === "ai_timeout_bad"),
