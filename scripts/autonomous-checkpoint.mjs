@@ -166,6 +166,37 @@ const nonCurriculum = [
     ["teacher review of every blueprint", "source permission and licensing review"],
   ),
   requirement(
+    "ADAPTIVE-001",
+    "learning",
+    "Adaptive next-action and mastery reliability",
+    subsystem("ADAPTIVE-001")?.status ?? "IMPLEMENTED_UNVERIFIED",
+    ["lib/decision.ts", "lib/learner-model.ts", "scripts/north-star.mjs", "scripts/educational-benchmark.mjs"],
+    "A learner's own evidence changes what they are asked to do, in the direction the pedagogy claims; the mastery threshold that gates prerequisites and stages separates durable answers from fragile ones, and the measurement reports where it fails.",
+    [
+      ...(subsystem("ADAPTIVE-001")?.evidence ?? []),
+      "npm run reliability",
+      "npm run benchmark",
+    ],
+    subsystem("ADAPTIVE-001")?.remainingWork ??
+      "Resolve the benchmark's named capability gap and hint-reliance cells, then test the recommendation in a supervised learner pilot.",
+    ["real learner outcomes", "delayed retrieval evidence"],
+  ),
+  requirement(
+    "RELEASE-001",
+    "release",
+    "Production release gate",
+    subsystem("RELEASE-001")?.status ?? "IMPLEMENTED_UNVERIFIED",
+    ["scripts/production-check.mjs", "audit/release-evidence.json", "docs/FINAL_QUALITY_REGISTER.md"],
+    "The production build is served from the standalone artefact, its assets resolve, the public and private doors answer, assessment and offline journeys work in a browser, storage and restore are exercised, and generated files are restored after the run.",
+    [
+      ...(subsystem("RELEASE-001")?.evidence ?? []),
+      "OPENMIND_CHECK_UI=1 npm run production-check",
+    ],
+    subsystem("RELEASE-001")?.remainingWork ??
+      "Run the same gate on the deployment target with its real store, origin and secrets; build readiness is not educational approval.",
+    ["deployment-specific secrets and durable store", "physical hardware", "teacher review", "learner pilot"],
+  ),
+  requirement(
     "LANG-001",
     "multilingual",
     "Teaching-language coverage",
@@ -189,6 +220,101 @@ const nonCurriculum = [
     ["EXTERNAL_RESOURCE_CATALOGUE_REPORT.md", "RESOURCE_RECOMMENDATION_REPORT.md"],
     "Re-check every URL and metadata field; no provider may be scraped or represented as offline without permission.",
     ["provider permission for downloadable media"],
+  ),
+  requirement(
+    "LOW-RESOURCE-001",
+    "low-resource",
+    "No-device, group, print and paper delivery",
+    subsystem("LOW-RESOURCE-001")?.status ?? "IMPLEMENTED_UNVERIFIED",
+    [
+      "app/print",
+      "app/teach",
+      "app/teacher/paper",
+      "components/print-sheet.tsx",
+      "components/classroom-presenter.tsx",
+      "lib/lesson-print.ts",
+      "lib/classroom-session.ts",
+      "docs/LOW_RESOURCE_ACCEPTANCE.md",
+    ],
+    "Every authored lesson has a printable pupil sheet and separate teacher key from one authored definition; a teacher can present the lesson with no pupil accounts; paper marks are recorded as teacher-entered with version, rubric, observer and quality; group evidence never becomes individual mastery; offline packages and the offline browser journey work.",
+    [
+      ...(subsystem("LOW-RESOURCE-001")?.evidence ?? []),
+      "npm run verify:low-resource",
+      "docs/LOW_RESOURCE_ACCEPTANCE.md",
+    ],
+    subsystem("LOW-RESOURCE-001")?.remainingWork ??
+      "Run the print, paper, shared-device and local-network journeys on real school hardware; record only what was actually measured.",
+    [
+      "physical print and photocopy trial",
+      "low-cost device and network-throttling measurement",
+      "teacher review of the paper workflow",
+      "school-local network deployment trial",
+    ],
+  ),
+  requirement(
+    "TEACHER-CACHE-001",
+    "security",
+    "Teacher answer-key and presenter cache separation",
+    subsystem("TEACHER-CACHE-001")?.status ?? "IMPLEMENTED_UNVERIFIED",
+    ["public/sw.js", "scripts/verify-teacher-cache.mjs", "docs/LOW_RESOURCE_ACCEPTANCE.md"],
+    "A teacher's authenticated answer key and presenter are not stored in a browser cache that the next learner on the same profile can read offline, and a stale cache from an earlier worker version is not served.",
+    [
+      ...(subsystem("TEACHER-CACHE-001")?.evidence ?? []),
+      "npm run verify:teacher-cache",
+      "docs/LOW_RESOURCE_ACCEPTANCE.md",
+    ],
+    subsystem("TEACHER-CACHE-001")?.remainingWork ??
+      "Test on managed school browsers and after a teacher downloads a PDF outside the web cache.",
+    ["managed school browser profile", "teacher PDF in a shared Downloads folder"],
+  ),
+  requirement(
+    "COUNTRY-001",
+    "research",
+    "Country reality research and classroom conditions",
+    subsystem("COUNTRY-001")?.status ?? "INITIAL_RESEARCH",
+    [
+      "docs/country-research",
+      "scripts/country-research.mjs",
+      "lib/classroom-session.ts",
+      "lib/teacher-guide.ts",
+      "components/classroom-presenter.tsx",
+      "components/teacher-guide-sheet.tsx",
+      "app/print/[subject]/[concept]/guide/page.tsx",
+      "docs/country-research/SCHOOL_ARCHETYPES.md",
+      "docs/country-research/SCHOOL_SCENARIOS.json",
+      "scripts/school-reality-check.mjs",
+    ],
+    "Every national route has a profile with an explicit research status; sourced profiles record the population, year, method, confidence and limits of each statistic; the teacher-led mode can run with no pupil devices, shared devices, a large class, a multilingual class or limited materials without turning group answers into individual mastery; eight synthetic school scenarios covering seven archetypes have a complete delivery path across every authored lesson.",
+    [
+      ...(subsystem("COUNTRY-001")?.evidence ?? []),
+      "npm run country:check",
+      "scripts/country-research.mjs --check",
+    ],
+    subsystem("COUNTRY-001")?.remainingWork ??
+      "Research the 57 NOT_RESEARCHED routes, reconcile stale routes, obtain subject-specialist curriculum review, reviewed teaching translations and genuine school validation. The eight school scenarios are synthetic; no teacher timing, classroom observation or learner outcome is claimed.",
+    [
+      "57 routes not researched",
+      "no reviewed curriculum mapping",
+      "no reviewed country teaching translation",
+      "no teacher or learner review",
+      "no school partner or learner pilot",
+    ],
+  ),
+  requirement(
+    "LOCAL-CONTENT-001",
+    "low-resource",
+    "School-local read-only content mirror",
+    subsystem("LOCAL-CONTENT-001")?.status ?? "IMPLEMENTED_UNVERIFIED",
+    ["scripts/local-content-pack.mjs", "scripts/serve-local-content.mjs", "docs/PAPER_OFFLINE_AUDIT.md"],
+    "A school can export a versioned, checksummed content folder once, serve it read-only on its own network, and keep learner records and teacher keys out of that folder.",
+    [
+      ...(subsystem("LOCAL-CONTENT-001")?.evidence ?? []),
+      "npm run content:bundle",
+      "docs/PAPER_OFFLINE_AUDIT.md",
+    ],
+    subsystem("LOCAL-CONTENT-001")?.remainingWork ??
+      "Run a real school LAN/USB round trip and connect the mirror to a learner-facing import path.",
+    ["real school LAN", "USB round trip", "signed package or authenticated mirror"],
   ),
   requirement(
     "OFFLINE-001",
@@ -329,15 +455,19 @@ const backlog = {
   nextTaskIfPrerequisitesBlocked: nextAnyConcept
     ? { id: `CUR-${nextAnyConcept.conceptId}`, conceptId: nextAnyConcept.conceptId, title: nextAnyConcept.title }
     : null,
-  levelA: {
-    achieved: false,
-    reason:
-      `${catalogue.totals.concepts - catalogue.totals.authored} concepts still have no authored lesson. ` +
-      (browserCoversAll && releaseVerified
-        ? `All ${catalogue.totals.authored} authored lessons are browser-verified, and the production build, standalone startup and restore drill are recorded PASS. `
-        : "Browser verification and the release checks are not both current for every authored lesson. ") +
-      "Level A also requires the full curriculum, so it is not achieved.",
-  },
+  levelA: (() => {
+    const outlineConcepts = catalogue.totals.concepts - catalogue.totals.authored;
+    const achieved = outlineConcepts === 0 && browserCoversAll && releaseVerified;
+    return {
+      achieved,
+      reason: achieved
+        ? `All ${catalogue.totals.authored} concepts have an authored lesson (0 outlines); every authored lesson is browser-verified; and the production build, standalone startup and restore drill are recorded PASS.`
+        : `${outlineConcepts} concepts still have no authored lesson. ` +
+          (browserCoversAll && releaseVerified
+            ? `All ${catalogue.totals.authored} authored lessons are browser-verified, and the production build, standalone startup and restore drill are recorded PASS, but the curriculum is not complete. `
+            : "Browser verification and the release checks are not both current for every authored lesson. "),
+    };
+  })(),
   levelB: {
     achieved: false,
     reason: "No external teacher review, learner trial, curriculum approval, legal clearance, human language review or assistive-technology session exists.",
@@ -407,7 +537,7 @@ ${nextConcept ? `\`CUR-${nextConcept.conceptId}\` — ${nextConcept.title} (${ne
 
 ## Level A (code-complete and technically verified)
 
-**Not achieved.** ${backlog.levelA.reason}
+${backlog.levelA.achieved ? "**Achieved.**" : "**Not achieved.**"} ${backlog.levelA.reason}
 
 ## Level B (educationally and operationally validated)
 
@@ -418,6 +548,11 @@ ${nextConcept ? `\`CUR-${nextConcept.conceptId}\` — ${nextConcept.title} (${ne
 \`OPENMIND_BACKLOG.json\` contains one item per curriculum concept and one per
 cross-cutting requirement, each with status, source files, acceptance criteria,
 dependencies, evidence, remaining work and external blockers.
+
+\`docs/FINAL_QUALITY_REGISTER.md\` is the release-facing summary: every area
+with an explicit IMPLEMENTED / INTEGRATED / AUTOMATED_VERIFIED /
+BROWSER_VERIFIED / HUMAN_REVIEW_REQUIRED / EXTERNALLY_BLOCKED / APPROVED /
+RELEASE_READY state, the full production-check result and the honest limits.
 `;
 fs.writeFileSync(path.join(root, "OPENMIND_AUTONOMOUS_STATUS.md"), md);
 

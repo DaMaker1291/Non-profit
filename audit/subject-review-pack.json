@@ -1,0 +1,2081 @@
+{
+  "generatedBy": "scripts/subject-review-pack.mjs",
+  "generatedAt": "2026-11-13T23:13:40.473Z",
+  "contract": "openmind.subject-review-pack/1.0",
+  "reviewState": "unreviewed",
+  "note": "Representative content for qualified subject teachers. This pack records no review and no learner result.",
+  "lessons": [
+    {
+      "subject": "maths",
+      "conceptId": "data-charts",
+      "title": "Data representation",
+      "whyChosen": "A table part, a pie-angle calculation and a representation-choice explanation.",
+      "version": "1.1.0",
+      "declaredStatus": "draft",
+      "curriculum": {
+        "reference": "GCSE Mathematics, statistics: bar charts, line graphs, pie charts and scatter graphs; choosing, constructing and criticising a representation",
+        "level": "Key Stage 3 to GCSE Foundation",
+        "note": "Scope cited against the published GCSE mathematics subject content and the National Curriculum for statistics. No specification, textbook or commercial lesson text is reproduced."
+      },
+      "prerequisites": [
+        "averages"
+      ],
+      "objectives": [
+        {
+          "statement": "Choose a chart from the type of data and the question being asked, and explain why the alternatives are weaker.",
+          "evidence": "For unordered categories the learner chooses a bar chart, for change over time a line graph, for shares of one whole a pie chart, and for two measured variables a scatter graph, giving a reason for each choice rather than naming a favourite."
+        },
+        {
+          "statement": "Read a chart honestly by finding its total, its scale and its baseline, and explain how a truncated axis changes the comparison the picture makes.",
+          "evidence": "Given bars of 32 and 36 on axes starting at 0 and at 30, the learner says the true rise is 4 (12.5%) while the truncated chart draws heights of 2 and 6, and that the labels are true even when the visual ratio is not."
+        },
+        {
+          "statement": "Construct a bar chart and a pie chart from a frequency table, calculate each pie angle, and state what the chart does not show.",
+          "evidence": "For 60 learners travelling by walk, bus, car and cycle the learner obtains 90°, 144°, 72° and 54°, checks the angles sum to 360°, and explains that the pie shows each share but not the total of 60 or the count in each category."
+        }
+      ],
+      "priorKnowledge": [
+        {
+          "id": "d1",
+          "question": "Find the mean of 4, 6, 8 and 10.",
+          "answer": "7. The total is 28 and there are four values, so the mean is 28 ÷ 4 = 7. A chart summarises a data set the same way: one mark stands for many values.",
+          "targets": [
+            "averages"
+          ]
+        },
+        {
+          "id": "d2",
+          "question": "The mean of five values is 12. What is their total?",
+          "answer": "60, because 5 × 12 = 60. Rebuilding a total from a summary is the move a pie chart needs when the counts have to be turned into shares of the whole.",
+          "targets": [
+            "averages"
+          ]
+        }
+      ],
+      "introduction": {
+        "hook": "A local paper reports that cycling to a school has 'tripled'. The chart shows two bars, 32 last year and 36 this year, on an axis that starts at 30 rather than 0. The bars are 2 and 6 units tall, so the second really does look three times the first. The numbers rose by 4, which is 12.5%. Every label on the chart is true, and the picture still tells a story the data do not support.",
+        "why": "A chart is not a photograph of a data set; it is an argument about which comparison matters. The type of chart decides what is easy to see: bars compare categories, a line shows change through an ordered sequence, a pie shows each category's share of one whole, and a scatter shows whether two measured variables move together. The scale decides how large a difference looks, and the total decides what a share means. Reading a chart critically means asking three questions before believing it — what is the total, what does the axis do, and what is missing — and those questions are also the checklist for making an honest one."
+      },
+      "explanation": [
+        {
+          "heading": "The question decides the chart",
+          "paragraphs": [
+            "A bar chart compares counts or amounts across categories. Its bars are separate because the categories are separate: football, netball and swimming have no order, so the gap between the bars is information. A line graph is different. It is used when the horizontal axis is an ordered sequence, usually time, because the segment between two points asserts that the values in between are meaningful. Drawing a line through favourite colours joins points that have no in-between, so the trend it appears to show was invented by the chart.",
+            "A pie chart is for parts of one whole: every category is a share of the same total, and the angles sum to 360°. A scatter graph is for two measured variables on the same individual, such as height and shoe size, and it can show a relationship without either variable being a category. Choosing a chart is therefore part of answering the question. A pie with twelve thin slices is unreadable; a bar chart with forty categories is a wall; a line through unordered categories is a false claim about continuity. The chart should make the intended comparison easy, not decorate the table."
+          ]
+        },
+        {
+          "heading": "A scale is part of the argument",
+          "paragraphs": [
+            "In a bar chart the length of the bar encodes the value, so the baseline is part of the measurement. If the axis starts at 0, a value of 36 is 90% of a full-scale 40 and a value of 32 is 80%, which is the ratio the numbers actually have. If the axis starts at 30, the same two values become bars of 6 and 2, and the second looks three times the first. The labels are still correct; the lengths are not proportional to the values, so the visual comparison is false. A truncated bar chart is not lying about the numbers, it is lying with the lengths.",
+            "A line graph encodes value by position rather than length, so a truncated vertical axis exaggerates a change without changing the shape of the line. That can be legitimate when the interesting variation is small, provided the axis is labelled and the reader is told, but it is misleading when the picture is presented as the whole story. Equal intervals matter on both axes: a gap of 10 must be the same distance wherever it appears, or the slope and the spacing stop meaning anything. Axes need names and units, because a number without a unit cannot be checked."
+          ]
+        },
+        {
+          "heading": "Pie charts encode shares, not counts",
+          "paragraphs": [
+            "A pie chart turns each category's share of the total into an angle. The whole circle is 360°, so a category with a quarter of the total gets a quarter of 360°, which is 90°. For 60 learners travelling by walk, bus, car and cycle in the counts 15, 24, 12 and 9, the shares are 25%, 40%, 20% and 15%, and the angles are 90°, 144°, 72° and 54°. The four angles must add to 360°; if they do not, either a count or a division is wrong. The largest sector is the bus at 144°, which is 40% of the learners.",
+            "The angle is a share, so it cannot tell you a count without the total. Half of 40 learners is 20, while a quarter of 200 is 50: the second slice is smaller and the number of learners is larger. Across two pie charts with different totals, a bigger angle does not mean more items; within one chart, it does mean a larger share. A pie also hides the total itself, because the circle is always 100% however many people were asked. That is why a report should print the total and the counts beside the chart rather than leaving the reader to infer them."
+          ]
+        },
+        {
+          "heading": "Reading critically: total, scale, missing",
+          "paragraphs": [
+            "Three questions catch most misleading charts. What is the total? A percentage without a base is unreadable, and two charts with different totals cannot be compared by angle. What does each axis do? Check where the vertical axis starts, whether the intervals are equal, and whether both axes are labelled with units. What is missing? Non-responses, merged categories, a change in what was counted, or a source that stopped at a convenient year can matter more than anything drawn. A chart can be accurate in every number and still mislead by what it leaves out.",
+            "The defence is arithmetic rather than suspicion. Read the values, recompute a share or a difference, and compare it with what the picture appears to claim. In a scatter graph, a pattern is not a cause: two variables can rise together because a third factor drives both, and the genome's next concept, correlation, is where that distinction is taught. When you make a chart, state the total, the scale and the units, and start bars at zero, so a reader can check the argument instead of trusting the shape."
+          ]
+        }
+      ],
+      "representations": [
+        {
+          "id": "r1",
+          "kind": "maths.expression",
+          "body": "A frequency table becomes a bar chart by using each count as the height of its bar. The bars start at zero so their lengths stay proportional to the counts.",
+          "caption": "The tallest bar is football at 12 and the shortest is athletics at 3, a ratio of four to one that the zero baseline preserves. If the axis started at 10, those same bars would be 2 and -7 units, which is impossible, or 2 and 0, which reverses the order.",
+          "notation": "football 12 · netball 8 · swimming 5 · athletics 3 · total 28 · scale 0 to 12, step 2"
+        },
+        {
+          "id": "r2",
+          "kind": "maths.expression",
+          "body": "A pie chart turns each category's share into an angle. The whole circle is the total, so every angle is share × 360° and the angles must add to 360°.",
+          "caption": "The bus sector is the largest at 144°, which is 40% of the 60 learners, or 24 people. The pie shows the share clearly and the total not at all: the same angles would describe 6 learners or 600.",
+          "notation": "travel to school, 60 learners: walk 15, bus 24, car 12, cycle 9   ·   angles 90°, 144°, 72°, 54°   ·   sum 360°   ·   bus = 40%"
+        },
+        {
+          "id": "r3",
+          "kind": "maths.expression",
+          "body": "The same two values can look almost equal or three times apart depending on where the bar axis starts. The numbers do not change; the lengths do.",
+          "caption": "On a zero baseline the rise is one tenth of a full bar and looks small, which is honest. Starting at 30 draws the same rise as a bar three times as tall, which is the picture the headline 'tripled' came from.",
+          "notation": "cycling 32 → 36   ·   true change +4 = 12.5%   ·   axis 0–40: heights 80% and 90%   ·   axis 30–40: heights 2 and 6 = 3×"
+        }
+      ],
+      "workedExamples": [
+        {
+          "id": "w1",
+          "prompt": "A table records favourite sports: football 12, netball 8, swimming 5 and athletics 3. Build a bar chart and state its scale and total.",
+          "steps": [
+            {
+              "move": "Add the counts to find the total: 12 + 8 + 5 + 3 = 28 learners were asked.",
+              "why": "The total is the whole the bars are parts of. Without it, a reader cannot turn a count into a share or check that every learner is represented once."
+            },
+            {
+              "move": "Choose a bar chart, because the categories have no natural order and the question compares their counts.",
+              "why": "A line would imply that football, netball and swimming sit on an ordered scale, which they do not. A pie would show shares, but the comparison asked for is between counts."
+            },
+            {
+              "move": "Set the vertical axis from 0 to 12 with steps of 2, label it 'number of learners', and draw each bar to its count.",
+              "why": "A zero baseline keeps bar length proportional to the count. A step of 2 fits the largest value of 12 without compressing the smaller bars into illegibility."
+            },
+            {
+              "move": "Check the chart against the table: the football bar is 12, the athletics bar is 3, and the four bars account for all 28 learners.",
+              "why": "The chart has to preserve both the individual values and the total. A bar drawn to the wrong height is a false number even when the table beside it is right."
+            }
+          ],
+          "answer": "A bar chart with a 0–12 axis, bars of 12, 8, 5 and 3, labelled in learners; total 28."
+        },
+        {
+          "id": "w2",
+          "prompt": "A survey of 60 learners records how they travel: walk 15, bus 24, car 12, cycle 9. Draw a pie chart, calculating each angle.",
+          "steps": [
+            {
+              "move": "Check the total: 15 + 24 + 12 + 9 = 60.",
+              "why": "Every share is a fraction of this total, and a pie is only valid when the categories account for the whole group exactly once."
+            },
+            {
+              "move": "Turn each count into a share and then an angle: 15/60 × 360° = 90°, 24/60 × 360° = 144°, 12/60 × 360° = 72°, 9/60 × 360° = 54°.",
+              "why": "The angle is the share of the circle, so the same fraction that gives the proportion gives the angle. Multiplying by 360° converts a fraction of the whole into degrees."
+            },
+            {
+              "move": "Check the angles sum to 360°: 90 + 144 + 72 + 54 = 360.",
+              "why": "The four sectors must fill the circle exactly. A sum above or below 360° means a count, a total or a division is wrong, and the check catches it before the chart is drawn."
+            },
+            {
+              "move": "The bus sector is 144°, the largest; it is 40% of the learners, which is 24 people. The pie shows the share but not the 60 or the 24 unless they are printed beside it.",
+              "why": "A reader can see that bus is the largest share without knowing how many learners were asked. The count needs the total, which is why the total belongs in the title or the key."
+            }
+          ],
+          "answer": "Angles 90°, 144°, 72° and 54°, summing to 360°; bus is the largest share at 40% (24 learners)."
+        },
+        {
+          "id": "w3",
+          "prompt": "A chart shows cycling rising from 32 to 36 with a vertical axis starting at 30. Explain what the picture exaggerates and what the true change is.",
+          "steps": [
+            {
+              "move": "Find the true change: 36 - 32 = 4, and 4 ÷ 32 = 0.125, so the rise is 12.5%.",
+              "why": "The percentage compares the change with the starting value. It is the honest size of the change, independent of how the axis is drawn."
+            },
+            {
+              "move": "Read the bar heights the axis actually draws: with a baseline of 30, the bars are 36 - 30 = 6 and 32 - 30 = 2.",
+              "why": "Bar length encodes value above the baseline. The labels 32 and 36 are true, but the lengths a reader compares are 2 and 6."
+            },
+            {
+              "move": "Compare the visual ratio with the true ratio: 6 ÷ 2 = 3, while 36 ÷ 32 = 1.125. The chart makes a 12.5% rise look like a tripling.",
+              "why": "The reader compares lengths, not printed labels. A truncated axis turns a small change into a large-looking one, which is why the headline and the picture agree with each other and not with the data."
+            },
+            {
+              "move": "The honest chart starts at 0, where the bars are 32 and 36 and the true rise of 4 (12.5%) looks small; the 30-based chart's heights of 2 and 6 are what turn that rise into a three-times picture, so a truncated axis must be disclosed and the values read.",
+              "why": "A zero baseline preserves the ratio. Truncation can be legitimate, but only when it is disclosed, because the picture no longer carries the comparison on its own."
+            }
+          ],
+          "answer": "The true rise is 4, or 12.5%; the 30-based axis draws bars of 2 and 6, a three-times picture, so the chart exaggerates a small change."
+        }
+      ],
+      "misconceptions": [
+        {
+          "id": "m1",
+          "belief": "A pie chart shows the counts, so a bigger slice always means more items, even when comparing two different charts.",
+          "whyItFails": "A pie angle is a share of that chart's total, not a count. Half of 40 learners is 20, while a quarter of 200 is 50: the second slice is smaller and represents more learners. The circle is always 100%, so the total is invisible unless it is printed.",
+          "correction": "Use angles to compare shares within one chart, and counts to compare across charts. Print the total and the category counts beside the pie, and recompute a count from the share only when the total is known.",
+          "contrast": {
+            "wrong": "the bigger slice always means more learners",
+            "right": "50% of 40 is 20, but 25% of 200 is 50: the smaller share is more learners"
+          }
+        },
+        {
+          "id": "m2",
+          "belief": "Any data can be shown on a line graph, because joining the points shows the trend.",
+          "whyItFails": "A line asserts that the horizontal axis is ordered and that values between the points are meaningful. Favourite colours, makes of car and types of pet have no in-between, so a line through them invents a sequence and a trend that the data never had.",
+          "correction": "Use a line only when the horizontal axis is an ordered sequence, usually time. For unordered categories use a bar chart, which keeps the categories separate and does not imply a value between them.",
+          "contrast": {
+            "wrong": "join favourite colours with a line to show the trend",
+            "right": "favourite colours are unordered, so they belong on separate bars"
+          }
+        },
+        {
+          "id": "m3",
+          "belief": "Starting a bar chart's axis at 30 instead of 0 is acceptable, because the bars are still labelled with the true values.",
+          "whyItFails": "A bar's length is the value above the baseline, and that length is what a reader compares. Starting at 30 turns values of 32 and 36 into bars of 2 and 6, so a 12.5% rise looks like a tripling. The labels can be true while the visual comparison is false.",
+          "correction": "Start a bar chart at zero. If a truncated axis is genuinely needed for detail, label it clearly, say that it is truncated, and expect the reader to compare the printed values rather than the bar lengths. For a line graph, check the vertical range before describing the size of a change.",
+          "contrast": {
+            "wrong": "the bars are labelled 32 and 36, so the chart is honest",
+            "right": "the bars are drawn 2 and 6 units tall, which is a three-times picture for a 12.5% rise"
+          }
+        }
+      ],
+      "guidedPractice": [
+        {
+          "id": "p1",
+          "prompt": "A table lists favourite fruits and how many learners chose each. Which chart would you use, and why is a line graph a poor choice?",
+          "hint": "Ask whether the categories have an order. Fruit names do not sit on a scale, and a line asserts that the values between two points mean something.",
+          "answer": "A bar chart, because the categories are unordered and the question compares counts. A line graph would join unrelated fruits and imply a trend between them; a pie would be appropriate only if the question were each fruit's share of one whole.",
+          "feedback": {
+            "correct": "You chose from the data type and the question, and you rejected the line for the reason that makes it wrong rather than because it is unusual.",
+            "incorrect": "Use a bar chart: the fruits have no order, so separate bars compare their counts. A line would invent an order and a trend, and a pie answers a different question about shares."
+          }
+        },
+        {
+          "id": "p2",
+          "prompt": "A pie chart is drawn for 40 learners: 10 walk, 20 take the bus and 10 come by car. Calculate each angle and check the total.",
+          "hint": "Each angle is the category's share of 40 multiplied by 360°. The three angles must add to 360°.",
+          "answer": "Walk 10/40 × 360° = 90°, bus 20/40 × 360° = 180°, car 10/40 × 360° = 90°. The angles sum to 360°, and the bus sector is half the circle because half the learners take the bus.",
+          "feedback": {
+            "correct": "You converted each count to a share before multiplying by 360°, and the sum check confirms the whole circle is accounted for.",
+            "incorrect": "Divide each count by the total 40 first: 10/40 gives 90°, 20/40 gives 180°, and the second 10 gives 90°. The angles must add to 360°."
+          }
+        },
+        {
+          "id": "p3",
+          "prompt": "A bar chart starts its vertical axis at 50. Two bars are labelled 52 and 58. What is the true difference, and what does the picture exaggerate?",
+          "hint": "Subtract the baseline from each value to find the drawn heights, then compare the ratio of the heights with the ratio of the values.",
+          "answer": "The true difference is 58 - 52 = 6, which is 6/52 ≈ 11.5%. The drawn heights are 2 and 8, a ratio of 4, so the chart makes an 11.5% difference look like a fourfold one.",
+          "feedback": {
+            "correct": "You separated the printed values from the drawn lengths, which is exactly where a truncated axis does its work.",
+            "incorrect": "The values differ by 6, about 11.5%. Starting at 50 draws heights of 2 and 8, a four-times picture, so the visual difference is much larger than the real one."
+          }
+        }
+      ],
+      "assessment": [
+        {
+          "id": "a1",
+          "kind": "constructed-response",
+          "prompt": "A survey of 200 learners records how they travel: bus 80, walk 50, car 40, cycle 30. Calculate the pie angles, explain what the pie does not show, and explain why a bar chart of the same data should start at zero.",
+          "modelAnswer": "The total is 200. The angles are 80/200 × 360° = 144°, 50/200 × 360° = 90°, 40/200 × 360° = 72° and 30/200 × 360° = 54°, which sum to 360°. The pie shows each share of the 200, but it does not show the total or the counts: the largest sector means the largest share, not automatically the largest number unless the total is known and printed. A bar chart of the counts must start at zero because the bar's length encodes the count; starting at 60 would draw the 80 and 50 bars as 20 and -10, which is impossible, and would make the differences look far larger than they are. The zero baseline keeps the bars proportional to the counts, so the comparison the chart invites is the comparison the data support.",
+          "marking": [
+            "Uses the total 200 and obtains the four angles 144°, 90°, 72° and 54°.",
+            "Checks that the angles sum to 360°.",
+            "Explains that the pie shows shares, not counts, and that the total is not visible in the circle.",
+            "Explains that bar length encodes the count, so a non-zero baseline distorts the comparison, and gives the concrete effect of starting at 60."
+          ]
+        },
+        {
+          "id": "a2",
+          "kind": "short-answer",
+          "prompt": "A pie chart shows that 25% of learners walk. The total is 80 learners. How many walk?",
+          "modelAnswer": "20",
+          "marking": [
+            "Converts the share to a fraction or decimal: 25% = 0.25.",
+            "Multiplies by the total: 0.25 × 80 = 20 learners."
+          ],
+          "check": {
+            "accepted": [
+              "20",
+              "20 learners",
+              "20 pupils"
+            ]
+          }
+        },
+        {
+          "id": "a3",
+          "kind": "short-answer",
+          "prompt": "A bar chart's vertical axis starts at 100. Two bars are labelled 108 and 116. What is the true difference between the values?",
+          "modelAnswer": "8",
+          "marking": [
+            "Subtracts the two printed values rather than the drawn heights: 116 - 108.",
+            "Obtains 8, noting that the drawn heights are 16 and 8 if the baseline is 100."
+          ],
+          "check": {
+            "accepted": [
+              "8"
+            ]
+          }
+        },
+        {
+          "id": "a4",
+          "kind": "structured",
+          "prompt": "A survey of 40 learners records how they travel: 10 walk, 20 take the bus and 10 come by car. Complete the table of pie-chart angles.",
+          "modelAnswer": "Each count is divided by the total 40 before multiplying by 360°: walking 10/40 × 360° = 90°, bus 20/40 × 360° = 180° and car 10/40 × 360° = 90°. The three angles add to 360°, which checks that the whole circle has been used.",
+          "marking": [
+            "Walking: 10/40 × 360° = 90°.",
+            "Bus: 20/40 × 360° = 180°.",
+            "Car: 10/40 × 360° = 90°.",
+            "States that the three angles must total 360°, the whole circle."
+          ],
+          "structured": {
+            "parts": [
+              {
+                "id": "a",
+                "prompt": "Complete the angle for each category. Each cell is worth one mark.",
+                "marks": 3,
+                "answer": 0,
+                "response": "table",
+                "table": {
+                  "columns": [
+                    "Walk",
+                    "Bus",
+                    "Car"
+                  ],
+                  "rows": [
+                    {
+                      "label": "Learners",
+                      "cells": [
+                        {
+                          "given": "10"
+                        },
+                        {
+                          "given": "20"
+                        },
+                        {
+                          "given": "10"
+                        }
+                      ]
+                    },
+                    {
+                      "label": "Angle (°)",
+                      "cells": [
+                        {
+                          "answer": 90,
+                          "accepted": [
+                            "90",
+                            "90°"
+                          ],
+                          "tolerance": {
+                            "abs": 0
+                          }
+                        },
+                        {
+                          "answer": 180,
+                          "accepted": [
+                            "180",
+                            "180°"
+                          ],
+                          "tolerance": {
+                            "abs": 0
+                          }
+                        },
+                        {
+                          "answer": 90,
+                          "accepted": [
+                            "90",
+                            "90°"
+                          ],
+                          "tolerance": {
+                            "abs": 0
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "explanation": "A pie angle is the category's share of the total multiplied by 360°. Walking is 10 of 40, so 10/40 × 360° = 90°; the bus is 20 of 40, so it takes half the circle, 180°; the car is another 10 of 40, so 90°. The three angles add to 360°, which is the check that no learner has been counted twice or left out."
+              },
+              {
+                "id": "b",
+                "prompt": "Add your three angles. What must the total be?",
+                "marks": 1,
+                "answer": 360,
+                "accepted": [
+                  "360",
+                  "360°"
+                ],
+                "explanation": "The three categories account for every learner, so their sectors account for the whole circle. A whole turn is 360°, so 90° + 180° + 90° must equal 360°. If the total is not 360°, a learner has been omitted from the table, counted twice, or an angle has been calculated from the wrong total."
+              }
+            ]
+          }
+        }
+      ],
+      "transfer": [
+        {
+          "id": "t1",
+          "prompt": "Two schools report their cycling. School A has 400 pupils and 40 cycle; School B has 250 pupils and 30 cycle. A headline says 'More cyclists at School B'. A second says 'Cycling is more common at School B'. Calculate the counts and the shares, and say which chart would support each headline. Then explain which claim is true, and what would reverse the second claim.",
+          "whyItTransfers": "The lesson reads one chart and computes one set of pie angles. Here the learner must compare two data sets with different totals, keep the count and the share apart, decide which representation supports which sentence, and then work out what would change the answer. The arithmetic is familiar; the separation of count from share, and the fact that a total can reverse a claim, are new.",
+          "answer": "School A: 40 out of 400 is 40/400 = 10%. School B: 30 out of 250 is 30/250 = 12%. School B has the higher share, but School A has more cyclists in total (40 against 30). A bar chart of the counts supports 'more cyclists at A', because 40 is taller than 30; the pie charts, or a bar of percentages, support 'cycling is more common at B', because 12% is a larger share than 10%. So the first headline is false and the second is true, but they are answers to different questions: one is about counts, the other about rates. A pie alone cannot show the 40 against 30 without the totals printed. If School B had 500 pupils, 30 cyclists would be 6%, below School A's 10%, so the second headline would reverse while the counts stayed the same — the total is doing the work.",
+          "marking": [
+            "Calculates both shares: 40/400 = 10% and 30/250 = 12%.",
+            "States both counts, 40 and 30, and separates the count comparison from the share comparison.",
+            "Matches each headline to the representation that supports it: a count bar chart for the first, a pie or percentage chart for the second.",
+            "Explains that a larger total with the same count lowers the share, so changing School B's total to 500 would reverse the second claim."
+          ]
+        }
+      ],
+      "retrieval": [
+        {
+          "id": "x1",
+          "prompt": "Which chart would you use for the temperature on each day of a week, and why?",
+          "answer": "A line graph, because the days are an ordered sequence and the line shows how the value changes from one day to the next; a bar chart would compare days but hide the trend.",
+          "when": "next-day"
+        },
+        {
+          "id": "x2",
+          "prompt": "A pie chart has a sector of 90°. What share of the whole is it, and what fraction?",
+          "answer": "90/360 = 0.25, so 25%, which is one quarter of the whole.",
+          "when": "week-later"
+        },
+        {
+          "id": "x3",
+          "prompt": "Why should the vertical axis of a bar chart start at zero?",
+          "answer": "Because the bar's length encodes the value. A non-zero baseline makes the lengths no longer proportional to the values, so equal differences look unequal and a small change can look like a large one.",
+          "when": "month-later"
+        }
+      ],
+      "summary": [
+        "The question chooses the chart: bars for unordered categories, a line for an ordered sequence, a pie for parts of one whole, a scatter for two measured variables.",
+        "A bar's length encodes its value, so bars start at zero; truncating the axis can make a 12.5% rise look like a tripling even when every label is true.",
+        "A pie angle is share × 360°, the angles must sum to 360°, and the chart shows shares rather than counts or the total.",
+        "Read a chart by asking what the total is, what each axis does, and what is missing before believing the shape.",
+        "Two charts with different totals cannot be compared by angle: recompute the counts, because a smaller share of a larger total can be more items."
+      ],
+      "accessibility": [
+        {
+          "need": "screen-reader",
+          "alternative": "Every chart is also given as a table or a list of values in the text, and each angle is written as a share and a number of degrees, so no answer depends on seeing the drawing."
+        },
+        {
+          "need": "low-vision",
+          "alternative": "Values and angles are set in the reading text at the learner's chosen size, and the lesson never relies on a small label inside a chart; the same numbers are in the paragraph beside it."
+        },
+        {
+          "need": "dyslexia",
+          "alternative": "The reading routine is three short questions — total, scale, missing — and each calculation is written as one operation per line so a reader can follow it without holding a whole table in mind."
+        },
+        {
+          "need": "colour-vision",
+          "alternative": "Categories are named in words and ordered by their labels, never distinguished by colour alone; a pie sector is identified by its category name and angle, not by a colour key."
+        },
+        {
+          "need": "motor",
+          "alternative": "All practice and assessment answers are typed. No dragging bars, drawing sectors or interacting with a chart is required to demonstrate the method."
+        }
+      ],
+      "translations": [],
+      "reviews": [],
+      "learnerTesting": []
+    },
+    {
+      "subject": "physics",
+      "conceptId": "motion-graphs",
+      "title": "Motion",
+      "whyChosen": "A graph, a plotted series and a follow-through read-off, with the gradient/area distinction.",
+      "version": "1.2.0",
+      "declaredStatus": "draft",
+      "curriculum": {
+        "reference": "GCSE Physics, forces and motion: distance–time and velocity–time graphs, gradient and area",
+        "level": "Key Stage 3 to GCSE",
+        "note": "Scope cited against the published subject content. All explanations, examples and questions are original; no specification text or examination question is reproduced."
+      },
+      "prerequisites": [
+        "forces-basics",
+        "straight-lines"
+      ],
+      "objectives": [
+        {
+          "statement": "Read the gradient of a distance–time graph as speed, and distinguish instantaneous speed from average speed over a whole journey.",
+          "evidence": "For a journey that covers 8 m in the first 4 s and then rests for 3 s, the learner reads 2 m/s from the first gradient and 0 m/s from the flat section, then calculates the average speed over the whole journey from total distance divided by total time."
+        },
+        {
+          "statement": "Read the gradient of a velocity–time graph as acceleration and the area under it as displacement, including negative values.",
+          "evidence": "For a cyclist who reaches 8 m/s from rest in 4 s, the learner calculates an acceleration of 2 m/s² and a distance of 16 m from the triangular area, with the units stated."
+        },
+        {
+          "statement": "Explain why a high flat line on a distance–time graph is not a fast object, and why a flat velocity–time line is not an object at rest.",
+          "evidence": "The learner says the height of a distance–time graph is how far away the object is, so a high flat line means it is far away and stationary; a flat velocity–time line means the velocity is constant, so the object is still moving and its displacement continues to grow."
+        }
+      ],
+      "priorKnowledge": [
+        {
+          "id": "d1",
+          "question": "A straight line passes through the points (0, 0) and (4, 8). What is its gradient, and how did you find it?",
+          "answer": "The gradient is 2, because the change in the vertical value is 8 and the change in the horizontal value is 4, and 8 divided by 4 is 2.",
+          "targets": [
+            "straight-lines"
+          ]
+        },
+        {
+          "id": "d2",
+          "question": "A runner covers 100 m in 20 s. What is the average speed, and what does the answer mean?",
+          "answer": "The average speed is 5 m/s, which means that if the runner had moved at one steady speed for the whole 20 s, that speed would have covered the same 100 m.",
+          "targets": [
+            "forces-basics"
+          ]
+        }
+      ],
+      "introduction": {
+        "hook": "A bus leaves a stop, waits at a red light, then travels steadily along a straight road. Its distance–time graph climbs, goes flat, then climbs again. The same journey drawn as velocity against time looks completely different: the bus speeds up, travels at a steady velocity, then slows to a stop.",
+        "why": "A graph is a compact story about motion, but only if you know which question each axis answers. The gradient of a distance–time graph tells you how quickly position changes; the gradient of a velocity–time graph tells you how quickly velocity changes; the area under a velocity–time graph tells you how far the object has moved. Keeping those three readings separate is the whole of this topic, and it stops a learner from memorising formulas they cannot apply to an unfamiliar graph."
+      },
+      "explanation": [
+        {
+          "heading": "The axes are the first sentence of the graph",
+          "paragraphs": [
+            "Before reading any number, name the quantity on each axis and its unit. A distance–time graph plots position against time, so its vertical axis is in metres and its horizontal axis is in seconds. A velocity–time graph plots velocity against time, so its vertical axis is in metres per second. The same rising line therefore means different things on the two graphs: on the first it is a fast object, and on the second it is an object whose velocity is increasing.",
+            "The shape of the line is read between two points, not at a single point. A straight line means the gradient is constant, so the quantity represented by that gradient stays the same. A curved line means the gradient changes, so speed or acceleration is changing. A flat line means the vertical quantity is not changing, which is not the same as the object being absent or the graph being empty."
+          ]
+        },
+        {
+          "heading": "Distance–time: the gradient is speed",
+          "paragraphs": [
+            "On a distance–time graph, gradient is the change in distance divided by the change in time. Those are the units of speed, metres per second, so the gradient is the speed. A steep line means a large distance is covered in a short time, so the object is fast. A shallow line means the object is slow, and a flat line means its distance is not changing at all, so it is stationary.",
+            "For a journey with several stages, calculate the gradient of each straight section separately rather than joining the ends. A graph that rises, flattens and rises again has three different speeds, and the gradient of the whole line from start to finish is only the average velocity, not what happened at any particular moment. The average speed is a separate calculation: total distance travelled divided by total time taken. A return journey is the case that makes the difference unavoidable, because the distance travelled keeps increasing while the displacement can return to zero."
+          ]
+        },
+        {
+          "heading": "Velocity–time: the gradient is acceleration, the area is displacement",
+          "paragraphs": [
+            "On a velocity–time graph, gradient is the change in velocity divided by the change in time, which is acceleration. A positive gradient means velocity is increasing in the positive direction; a negative gradient means it is decreasing, or becoming more negative. A flat line means the velocity is constant, so the acceleration is zero and the object is not at rest unless the flat line sits on the horizontal axis.",
+            "The area between the line and the time axis gives the displacement. Split the area into rectangles and triangles rather than looking for a single formula. A rectangle of height 8 m/s and width 6 s contributes 48 m; a triangle of height 8 m/s and base 4 s contributes 16 m. If the line crosses below the time axis, that area is negative displacement, so the object is moving back towards its starting point and the signed areas must be added rather than all counted as distance."
+          ]
+        },
+        {
+          "heading": "Signs, averages and the assumptions a graph makes",
+          "paragraphs": [
+            "Speed is a scalar: it has size but no direction, so it is never negative. Velocity is a vector: its sign says which way the object moves. That is why a graph can show a negative velocity, and why average speed and average velocity can disagree. A runner who goes 100 m out and 100 m back in 50 s has an average speed of 4 m/s but an average velocity of zero, because the displacement is zero even though the distance travelled is 200 m.",
+            "The straight-line model assumes constant acceleration between the marked points, and it treats the motion as one-dimensional. Those assumptions are idealisations: a real car changes acceleration continuously, and a real road bends. The graph is still useful because it captures the part of the motion we care about, but an answer should say when the model is being used outside the range where it is a good approximation."
+          ]
+        }
+      ],
+      "representations": [
+        {
+          "id": "r1",
+          "kind": "physics.equation",
+          "body": "The gradient of a straight line is the change in the vertical quantity divided by the change in the horizontal quantity. On a motion graph, the axes decide which physical quantity that gradient represents.",
+          "caption": "On a distance–time graph the gradient is speed in metres per second. On a velocity–time graph the gradient is acceleration in metres per second squared. The units are the clue: dividing metres by seconds gives metres per second.",
+          "notation": "gradient = change in vertical value / change in horizontal value"
+        },
+        {
+          "id": "r2",
+          "kind": "physics.equation",
+          "body": "The area under a velocity–time graph is the displacement. A rectangle contributes height times width, and a triangle contributes one half times base times height.",
+          "caption": "A velocity of 8 m/s held for 6 s gives an area of 48 m. A velocity rising steadily from zero to 8 m/s over 4 s gives a triangle of area 16 m. The area's unit is metres because metres per second multiplied by seconds is metres.",
+          "notation": "displacement = area under velocity–time graph"
+        },
+        {
+          "id": "r3",
+          "kind": "physics.units",
+          "body": "Every reading from a motion graph carries a unit, and the unit is how you check that you have read the right feature. A bare number cannot tell you whether it is a distance, a speed or an acceleration.",
+          "caption": "Metres divided by seconds gives metres per second. A change in metres per second divided by seconds gives metres per second squared. If the unit does not match the question, the gradient or area has been read from the wrong graph.",
+          "notation": "distance: m · time: s · speed: m/s · velocity: m/s · acceleration: m/s²"
+        },
+        {
+          "id": "r4",
+          "kind": "physics.model",
+          "body": "The two graphs answer different questions. A distance–time graph says where the object is; a velocity–time graph says how its velocity is changing and how far it has travelled.",
+          "caption": "A flat distance–time line means the object has stopped. A flat velocity–time line means the object is moving at a steady velocity. The same shape has opposite meanings because the vertical axes are different quantities.",
+          "notation": "distance–time: height = position, gradient = speed, flat = stationary\nvelocity–time: height = velocity, gradient = acceleration, flat = constant velocity, area = displacement"
+        }
+      ],
+      "workedExamples": [
+        {
+          "id": "w1",
+          "prompt": "A walker moves 8 m away from a sensor in the first 4 s, rests for 3 s, then walks 6 m back towards the sensor in the next 3 s. Calculate the speed during each stage, the total distance, the displacement and the average speed for the whole 10 s.",
+          "steps": [
+            {
+              "move": "For the first stage, gradient = change in distance / change in time = 8 m / 4 s = 2 m/s.",
+              "why": "The distance–time gradient is speed, and the first section is a straight line, so the walker's speed is constant at 2 m/s away from the sensor."
+            },
+            {
+              "move": "The middle stage is flat, so its gradient is 0 m / 3 s = 0 m/s, which means the walker is stationary.",
+              "why": "A flat distance–time line means the distance from the sensor is not changing, so the walker is at rest for those 3 s."
+            },
+            {
+              "move": "The final stage has gradient = 6 m / 3 s = 2 m/s back towards the sensor, so the velocity is negative if away is positive.",
+              "why": "The distance is falling, so the change is negative; the speed is 2 m/s but the direction is opposite to the first stage."
+            },
+            {
+              "move": "Total distance = 8 m + 6 m = 14 m; displacement = 8 m − 6 m = 2 m away; average speed = 14 m / 10 s = 1.4 m/s.",
+              "why": "Distance counts both directions, while displacement counts the straight-line change from start to finish. Average speed uses the total distance, not the displacement."
+            }
+          ],
+          "answer": "The speeds are 2 m/s, 0 m/s and 2 m/s; the total distance is 14 m, the displacement is 2 m away from the sensor, and the average speed is 1.4 m/s."
+        },
+        {
+          "id": "w2",
+          "prompt": "A cyclist accelerates uniformly from rest to 8 m/s in 4 s, then travels at 8 m/s for 6 s. Calculate the acceleration during the first stage and the total displacement shown by the velocity–time graph.",
+          "steps": [
+            {
+              "move": "For the first stage, acceleration = change in velocity / change in time = 8 m/s / 4 s = 2 m/s².",
+              "why": "The velocity–time gradient is acceleration. The velocity rises by 8 m/s in 4 s, so the acceleration is 2 metres per second squared."
+            },
+            {
+              "move": "The first stage's area is a triangle: one half times base times height = one half times 4 s times 8 m/s = 16 m.",
+              "why": "The velocity rises steadily from zero, so the area under that section is a triangle rather than a rectangle."
+            },
+            {
+              "move": "The second stage's area is a rectangle: 8 m/s times 6 s = 48 m. Total displacement = 16 m + 48 m = 64 m.",
+              "why": "A constant velocity for 6 s contributes height times width, and the two areas add because both stages move in the same direction."
+            }
+          ],
+          "answer": "The acceleration is 2 m/s² and the total displacement is 64 m."
+        }
+      ],
+      "misconceptions": [
+        {
+          "id": "m1",
+          "belief": "The height of a distance–time graph tells you how fast the object is moving.",
+          "whyItFails": "Height is the object's distance from the starting point, not its speed. A high flat line means the object is far away and stationary, while a line starting at zero and rising steeply means the object is close but moving quickly. The speed is the gradient, which is how steeply the line rises, not how high it has reached.",
+          "correction": "Read speed from the gradient of the distance–time line. Read position from its height. A flat line at any height means zero speed.",
+          "contrast": {
+            "wrong": "the line is high, so the object must be moving fast",
+            "right": "the line is high but flat, so the object is far away and stationary"
+          }
+        },
+        {
+          "id": "m2",
+          "belief": "A flat velocity–time graph means the object has stopped.",
+          "whyItFails": "A flat velocity–time line means the velocity is not changing, so the object is moving at a constant velocity. It has stopped only if the line lies on the horizontal axis at zero. A flat line above the axis shows a steady speed, and the area beneath it continues to add displacement every second.",
+          "correction": "A flat velocity–time line means zero acceleration, not zero velocity. Check the height of the line to see whether the constant velocity is zero or non-zero.",
+          "contrast": {
+            "wrong": "the velocity–time line is flat, so the car is parked",
+            "right": "the line is flat at 8 m/s, so the car is moving steadily at 8 m/s"
+          }
+        },
+        {
+          "id": "m3",
+          "belief": "Negative acceleration always means the object is slowing down.",
+          "whyItFails": "Acceleration is a vector. A negative acceleration means the acceleration points in the negative direction. An object already moving in the negative direction speeds up when its acceleration is negative, while an object moving in the positive direction slows down. The sign alone does not tell you whether the speed is rising or falling; you need the direction of motion as well.",
+          "correction": "Compare the signs of velocity and acceleration. If they point the same way, the object speeds up; if they point in opposite directions, it slows down. Negative acceleration is not a synonym for deceleration.",
+          "contrast": {
+            "wrong": "acceleration is negative, so the object must be slowing",
+            "right": "the object is moving left and accelerating left, so its speed is increasing"
+          }
+        }
+      ],
+      "guidedPractice": [
+        {
+          "id": "g1",
+          "prompt": "A distance–time graph shows a cyclist moving 6 m in the first 2 s, stopping for 3 s, then moving 9 m in the next 3 s. Calculate the speed in each stage and the average speed over the whole 8 s.",
+          "hint": "Find the gradient of each straight section separately. For the average, add the distances first and divide by the total time, including the stop.",
+          "answer": "The speeds are 3 m/s, 0 m/s and 3 m/s. The total distance is 15 m over 8 s, so the average speed is 1.875 m/s, or about 1.9 m/s.",
+          "feedback": {
+            "correct": "You read each gradient separately and used total distance over total time for the average. The stop still counts in the time, so it lowers the average.",
+            "incorrect": "If you averaged the two moving speeds and ignored the stop, you would overstate the average. The average uses the whole 8 s, including the 3 s at zero speed."
+          }
+        },
+        {
+          "id": "g2",
+          "prompt": "A car travelling at 20 m/s brakes uniformly to rest in 5 s. Calculate its acceleration and the distance it travels while braking.",
+          "hint": "The gradient of a velocity–time graph is acceleration. The distance is the area of the triangle under the line.",
+          "answer": "Acceleration = (0 − 20) m/s / 5 s = −4 m/s². Distance = one half × 5 s × 20 m/s = 50 m.",
+          "feedback": {
+            "correct": "The negative sign shows the acceleration opposes the motion, and the triangular area gives 50 m. The car slows down, so the acceleration and velocity have opposite signs.",
+            "incorrect": "A common slip is to use the area of a rectangle, 20 × 5 = 100 m. The velocity falls steadily to zero, so the area is a triangle and the distance is half of that."
+          }
+        },
+        {
+          "id": "g3",
+          "prompt": "A velocity–time graph rises from 0 to 6 m/s in 2 s, stays at 6 m/s for 3 s, then falls to 0 m/s in 3 s. Calculate the acceleration in each stage and the total displacement.",
+          "hint": "Use the gradient for each acceleration and split the area into a triangle, a rectangle and a triangle.",
+          "answer": "Accelerations: 3 m/s², 0 m/s² and −2 m/s². Displacements: 6 m + 18 m + 9 m = 33 m.",
+          "feedback": {
+            "correct": "You kept the three stages separate and added their signed areas. The flat stage has zero acceleration but still adds displacement because the velocity is not zero.",
+            "incorrect": "If you treated the flat stage as zero displacement, you would miss 18 m. A constant velocity still covers distance; it simply does not change speed."
+          }
+        }
+      ],
+      "assessment": [
+        {
+          "id": "a1",
+          "kind": "constructed-response",
+          "prompt": "A velocity–time graph shows a train moving at 12 m/s for 4 s, then decelerating uniformly to rest in 6 s. Describe what the gradient and the area represent in each stage, and calculate the total displacement. Explain why the deceleration does not make the displacement negative.",
+          "modelAnswer": "In the first stage the gradient is zero, so the acceleration is zero, and the area is a rectangle of 12 m/s × 4 s = 48 m. In the second stage the gradient is negative, so the train decelerates, and the area is a triangle of one half × 6 s × 12 m/s = 36 m. The total displacement is 84 m. The deceleration is negative because the velocity is falling, but the velocity itself stays positive, so the train keeps moving forward and both areas add rather than cancel.",
+          "marking": [
+            "Reads the first stage as zero acceleration and a rectangular area of 48 m.",
+            "Reads the second stage as negative acceleration and a triangular area of 36 m.",
+            "Adds the areas to 84 m and explains that positive velocity keeps the displacement positive even while the train slows."
+          ]
+        },
+        {
+          "id": "a2",
+          "kind": "short-answer",
+          "prompt": "A train accelerates uniformly from rest to 12 m/s in 6.0 s. Calculate the distance it travels during this acceleration, stating the unit.",
+          "modelAnswer": "36 m",
+          "marking": [
+            "Uses the triangular area under the velocity–time graph, or the equivalent uniform-acceleration relationship.",
+            "Substitutes 12 m/s and 6.0 s and gives 36 m with the unit."
+          ],
+          "check": {
+            "accepted": [
+              "36 m",
+              "36m",
+              "36"
+            ]
+          }
+        },
+        {
+          "id": "a3",
+          "kind": "constructed-response",
+          "prompt": "A runner completes one lap of a 400 m track and returns to the starting point in 80 s. Explain why the average speed is 5 m/s but the average velocity is zero.",
+          "modelAnswer": "The distance travelled is 400 m, so the average speed is 400 m divided by 80 s, which is 5 m/s. The displacement is zero because the runner returns to the starting point, so the average velocity is zero divided by 80 s, which is zero.",
+          "marking": [
+            "Distinguishes distance travelled from displacement.",
+            "Calculates average speed as 5 m/s and explains that zero displacement makes average velocity zero."
+          ]
+        },
+        {
+          "id": "a4",
+          "kind": "structured",
+          "prompt": "A cyclist's velocity–time graph is the straight line y = 2x + 4, where y is velocity in m/s and x is time in seconds. Give the line on the grid, then read the velocity at 3 s from the line you have drawn.",
+          "modelAnswer": "The line y = 2x + 4 passes through (0, 4) and (6, 16), so those two points define it. At x = 3 the line gives y = 2 × 3 + 4 = 10, so the velocity is 10 m/s. The read-off is marked against the learner's own line, so a consistent follow-through keeps its mark even when the drawn line is slightly off.",
+          "marking": [
+            "Plots a line with the correct gradient 2, within the allowed tolerance.",
+            "Plots a line with the correct intercept 4, within the allowed tolerance.",
+            "Reads a velocity at 3 s that is consistent with the learner's own line, within the stated tolerance."
+          ],
+          "structured": {
+            "parts": [
+              {
+                "id": "a",
+                "prompt": "Give two points on the line y = 2x + 4.",
+                "marks": 2,
+                "response": "graph",
+                "graph": {
+                  "xMin": 0,
+                  "xMax": 6,
+                  "yMin": 0,
+                  "yMax": 18,
+                  "m": 2,
+                  "c": 4,
+                  "tolerance": {
+                    "m": 0.4,
+                    "c": 1.5
+                  }
+                },
+                "explanation": "Every point on the line satisfies y = 2x + 4. At x = 0 the velocity is 4 m/s, and at x = 6 it is 16 m/s. Two points fix a straight line, so the marker compares the line they define with the required gradient and intercept rather than demanding one particular pair."
+              },
+              {
+                "id": "b",
+                "prompt": "Use your line to read the velocity at 3 s.",
+                "marks": 1,
+                "response": "readoff",
+                "readOff": {
+                  "from": "a",
+                  "at": 3,
+                  "tolerance": 1.2
+                },
+                "explanation": "At x = 3 the required line gives 10 m/s. The read-off follows the learner's own line: a learner who draws a line slightly high or low still earns the mark when the reading is consistent with that line. This separates reading a graph from remembering a number."
+              }
+            ]
+          }
+        },
+        {
+          "id": "a5",
+          "kind": "structured",
+          "prompt": "Plot the cyclist's velocity from the table: at 0 s it is 4 m/s, at 2 s it is 8 m/s, at 4 s it is 12 m/s and at 6 s it is 16 m/s. Join the points with a straight line, then read the velocity at 5 s.",
+          "modelAnswer": "The four points are (0, 4), (2, 8), (4, 12) and (6, 16). They lie on the straight line v = 2t + 4, so joining them shows a constant acceleration of 2 m/s². At t = 5 s the line gives v = 2 × 5 + 4 = 14 m/s.",
+          "marking": [
+            "Plots at least two of the four tabulated points within half a grid square and joins them with a straight line.",
+            "Plots all four points and joins them; the line is straight and passes through them.",
+            "Reads 14 m/s at 5 s from the learner's own line, within the stated tolerance."
+          ],
+          "structured": {
+            "parts": [
+              {
+                "id": "a",
+                "prompt": "Plot the four points and join them with a straight line.",
+                "marks": 2,
+                "answer": 0,
+                "response": "plot",
+                "plot": {
+                  "xMin": 0,
+                  "xMax": 6,
+                  "yMin": 0,
+                  "yMax": 18,
+                  "points": [
+                    {
+                      "x": 0,
+                      "y": 4
+                    },
+                    {
+                      "x": 2,
+                      "y": 8
+                    },
+                    {
+                      "x": 4,
+                      "y": 12
+                    },
+                    {
+                      "x": 6,
+                      "y": 16
+                    }
+                  ],
+                  "tolerance": 0.5,
+                  "partialMin": 2,
+                  "m": 2,
+                  "c": 4,
+                  "lineTolerance": {
+                    "m": 0.4,
+                    "c": 1.5
+                  }
+                },
+                "explanation": "Each pair in the table is a point: (0, 4), (2, 8), (4, 12) and (6, 16). Plotting them on the same grid puts them in a straight line, because the velocity rises by 4 m/s every 2 s. Two points and a line earn the partial mark; all four points and a straight joining line earn both marks."
+              },
+              {
+                "id": "b",
+                "prompt": "Use your line to read the velocity at 5 s.",
+                "marks": 1,
+                "response": "readoff",
+                "readOff": {
+                  "from": "a",
+                  "at": 5,
+                  "tolerance": 1.2
+                },
+                "explanation": "At t = 5 s the line is halfway between the points at 4 s and 6 s, so the velocity is halfway between 12 and 16 m/s: 14 m/s. The mark follows the learner's own plotted line, so a consistently drawn line still earns the reading even if it is slightly high or low."
+              }
+            ]
+          }
+        }
+      ],
+      "transfer": [
+        {
+          "id": "t1",
+          "prompt": "A ball is thrown vertically upwards and caught at the same height. Its velocity–time graph is a straight line with a negative gradient throughout. Explain what the gradient represents, why the line crosses the time axis, and why the displacement over the whole flight is zero.",
+          "whyItTransfers": "The lesson used horizontal journeys and a braking cyclist. Here the same velocity–time reading is applied to vertical motion, where the sign of the velocity changes while the acceleration stays constant, so the learner must follow the direction as well as the size.",
+          "answer": "The gradient is the acceleration due to gravity, about −9.8 m/s² if upwards is positive, because gravity acts downwards throughout. The line crosses the time axis at the highest point, where the velocity is momentarily zero before the ball falls back. The area above the axis is positive displacement on the way up and the equal area below is negative displacement on the way down, so the signed areas cancel and the total displacement is zero. With air resistance, the upward and downward areas would not be exactly equal, and the ball would return with less speed than it was thrown.",
+          "marking": [
+            "Names the gradient as the acceleration due to gravity and keeps its direction fixed.",
+            "Explains the axis crossing as the turning point where velocity is zero, not where acceleration is zero.",
+            "Uses signed areas to show that equal up and down displacements cancel to zero, and can say how air resistance changes the result."
+          ]
+        }
+      ],
+      "retrieval": [
+        {
+          "id": "x1",
+          "prompt": "State what the gradient of a distance–time graph represents, and what a flat section means.",
+          "answer": "The gradient is speed. A flat section means the distance is not changing, so the object is stationary.",
+          "when": "next-day"
+        },
+        {
+          "id": "x2",
+          "prompt": "A car accelerates uniformly from rest to 20 m/s in 10 s. Calculate its acceleration and the distance travelled.",
+          "answer": "Acceleration = 20 m/s divided by 10 s = 2 m/s². Distance = one half × 10 s × 20 m/s = 100 m.",
+          "when": "week-later"
+        },
+        {
+          "id": "x3",
+          "prompt": "Explain the difference between a flat line on a distance–time graph and a flat line on a velocity–time graph.",
+          "answer": "A flat distance–time line means the object is stationary because its position is not changing. A flat velocity–time line means the velocity is constant, so the object is moving steadily with zero acceleration and its displacement continues to increase.",
+          "when": "month-later"
+        }
+      ],
+      "summary": [
+        "On a distance–time graph, gradient is speed and height is position; a flat line means the object is stationary.",
+        "On a velocity–time graph, gradient is acceleration and the area under the line is displacement; a flat line means constant velocity, not rest.",
+        "Average speed uses total distance over total time, while average velocity uses displacement over time; a return journey can have a non-zero average speed and zero average velocity.",
+        "A signed velocity–time graph can have negative area, which subtracts from displacement rather than adding to the distance travelled."
+      ],
+      "accessibility": [
+        {
+          "need": "screen-reader",
+          "alternative": "Every graph is described as an ordered list of stages with the axis quantities, the gradient and the area stated in words, so no meaning depends on seeing the line."
+        },
+        {
+          "need": "colour-vision",
+          "alternative": "The two graph types are named in the text and labelled by their axis quantities; no distinction relies on telling two colours apart."
+        },
+        {
+          "need": "dyslexia",
+          "alternative": "Each calculation follows the same pattern: name the quantity, write the relationship, substitute with units, then state the answer with its unit."
+        },
+        {
+          "need": "motor",
+          "alternative": "All assessment answers are typed; no graph has to be dragged, drawn or resized to complete the lesson."
+        }
+      ],
+      "translations": [],
+      "reviews": [],
+      "learnerTesting": []
+    },
+    {
+      "subject": "chemistry",
+      "conceptId": "acids-bases",
+      "title": "Acids, bases & salts",
+      "whyChosen": "A practical-adjacent topic whose assessment asks for explanation and ion reasoning.",
+      "version": "1.0.0",
+      "declaredStatus": "draft",
+      "curriculum": {
+        "reference": "GCSE Chemistry, acids, bases and salts: proton transfer, pH, neutralisation, strong and weak acids",
+        "level": "Key Stage 3 to GCSE",
+        "note": "Scope cited against the published subject content; no specification text is reproduced."
+      },
+      "prerequisites": [
+        "compounds-mixtures",
+        "ionic-bonding"
+      ],
+      "objectives": [
+        {
+          "statement": "Classify an acid as a proton donor and a base as a proton acceptor, and distinguish an alkali from a base.",
+          "evidence": "Given ammonia, sodium hydroxide and calcium carbonate, the learner places each on the acid–base axis and explains the classification by what accepts H⁺, not by whether the formula contains OH."
+        },
+        {
+          "statement": "Interpret pH as a logarithmic measure of H⁺ concentration and calculate the effect of a tenfold dilution.",
+          "evidence": "The learner states that pH 3 has one hundred times the H⁺ concentration of pH 5, and that diluting a strong acid tenfold raises its pH by one unit, not by a factor of ten."
+        },
+        {
+          "statement": "Predict the salt from an acid–base reaction, write a balanced equation, and separate strong from concentrated using ionisation and conductivity evidence.",
+          "evidence": "The learner writes a balanced equation for sulfuric acid and potassium hydroxide, identifies the spectator ions, and explains why 0.1 mol dm⁻³ ethanoic acid is a weaker conductor than 0.1 mol dm⁻³ hydrochloric acid."
+        }
+      ],
+      "priorKnowledge": [
+        {
+          "id": "d1",
+          "question": "Hydrogen chloride has the formula HCl. What does that formula tell you about the ratio of atoms, and what does it not tell you about how the substance behaves in water?",
+          "answer": "It says there is one hydrogen atom for every chlorine atom. It does not say whether the bond breaks when the substance dissolves, so the formula alone does not tell you whether the solution is acidic.",
+          "targets": [
+            "compounds-mixtures"
+          ]
+        },
+        {
+          "id": "d2",
+          "question": "Solid sodium chloride does not conduct electricity, but a sodium chloride solution does. Explain the difference.",
+          "answer": "In the solid, the ions are held in fixed positions and cannot move. When it dissolves, the ions separate and become mobile, so they can carry charge through the solution.",
+          "targets": [
+            "ionic-bonding"
+          ]
+        }
+      ],
+      "introduction": {
+        "hook": "Lemon juice, vinegar and the acid in your stomach share a property that has nothing to do with how dangerous they look: they can donate a hydrogen ion. Soap and bleach feel slippery for a different reason — they are alkaline. A swimming pool can be clear and still sting your eyes because its pH is wrong, and a bottle labelled 'strong acid' can be less acidic than a concentrated weak acid if it is very dilute.",
+        "why": "Proton transfer explains why an antacid settles a stomach, why limestone raises the pH of a lake, and why a titration can find an unknown concentration. The pH scale compresses a huge range of H⁺ concentrations into small numbers, which is useful only if you remember that each step is a factor of ten. And the distinction between strong and concentrated is a safety distinction as well as a chemical one: it tells you whether the danger comes from complete ionisation or from how much acid is present."
+      },
+      "explanation": [
+        {
+          "heading": "An acid donates a proton; a base accepts one",
+          "paragraphs": [
+            "In aqueous solution, an acid releases hydrogen ions, H⁺. A hydrogen ion is a proton, so the modern definition is broader than 'contains H': an acid is a proton donor. Hydrogen chloride ionises completely in water, HCl → H⁺ + Cl⁻, and nitric acid behaves in the same way. A base is a proton acceptor. Hydroxide ions accept H⁺ to form water, OH⁻ + H⁺ → H₂O, which is why soluble hydroxides such as sodium hydroxide are alkaline. Ammonia is also a base: NH₃ + H⁺ → NH₄⁺, even though its formula contains no OH.",
+            "An alkali is a base that dissolves in water. All alkalis are bases, but not all bases are alkalis: copper(II) oxide and calcium carbonate are bases that do not dissolve to give an alkaline solution. Bases do not have to contain hydroxide either. Metal oxides, hydroxides and carbonates all accept protons, and the reaction with an acid produces a salt. Keeping the definition at the level of proton transfer stops the formula from being treated as the definition."
+          ]
+        },
+        {
+          "heading": "pH is logarithmic, so one unit is a factor of ten",
+          "paragraphs": [
+            "At 25 °C, a neutral aqueous solution has pH 7. Values below 7 are acidic and values above 7 are alkaline. The number is not a linear amount of acid: pH is defined as −log₁₀[H⁺], where [H⁺] is the concentration of hydrogen ions in mol dm⁻³. A solution of pH 3 therefore has 10⁻³ mol dm⁻³ of H⁺, and a solution of pH 5 has 10⁻⁵ mol dm⁻³. pH 3 is one hundred times more concentrated in H⁺ than pH 5, because the difference of two pH units corresponds to two factors of ten.",
+            "This is why pH 0 does not mean 'no acid' and pH 14 does not mean 'the most dangerous substance'. It also explains why a dilute strong acid can have a higher pH than a concentrated weak acid: pH measures the H⁺ that is actually free in solution, not the amount of acid put into the bottle. Universal indicator gives an approximate colour, while a calibrated pH meter gives a number. At temperatures other than 25 °C the neutral pH is not exactly 7, so 'neutral' is defined by equal H⁺ and OH⁻ concentrations, not by the number alone."
+          ]
+        },
+        {
+          "heading": "Neutralisation transfers a proton and leaves a salt",
+          "paragraphs": [
+            "An acid reacting with a hydroxide base produces a salt and water: acid + base → salt + water. The cation of the salt comes from the base and the anion comes from the acid. Hydrochloric acid gives chloride salts, sulfuric acid gives sulfates, nitric acid gives nitrates, and ethanoic acid gives ethanoates. The balanced equation must respect the charges as well as the atoms: sulfuric acid has two protons to donate, so it needs two hydroxide ions, as in H₂SO₄ + 2NaOH → Na₂SO₄ + 2H₂O.",
+            "The essential change is H⁺ + OH⁻ → H₂O. Sodium and sulfate ions are spectators: they are present before and after and do not change. Metal oxides and carbonates are also bases, but they do not fit the simple 'salt + water' pattern: a carbonate also releases carbon dioxide, as in 2HCl + Na₂CO₃ → 2NaCl + H₂O + CO₂. A neutralisation reaction is not the same as a neutral solution. The mixture is at pH 7 only when the acid and base have reacted in exactly the right proportions and both are strong; a weak acid with a strong base can leave an alkaline solution at the equivalence point."
+          ]
+        },
+        {
+          "heading": "Strong and concentrated are independent axes",
+          "paragraphs": [
+            "Strong describes how completely an acid ionises in water. Hydrochloric and nitric acids are strong: essentially every molecule donates its proton. Ethanoic acid is weak: only a small fraction of its molecules ionise, so the solution contains mostly intact molecules and relatively few H⁺ ions. Concentrated describes how much acid is dissolved per unit volume. It says nothing about the fraction that ionises. A solution can be strong and dilute, strong and concentrated, weak and dilute, or weak and concentrated.",
+            "The evidence separates the two ideas. At the same concentration, the strong acid has more mobile ions, so its solution conducts electricity better and usually has a lower pH. A weak acid can be made more concentrated and become more acidic, but it is still weak: dilution does not turn a strong acid weak, and concentration does not turn a weak acid strong. When a label says 'strong', ask what is fully ionised; when it says 'concentrated', ask how much is present per litre. A hazard assessment needs both, along with the actual pH."
+          ]
+        }
+      ],
+      "representations": [
+        {
+          "id": "r1",
+          "kind": "chemistry.equation",
+          "body": "Hydrochloric acid neutralises sodium hydroxide. The sodium and chloride ions are spectators; the proton and hydroxide ion combine to form water.",
+          "caption": "The full equation accounts for every ion. The ionic equation shows only the species that change. Neither equation says the final solution is neutral: that depends on the amounts mixed.",
+          "notation": "HCl + NaOH → NaCl + H₂O   ·   H⁺ + OH⁻ → H₂O"
+        },
+        {
+          "id": "r2",
+          "kind": "chemistry.particle-model",
+          "body": "Two solutions of the same concentration. Hydrochloric acid is fully ionised, so it supplies many H⁺ ions and conducts well. Ethanoic acid is only partly ionised, so most of its molecules remain intact, fewer H⁺ ions are free, and the solution conducts less.",
+          "caption": "The difference is the fraction ionised, not the amount dissolved. Both solutions are 0.1 mol dm⁻³, so concentration is held constant while strength changes.",
+          "notation": "0.1 mol dm⁻³ HCl: fully ionised, pH ≈ 1   ·   0.1 mol dm⁻³ CH₃COOH: partly ionised, pH ≈ 3"
+        },
+        {
+          "id": "r3",
+          "kind": "chemistry.calculation",
+          "body": "Diluting a strong acid by a known factor lowers the H⁺ concentration by that factor. Because pH is logarithmic, a tenfold dilution raises the pH by one unit; a hundredfold dilution raises it by two.",
+          "caption": "This calculation assumes the acid is strong and the dilution is well above the point where water's own ionisation matters. Near pH 7, adding water cannot simply be treated as another factor of ten.",
+          "notation": "pH = −log₁₀[H⁺]   ·   10 cm³ of pH 2 diluted to 1000 cm³ is a 100-fold dilution, so pH 2 → pH 4"
+        },
+        {
+          "id": "r4",
+          "kind": "chemistry.formula",
+          "body": "The acid's anion names the salt family. The base's cation names the first part of the salt. Charges decide how many of each ion are needed, so the formula is built from the ions rather than copied from the acid.",
+          "caption": "Sulfuric acid can donate two protons, so a sulfate salt needs two singly charged cations: KOH gives K₂SO₄, while NaOH gives Na₂SO₄.",
+          "notation": "HCl → chloride   ·   H₂SO₄ → sulfate   ·   HNO₃ → nitrate   ·   CH₃COOH → ethanoate"
+        }
+      ],
+      "workedExamples": [
+        {
+          "id": "w1",
+          "prompt": "Write the balanced equation and the ionic equation for the reaction between sulfuric acid and potassium hydroxide.",
+          "steps": [
+            {
+              "move": "Identify the ions: H⁺ and SO₄²⁻ from the acid; K⁺ and OH⁻ from the base.",
+              "why": "Sulfuric acid can donate two protons, so its anion carries a 2− charge. Potassium hydroxide supplies one K⁺ for every OH⁻. Writing the ions first prevents the formula being assembled by guesswork."
+            },
+            {
+              "move": "Combine one sulfate ion with two potassium ions, and balance the proton transfer with two hydroxide ions: H₂SO₄ + 2KOH → K₂SO₄ + 2H₂O.",
+              "why": "The two negative charges on sulfate need two positive potassium ions. The two H⁺ from sulfuric acid need two OH⁻ to become two water molecules. Every atom and every charge now balances."
+            },
+            {
+              "move": "Remove the spectator ions to obtain H⁺ + OH⁻ → H₂O.",
+              "why": "Potassium and sulfate ions appear unchanged on both sides. The ionic equation keeps the reaction that actually happens and shows why every acid–hydroxide neutralisation has the same core."
+            }
+          ],
+          "answer": "H₂SO₄ + 2KOH → K₂SO₄ + 2H₂O; the ionic equation is H⁺ + OH⁻ → H₂O, with K⁺ and SO₄²⁻ as spectators."
+        },
+        {
+          "id": "w2",
+          "prompt": "10 cm³ of a strong acid solution of pH 2 is diluted with pure water to a final volume of 1000 cm³. Calculate the new pH.",
+          "steps": [
+            {
+              "move": "Find the dilution factor: 1000 ÷ 10 = 100.",
+              "why": "The same amount of acid is spread through a hundred times the volume, so its concentration falls by a factor of one hundred. The dilution factor is a ratio of volumes, not a subtraction."
+            },
+            {
+              "move": "Reduce the H⁺ concentration by that factor: from 10⁻² to 10⁻⁴ mol dm⁻³.",
+              "why": "pH 2 means [H⁺] = 10⁻². Dividing by 100 subtracts two from the exponent, giving 10⁻⁴. The acid is strong, so the H⁺ concentration is taken as the acid's concentration for this school-level calculation."
+            },
+            {
+              "move": "Convert back to pH: −log₁₀(10⁻⁴) = 4.",
+              "why": "Each factor of ten changes pH by one unit, and there were two factors of ten, so the pH rises by two. The answer is pH 4, not pH 200 or pH 7: dilution lowers concentration but does not remove every acid particle."
+            }
+          ],
+          "answer": "The new pH is 4."
+        }
+      ],
+      "misconceptions": [
+        {
+          "id": "m1",
+          "belief": "A strong acid is the same thing as a concentrated acid.",
+          "whyItFails": "Strength is the fraction of acid molecules that ionise; concentration is how many moles are dissolved per litre. A 0.001 mol dm⁻³ hydrochloric acid solution is strong because it is fully ionised, but it is very dilute and has pH 3. A concentrated ethanoic acid solution can have a lower pH than that while remaining weak. The two words answer different questions.",
+          "correction": "Describe both axes separately: 'strong' means fully ionised, 'concentrated' means a large amount per litre. Then quote the pH or the concentration as evidence rather than using either word as a substitute for the other.",
+          "contrast": {
+            "wrong": "it is strong, so it must be concentrated and dangerous",
+            "right": "it is strong because it fully ionises, but at this dilution its pH is only 3"
+          }
+        },
+        {
+          "id": "m2",
+          "belief": "pH is a linear amount, so pH 4 is twice as acidic as pH 2.",
+          "whyItFails": "The pH scale is logarithmic. pH 2 means [H⁺] = 10⁻² mol dm⁻³ and pH 4 means 10⁻⁴ mol dm⁻³, so pH 2 has one hundred times the H⁺ concentration of pH 4, not twice. Reversing the comparison is just as wrong: the lower pH is the more acidic solution.",
+          "correction": "Turn each pH into a power of ten before comparing. A difference of one pH unit is a factor of ten in H⁺ concentration; a difference of two units is a factor of one hundred.",
+          "contrast": {
+            "wrong": "pH 4 is twice pH 2",
+            "right": "pH 2 has 100 times the H⁺ concentration of pH 4"
+          }
+        },
+        {
+          "id": "m3",
+          "belief": "Every base contains OH⁻, and every neutralisation leaves a neutral solution.",
+          "whyItFails": "Ammonia is a base because it accepts H⁺ to form NH₄⁺, even though it contains no hydroxide. A base is defined by proton acceptance, and an alkali is simply a base that dissolves. Separately, a neutralisation reaction can leave an acidic or alkaline solution if the amounts are not at the equivalence point, or if a weak acid is mixed with a strong base.",
+          "correction": "Classify bases by what they do to H⁺, not by whether OH appears in the formula. Treat 'neutralisation' as the reaction and 'neutral' as a statement about the final pH; test the result rather than assuming it.",
+          "contrast": {
+            "wrong": "ammonia cannot be a base because it has no OH, and all neutralisations end at pH 7",
+            "right": "ammonia accepts H⁺, so it is a base; the final pH depends on the amounts and the acid–base pair"
+          }
+        }
+      ],
+      "guidedPractice": [
+        {
+          "id": "p1",
+          "prompt": "Ammonia solution turns universal indicator blue and reacts with hydrochloric acid to form ammonium chloride. Is ammonia an acid, a base or an alkali? Explain using proton transfer.",
+          "hint": "Look at what ammonia does to H⁺. Does it donate a proton or accept one? Then decide whether it is soluble.",
+          "answer": "Ammonia is a base because it accepts a proton: NH₃ + H⁺ → NH₄⁺. It is also an alkali because it dissolves in water to give an alkaline solution. It does not need to contain OH⁻ to be a base.",
+          "feedback": {
+            "correct": "You classified ammonia by accepting a proton and kept 'base' separate from 'contains hydroxide'.",
+            "incorrect": "The absence of OH in NH₃ does not stop it being a base. Ask whether it accepts H⁺; that is the definition that decides."
+          }
+        },
+        {
+          "id": "p2",
+          "prompt": "Write the balanced equation for the reaction between nitric acid and calcium hydroxide, and name the salt formed.",
+          "hint": "Calcium ions have a 2+ charge and nitrate has a 1− charge, so two nitrate ions are needed. Balance the protons with two hydroxide ions.",
+          "answer": "2HNO₃ + Ca(OH)₂ → Ca(NO₃)₂ + 2H₂O. The salt is calcium nitrate.",
+          "feedback": {
+            "correct": "You used the ion charges to fix the formula and balanced the two protons with two hydroxide ions.",
+            "incorrect": "Calcium nitrate needs two nitrate ions, not one. Check both the atom count and the charge before balancing the water."
+          }
+        },
+        {
+          "id": "p3",
+          "prompt": "A strong acid solution has pH 2. It is diluted tenfold. Calculate the new pH and explain why it is not pH 20.",
+          "hint": "Tenfold dilution divides [H⁺] by ten. What does that do to the exponent in 10⁻²?",
+          "answer": "The new pH is 3. Tenfold dilution changes 10⁻² mol dm⁻³ to 10⁻³ mol dm⁻³, and −log₁₀(10⁻³) = 3. pH is logarithmic, so adding one unit represents a factor of ten, not multiplying the number by ten.",
+          "feedback": {
+            "correct": "You treated dilution as a change in concentration and then converted back through the logarithm.",
+            "incorrect": "Diluting tenfold does not multiply pH by ten. Convert pH 2 to 10⁻², divide by ten, then take the negative logarithm."
+          }
+        }
+      ],
+      "assessment": [
+        {
+          "id": "a1",
+          "kind": "constructed-response",
+          "prompt": "A learner says: 'The 0.1 mol dm⁻³ hydrochloric acid is stronger and more concentrated than the 0.1 mol dm⁻³ ethanoic acid, so of course it has the lower pH.' Which parts of this statement are right, and which are wrong? Explain using ionisation.",
+          "modelAnswer": "The hydrochloric acid is strong because it is fully ionised, and at the same concentration it has the lower pH because it produces more H⁺ ions. But it is not more concentrated: both solutions are 0.1 mol dm⁻³. Concentration is the amount dissolved per litre, and it has been held constant. The reason for the lower pH is the greater degree of ionisation, not a greater amount of acid.",
+          "marking": [
+            "Correctly states that hydrochloric acid is strong because it fully ionises.",
+            "Correctly states that both solutions have the same concentration.",
+            "Explains the lower pH by the greater H⁺ concentration produced by ionisation.",
+            "Separates strength from concentration rather than treating the words as synonyms."
+          ]
+        },
+        {
+          "id": "a2",
+          "kind": "short-answer",
+          "prompt": "A strong acid solution has pH 3. It is diluted with pure water until its volume is 100 times greater. Calculate the new pH.",
+          "modelAnswer": "pH 5",
+          "marking": [
+            "Recognises that a 100-fold dilution reduces [H⁺] by a factor of 100.",
+            "Uses the logarithmic scale correctly: pH rises by two units.",
+            "Gives pH 5, not pH 300 or pH 7."
+          ],
+          "check": {
+            "accepted": [
+              "5",
+              "pH 5",
+              "five"
+            ]
+          }
+        },
+        {
+          "id": "a3",
+          "kind": "short-answer",
+          "prompt": "Name the salt formed when sulfuric acid reacts with potassium hydroxide.",
+          "modelAnswer": "potassium sulfate",
+          "marking": [
+            "Names potassium as the cation from the base.",
+            "Names sulfate as the anion from sulfuric acid.",
+            "Does not write potassium sulfide, which would come from a different acid."
+          ],
+          "check": {
+            "accepted": [
+              "potassium sulfate",
+              "potassium sulphate",
+              "K2SO4",
+              "K₂SO₄"
+            ]
+          }
+        }
+      ],
+      "transfer": [
+        {
+          "id": "t1",
+          "prompt": "A lake has become acidic at pH 4.5 because of acid rain. An engineer proposes adding water from a nearby river to raise the pH. Explain why dilution is a poor way to solve the problem, and why adding powdered limestone (calcium carbonate) is more effective. Include the ionic equation for the reaction that removes H⁺.",
+          "whyItTransfers": "The lesson develops pH as a logarithmic scale and neutralisation as proton transfer. Here the learner must apply both to an environmental decision, compare dilution with chemical removal, and write the proton-transfer equation for a carbonate rather than a hydroxide.",
+          "answer": "Dilution lowers the concentration of H⁺, but because pH is logarithmic, raising the pH from 4.5 to 6 requires a very large increase in volume; the acid has not been removed. Limestone contains carbonate ions, which accept H⁺: CaCO₃ + 2H⁺ → Ca²⁺ + H₂O + CO₂. This consumes the acid and raises the pH chemically. The limestone must still be added in controlled amounts and the lake monitored, because excess base can make the water alkaline.",
+          "marking": [
+            "Explains that dilution changes concentration without removing the acid.",
+            "Uses the logarithmic pH scale to explain why a small pH change needs a large dilution.",
+            "Gives the balanced carbonate-and-acid equation, including water and carbon dioxide.",
+            "States that the pH must be monitored to avoid overshooting into alkalinity."
+          ]
+        }
+      ],
+      "retrieval": [
+        {
+          "id": "x1",
+          "prompt": "Define an acid, a base and an alkali in one sentence each.",
+          "answer": "An acid is a proton donor; a base is a proton acceptor; an alkali is a base that dissolves in water to give an alkaline solution.",
+          "when": "next-day"
+        },
+        {
+          "id": "x2",
+          "prompt": "How many times greater is the H⁺ concentration at pH 3 than at pH 6?",
+          "answer": "One thousand times, because the difference is three pH units and each unit is a factor of ten.",
+          "when": "week-later"
+        },
+        {
+          "id": "x3",
+          "prompt": "Why does 0.1 mol dm⁻³ ethanoic acid conduct electricity less well than 0.1 mol dm⁻³ hydrochloric acid?",
+          "answer": "Ethanoic acid is weak and only partly ionises, so it has fewer mobile ions in solution even though the amount dissolved is the same.",
+          "when": "month-later"
+        }
+      ],
+      "summary": [
+        "An acid donates a proton; a base accepts one. An alkali is a soluble base, and bases do not have to contain OH⁻.",
+        "pH is logarithmic: one unit is a tenfold change in H⁺ concentration, and 7 is neutral only at 25 °C.",
+        "Neutralisation is proton transfer to water; the acid's anion names the salt, and spectator ions are removed from the ionic equation.",
+        "Strength is the degree of ionisation; concentration is the amount per litre. Equal concentrations do not mean equal pH."
+      ],
+      "accessibility": [
+        {
+          "need": "screen-reader",
+          "alternative": "Every formula is read as its elements and charges — H plus, O H minus, S O four two minus — and each equation is also described in words, so the chemistry does not depend on the visual layout."
+        },
+        {
+          "need": "colour-vision",
+          "alternative": "The pH scale is labelled with numbers and the words acidic, neutral and alkaline as well as colour, so no conclusion depends on distinguishing red from green."
+        },
+        {
+          "need": "dyslexia",
+          "alternative": "The two axes are named as a repeated pair, strength = fraction ionised and concentration = amount per litre, and each worked step is one sentence."
+        },
+        {
+          "need": "motor",
+          "alternative": "The lesson uses typing and selecting, not dragging or precise indicator colour matching; all representations are readable without interaction."
+        }
+      ],
+      "translations": [],
+      "reviews": [],
+      "learnerTesting": []
+    },
+    {
+      "subject": "biology",
+      "conceptId": "photosynthesis",
+      "title": "Photosynthesis",
+      "whyChosen": "A gap-fill and matching assessment alongside a constructed explanation of limiting factors.",
+      "version": "1.0.0",
+      "declaredStatus": "draft",
+      "curriculum": {
+        "reference": "GCSE Biology, bioenergetics: photosynthesis and limiting factors",
+        "level": "Key Stage 3 to GCSE",
+        "note": "Scope cited against the published subject content; no specification text reproduced."
+      },
+      "prerequisites": [
+        "enzymes"
+      ],
+      "objectives": [
+        {
+          "statement": "State the reactants, products and location of photosynthesis, and explain what the plant does with each product.",
+          "evidence": "The learner names carbon dioxide and water as reactants, glucose and oxygen as products, places the process in the chloroplast, and says glucose is used for growth, storage as starch or respiration, while oxygen leaves the leaf."
+        },
+        {
+          "statement": "Read a rate-versus-light-intensity graph and identify which factor is limiting at a given point.",
+          "evidence": "At the steep part of the curve the learner names light intensity as limiting; at the plateau the learner says another factor, such as carbon dioxide concentration or temperature, has taken over and proposes how to test that."
+        },
+        {
+          "statement": "Explain why a plant both photosynthesises and respires, and why the net gas exchange of a leaf depends on which rate is greater.",
+          "evidence": "The learner states that respiration runs all the time in every living cell, while photosynthesis runs only in the light, so in darkness a leaf takes in oxygen and releases carbon dioxide and in bright light the reverse is net."
+        }
+      ],
+      "priorKnowledge": [
+        {
+          "id": "d1",
+          "question": "What does an enzyme do, and what happens to it when it gets too hot?",
+          "answer": "It catalyses a reaction by holding its substrate in an active site. Too hot and the active site changes shape, so the enzyme is denatured and the rate falls.",
+          "targets": [
+            "enzymes"
+          ]
+        },
+        {
+          "id": "d2",
+          "question": "Why does a reaction inside a cell stop rising in rate once the enzyme is saturated?",
+          "answer": "Every active site is occupied, so adding more substrate cannot increase the rate. Something other than substrate concentration has become limiting.",
+          "targets": [
+            "enzymes"
+          ]
+        }
+      ],
+      "introduction": {
+        "hook": "A potato left in a dark cupboard for a month grows a pale, spindly shoot. Put the same potato on a windowsill and the shoot is short and green. The plant had the same store of energy in both places. What it did not have in the cupboard was light.",
+        "why": "Photosynthesis converts light energy into the chemical energy of glucose. Everything a plant builds, and every food chain on Earth, starts with that conversion. But a plant is not a solar panel that runs only in sunshine: it also respires, continuously, in every cell. Understanding the ratio between those two rates is what explains why a leaf's gas exchange changes direction between day and night."
+      },
+      "explanation": [
+        {
+          "heading": "The reaction, and where it happens",
+          "paragraphs": [
+            "Photosynthesis takes carbon dioxide and water and uses light energy to build glucose, releasing oxygen. In symbols, six carbon dioxide plus six water give one glucose plus six oxygen. The reaction happens in chloroplasts, which contain the green pigment chlorophyll that absorbs light. A plant without chloroplasts — a root cell, for example — cannot photosynthesise, which is why roots depend on the leaves for sugar.",
+            "The glucose is not simply fuel. Some is used in respiration, some is converted to starch for storage, some becomes cellulose for cell walls, and some is combined with nitrogen to make amino acids. The oxygen is a by-product of splitting water and leaves the leaf by diffusion."
+          ]
+        },
+        {
+          "heading": "Rate is set by whichever factor is in shortest supply",
+          "paragraphs": [
+            "Increasing light intensity increases the rate, but only until something else runs out. On a graph of rate against light, the rising section means light is limiting: more light gives more photosynthesis. The flat section means light is no longer limiting; carbon dioxide concentration or temperature has become the bottleneck, and adding more light changes nothing.",
+            "This is the same saturation idea that governs enzymes, and it is the reason a greenhouse raises carbon dioxide as well as letting light in. Temperature is a limiting factor in a different way: it speeds up the enzyme-controlled reactions, but beyond an optimum the enzymes denature and the rate falls sharply."
+          ]
+        },
+        {
+          "heading": "Plants respire too, all the time",
+          "paragraphs": [
+            "Respiration releases energy from glucose and happens in every living cell, in darkness as well as light. Photosynthesis only happens where there is chlorophyll and light. So a leaf is running both processes at once during the day, and only respiration at night.",
+            "That is why gas exchange changes direction. In darkness, oxygen diffuses in and carbon dioxide diffuses out. In bright light, photosynthesis usually exceeds respiration, so carbon dioxide diffuses in and oxygen diffuses out. At the compensation point the two rates are equal and there is no net exchange, which is a fact about a ratio rather than about the plant switching processes on and off."
+          ]
+        },
+        {
+          "heading": "Testing the claim, not just stating it",
+          "paragraphs": [
+            "A pondweed in water releases oxygen bubbles. Moving the lamp further away lowers the bubble count, and plotting rate against distance shows the falling curve. But bubbles are a proxy: they count a product of photosynthesis, and the count is only meaningful if everything else — temperature, carbon dioxide concentration, the plant's health — is held constant.",
+            "A claim about a limiting factor is a claim about a controlled comparison. Vary one factor, hold the rest, and look for the point where the rate stops responding. Without the control, a change in rate could be attributed to the wrong cause, which is the single most common weakness in answers to this kind of question."
+          ]
+        }
+      ],
+      "representations": [
+        {
+          "id": "r1",
+          "kind": "biology.process",
+          "body": "Light is absorbed by chlorophyll in the chloroplast, which drives the splitting of water and the fixing of carbon dioxide into glucose; oxygen leaves the leaf by diffusion because its concentration inside the leaf is higher than outside.",
+          "caption": "The arrow is driven by light energy absorbed by chlorophyll. Remove the light and the process stops, even though every reactant is still present.",
+          "notation": "6CO₂ + 6H₂O → C₆H₁₂O₆ + 6O₂"
+        },
+        {
+          "id": "r2",
+          "kind": "biology.structure-function",
+          "body": "A palisade cell is packed with chloroplasts near the top of the leaf, because that position and density let it absorb the most light per unit area before the light is intercepted by cells below.",
+          "caption": "The structure exists for the function. A leaf that put its chloroplasts at the bottom would absorb far less light for the same cost of building the leaf.",
+          "notation": "palisade mesophyll: chloroplast-dense, upper layer"
+        },
+        {
+          "id": "r3",
+          "kind": "biology.structure-function",
+          "body": "A leaf has stomata on its underside and air spaces between spongy mesophyll cells, so that carbon dioxide can diffuse in and oxygen out along a short, moist path.",
+          "caption": "Diffusion needs a gradient and a short path. The leaf's internal architecture supplies both, which is why a thick, dry leaf would photosynthesise poorly even in full sun.",
+          "notation": "stoma + air space: short diffusion path, large surface area"
+        },
+        {
+          "id": "r4",
+          "kind": "biology.experiment",
+          "body": "Pondweed is placed at increasing distances from a lamp and the oxygen bubbles are counted for one minute at each distance. Temperature and carbon dioxide concentration are kept constant, and the plant is left to settle before each count.",
+          "caption": "Bubble count is a proxy for rate. The controlled variables are what make a fall in the count attributable to distance rather than to the plant warming up or running out of carbon dioxide.",
+          "notation": "distance 10, 20, 30, 40 cm · bubbles per minute recorded · other factors controlled"
+        }
+      ],
+      "workedExamples": [
+        {
+          "id": "w1",
+          "prompt": "A student measures the rate of photosynthesis of pondweed at increasing light intensities. The rate rises and then levels off. Explain what is happening at each part of the graph and how the student could test the explanation.",
+          "steps": [
+            {
+              "move": "On the rising section, identify light intensity as the limiting factor, because increasing it increases the rate.",
+              "why": "A factor is limiting when changing it changes the rate. The rise is direct evidence that light is the factor in shortest supply at those points."
+            },
+            {
+              "move": "At the plateau, conclude that light is no longer limiting and that another factor has taken over — most likely carbon dioxide concentration or temperature.",
+              "why": "The rate has stopped responding to the variable being changed. That only happens when a different factor has become the bottleneck, so the plateau is evidence about a second factor rather than about light."
+            },
+            {
+              "move": "Propose a controlled test: repeat the experiment with a higher carbon dioxide concentration, keeping light intensity, temperature and the plant the same, and see whether the plateau is higher.",
+              "why": "The claim is that carbon dioxide is now limiting. Testing it means changing only that factor; if the plateau rises, the claim is supported, and if it does not, temperature is the better candidate."
+            }
+          ],
+          "answer": "Light is limiting on the rising section and carbon dioxide (or temperature) is limiting at the plateau; raising carbon dioxide while holding everything else constant should raise the plateau if that is the limiting factor."
+        },
+        {
+          "id": "w2",
+          "prompt": "A leaf is sealed in a transparent chamber. In bright light the carbon dioxide concentration in the chamber falls; in darkness it rises. Explain both observations using the two processes happening in the leaf.",
+          "steps": [
+            {
+              "move": "Identify that photosynthesis takes in carbon dioxide and respiration releases it, and that both are happening in the leaf.",
+              "why": "The observation cannot be explained by one process alone. Both are always available; what differs between light and dark is the rate of photosynthesis."
+            },
+            {
+              "move": "In bright light, conclude that the rate of photosynthesis exceeds the rate of respiration, so the net effect is uptake of carbon dioxide.",
+              "why": "Net exchange is a difference between two rates, not a switch. Photosynthesis is using carbon dioxide faster than respiration is producing it."
+            },
+            {
+              "move": "In darkness, conclude that photosynthesis has stopped while respiration continues, so the net effect is release of carbon dioxide.",
+              "why": "Respiration does not depend on light. With photosynthesis at zero, the only process moving carbon dioxide is respiration, which releases it."
+            }
+          ],
+          "answer": "In light, photosynthesis outpaces respiration and the leaf takes up carbon dioxide; in darkness photosynthesis stops while respiration continues, so the leaf releases carbon dioxide."
+        }
+      ],
+      "misconceptions": [
+        {
+          "id": "m1",
+          "belief": "Plants photosynthesise instead of respiring, so they only take in carbon dioxide.",
+          "whyItFails": "Respiration happens in every living cell, continuously, including in plants and including in the light. Photosynthesis is an additional process, not a replacement. If a plant did not respire, it could not release the energy stored in the glucose it has just made.",
+          "correction": "Both processes run during the day; only respiration runs at night. What you observe as gas exchange is the NET of the two rates, which is why the direction can reverse.",
+          "contrast": {
+            "wrong": "plants take in carbon dioxide and give out oxygen, full stop",
+            "right": "plants respire always and photosynthesise in light; net gas exchange depends on which rate is greater"
+          }
+        },
+        {
+          "id": "m2",
+          "belief": "The flat part of a light-intensity graph means photosynthesis has stopped.",
+          "whyItFails": "A plateau is a rate that has stopped rising, not a rate that has fallen to zero. Photosynthesis is still happening at the plateau — often faster than at any earlier point on the graph. What has stopped is the response to light.",
+          "correction": "Read the plateau as a change of limiting factor. The rate is set by something else now, and the graph tells you that increasing light further will not help.",
+          "contrast": {
+            "wrong": "the rate is zero, so photosynthesis has stopped",
+            "right": "the rate is constant and high, so another factor has become limiting"
+          }
+        },
+        {
+          "id": "m3",
+          "belief": "A plant gets its food from the soil.",
+          "whyItFails": "Soil supplies water and mineral ions, not energy. The mass of a tree comes overwhelmingly from carbon dioxide in the air, fixed into glucose by photosynthesis. A plant in distilled water with light and air can still grow; a plant with soil and no light cannot.",
+          "correction": "Separate raw materials from energy. Water and minerals are raw materials absorbed by roots; the energy and the carbon come from light and air. Glucose is the plant's food, and the plant makes it.",
+          "contrast": {
+            "wrong": "the plant eats nutrients from the soil",
+            "right": "the plant builds glucose from carbon dioxide and water using light, and takes minerals from the soil"
+          }
+        }
+      ],
+      "guidedPractice": [
+        {
+          "id": "p1",
+          "prompt": "A greenhouse is kept warm and well lit, but the plants still grow slowly. Suggest one change that could increase the rate of photosynthesis, and explain your reasoning.",
+          "hint": "Warm and well lit means two factors are already supplied. Which reactant has not been mentioned?",
+          "answer": "Raise the carbon dioxide concentration, for example with a paraffin burner or a CO₂ enrichment system, because light and temperature are already adequate so carbon dioxide is the likely limiting factor.",
+          "feedback": {
+            "correct": "You identified the factor that had not been supplied and used the limiting-factor idea to justify the change.",
+            "incorrect": "Adding more light or heat will not help if those are already adequate. Look for the reactant or condition the prompt has not mentioned."
+          }
+        },
+        {
+          "id": "p2",
+          "prompt": "Explain why a variegated leaf with white edges photosynthesises less than an all-green leaf of the same size.",
+          "hint": "What does the white part lack, and what is that substance for?",
+          "answer": "The white areas contain no chlorophyll, so they cannot absorb light energy and cannot carry out photosynthesis, leaving a smaller effective area for the same leaf size.",
+          "feedback": {
+            "correct": "You linked the missing pigment to the missing function, which is the structure-to-function reasoning this topic requires.",
+            "incorrect": "The leaf is not short of water or carbon dioxide. Check what the white region does not contain."
+          }
+        },
+        {
+          "id": "p3",
+          "prompt": "A leaf in bright light is found to have a higher oxygen concentration inside than outside. Explain why oxygen leaves the leaf.",
+          "hint": "Diffusion moves particles from where there are more to where there are fewer.",
+          "answer": "Photosynthesis is producing oxygen faster than respiration uses it, so the concentration inside the leaf is higher than outside and oxygen diffuses out down the gradient.",
+          "feedback": {
+            "correct": "You combined the two rates with the direction of diffusion, which is the full explanation.",
+            "incorrect": "The leaf is not pushing oxygen out. Name the process that moves it and the gradient that drives it."
+          }
+        }
+      ],
+      "assessment": [
+        {
+          "id": "a1",
+          "kind": "constructed-response",
+          "prompt": "Explain why the net gas exchange of a leaf changes direction between day and night.",
+          "modelAnswer": "Respiration occurs continuously in all living cells and releases carbon dioxide while taking in oxygen. Photosynthesis only occurs in the light, and takes in carbon dioxide while releasing oxygen. During the day photosynthesis is usually faster than respiration, so the net exchange is uptake of carbon dioxide and release of oxygen. At night photosynthesis stops while respiration continues, so the net exchange reverses.",
+          "marking": [
+            "States that respiration occurs all the time and photosynthesis only in light.",
+            "States the gas directions for each process correctly.",
+            "Explains net exchange as the difference between two rates rather than as a switch between processes.",
+            "Applies the reasoning to both the day and the night case."
+          ]
+        },
+        {
+          "id": "a2",
+          "kind": "constructed-response",
+          "prompt": "A student claims that a plant placed in a sealed lit container will eventually stop photosynthesising because it uses up all the carbon dioxide. Explain what will actually happen and why the claim is only partly right.",
+          "modelAnswer": "Photosynthesis will slow and eventually stop as carbon dioxide concentration falls, because carbon dioxide becomes the limiting factor. But the plant continues to respire, releasing carbon dioxide, so a small concentration remains and a low rate may persist. The claim is right that carbon dioxide becomes limiting, but wrong that the plant's photosynthesis simply ends at a clean boundary.",
+          "marking": [
+            "Identifies carbon dioxide as the factor that becomes limiting.",
+            "States that respiration continues and releases carbon dioxide.",
+            "Concludes that the rate falls to a low value rather than stopping abruptly."
+          ]
+        },
+        {
+          "id": "a3",
+          "kind": "gap-fill",
+          "prompt": "Complete the summary of photosynthesis. Each gap is marked as a whole answer, and the word bank contains more words than gaps.",
+          "modelAnswer": "Carbon dioxide enters through the stomata and water arrives through the xylem. In the chloroplast, chlorophyll absorbs light energy. The products are glucose, which the plant uses for respiration or stores as starch, and oxygen, which leaves the leaf by diffusion.",
+          "marking": [
+            "Names carbon dioxide as the gas taken in.",
+            "Names water as the other reactant.",
+            "Names the chloroplast as the organelle.",
+            "Names glucose as the carbohydrate product.",
+            "Names oxygen as the gas released."
+          ],
+          "gaps": {
+            "template": "Photosynthesis takes in [[g1]] from the air and [[g2]] from the soil. It happens in the [[g3]], where chlorophyll absorbs light. The plant makes [[g4]] and releases [[g5]].",
+            "wordBank": [
+              "carbon dioxide",
+              "water",
+              "chloroplast",
+              "glucose",
+              "oxygen",
+              "nitrogen",
+              "mitochondrion"
+            ],
+            "gaps": [
+              {
+                "id": "g1",
+                "label": "Gas taken in from the air",
+                "accepted": [
+                  "carbon dioxide",
+                  "CO2",
+                  "carbon dioxide gas"
+                ]
+              },
+              {
+                "id": "g2",
+                "label": "Reactant taken in from the soil",
+                "accepted": [
+                  "water",
+                  "H2O"
+                ]
+              },
+              {
+                "id": "g3",
+                "label": "Organelle where photosynthesis happens",
+                "accepted": [
+                  "chloroplast",
+                  "chloroplasts"
+                ]
+              },
+              {
+                "id": "g4",
+                "label": "Carbohydrate product",
+                "accepted": [
+                  "glucose",
+                  "sugar",
+                  "starch"
+                ]
+              },
+              {
+                "id": "g5",
+                "label": "Gas released",
+                "accepted": [
+                  "oxygen",
+                  "O2",
+                  "oxygen gas"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "id": "a4",
+          "kind": "matching",
+          "prompt": "Match each structure or substance to the job it does in photosynthesis.",
+          "modelAnswer": "Chlorophyll absorbs light energy; stomata let carbon dioxide enter; the chloroplast is the organelle containing chlorophyll; xylem transports water to the leaf; and glucose is the carbohydrate product used for respiration or stored as starch.",
+          "marking": [
+            "Matches chlorophyll with light absorption.",
+            "Matches stomata with gas exchange.",
+            "Matches the chloroplast with the site of photosynthesis.",
+            "Matches xylem with water transport.",
+            "Matches glucose with the carbohydrate product."
+          ],
+          "matching": {
+            "leftHeading": "Structure or substance",
+            "rightHeading": "Job in photosynthesis",
+            "left": [
+              {
+                "id": "m1",
+                "text": "Chlorophyll"
+              },
+              {
+                "id": "m2",
+                "text": "Stomata"
+              },
+              {
+                "id": "m3",
+                "text": "Chloroplast"
+              },
+              {
+                "id": "m4",
+                "text": "Xylem"
+              },
+              {
+                "id": "m5",
+                "text": "Glucose"
+              }
+            ],
+            "right": [
+              {
+                "id": "r1",
+                "text": "Absorbs light energy"
+              },
+              {
+                "id": "r2",
+                "text": "Lets carbon dioxide enter the leaf"
+              },
+              {
+                "id": "r3",
+                "text": "The organelle where photosynthesis takes place"
+              },
+              {
+                "id": "r4",
+                "text": "Transports water to the leaf"
+              },
+              {
+                "id": "r5",
+                "text": "The carbohydrate product used for respiration or stored as starch"
+              }
+            ],
+            "pairs": {
+              "m1": "r1",
+              "m2": "r2",
+              "m3": "r3",
+              "m4": "r4",
+              "m5": "r5"
+            }
+          }
+        },
+        {
+          "id": "a5",
+          "kind": "short-answer",
+          "prompt": "A rate-versus-light-intensity graph rises steeply at low light and then becomes flat at 12 mm³ of oxygen per minute above 20 arbitrary units of light. State which factor limits the rate above 20 units, and explain why adding more light does not increase it.",
+          "modelAnswer": "Above 20 units, light is no longer the limiting factor; the plateau is set by another factor such as carbon dioxide concentration or temperature. The light-dependent stage is already supplying as much as the next stage can use, so extra light cannot raise the overall rate. The graph is read by looking at the flat section: the variable on the horizontal axis has stopped being the bottleneck.",
+          "marking": [
+            "Reads the plateau as light no longer limiting the rate.",
+            "Names another limiting factor, such as carbon dioxide concentration or temperature.",
+            "Explains that the other factor is saturated or in short supply, so more light cannot increase the rate."
+          ]
+        }
+      ],
+      "transfer": [
+        {
+          "id": "t1",
+          "prompt": "A lake has become cloudy because of algal growth near the surface. Plants living on the lake bed, several metres down, are dying. Use the limiting-factor idea to explain why, and suggest why adding nutrients to the lake could make the problem worse rather than better.",
+          "whyItTransfers": "The setting is an ecosystem rather than a leaf, and the causal chain runs through light penetration, photosynthesis on the lake bed and competition at the surface. The learner must apply the same limiting-factor reasoning without a graph or a labelled diagram.",
+          "answer": "The algae absorb light near the surface, so less light reaches the bottom and light becomes the limiting factor for the submerged plants, which photosynthesise too slowly to survive. Adding nutrients feeds the algae further, making the water cloudier and reducing light penetration even more.",
+          "marking": [
+            "Identifies light as the limiting factor for the submerged plants.",
+            "Connects reduced light to a lower rate of photosynthesis and to the plants' death.",
+            "Explains that extra nutrients increase algal growth and further reduce light penetration."
+          ]
+        }
+      ],
+      "retrieval": [
+        {
+          "id": "x1",
+          "prompt": "Name the reactants and products of photosynthesis and the organelle where it happens.",
+          "answer": "Reactants carbon dioxide and water; products glucose and oxygen; in the chloroplast.",
+          "when": "next-day"
+        },
+        {
+          "id": "x2",
+          "prompt": "Why does raising the temperature of a photosynthesising plant increase the rate up to a point and then decrease it sharply?",
+          "answer": "Warmer conditions increase the rate of the enzyme-controlled reactions up to an optimum; beyond that the enzymes denature and the rate falls.",
+          "when": "week-later"
+        },
+        {
+          "id": "x3",
+          "prompt": "A plant is kept in the dark for two days. Explain why its leaves still produce carbon dioxide.",
+          "answer": "Respiration continues in all living cells regardless of light, releasing carbon dioxide, while photosynthesis has stopped.",
+          "when": "month-later"
+        }
+      ],
+      "summary": [
+        "Photosynthesis uses light energy to build glucose from carbon dioxide and water in the chloroplast.",
+        "The rate is set by whichever factor is in shortest supply; a plateau means the limiting factor has changed.",
+        "Plants respire continuously as well as photosynthesising, so gas exchange is a net effect of two rates.",
+        "Structure serves function: chloroplast density, stomata and air spaces all exist to make the process efficient."
+      ],
+      "accessibility": [
+        {
+          "need": "screen-reader",
+          "alternative": "The process diagram is described as an ordered list of steps with the driver of each step named, and the graph is given as a table of values alongside its description."
+        },
+        {
+          "need": "colour-vision",
+          "alternative": "The light and dark cases in the graph are distinguished by line style and labels, not by colour."
+        },
+        {
+          "need": "dyslexia",
+          "alternative": "The two processes are set out in a two-column comparison so the day and night cases can be read across rather than extracted from prose."
+        },
+        {
+          "need": "low-vision",
+          "alternative": "All diagrams can be enlarged, and every label is available as text at the same size as body copy."
+        }
+      ],
+      "translations": [],
+      "reviews": [],
+      "learnerTesting": []
+    },
+    {
+      "subject": "computing",
+      "conceptId": "what-is-code",
+      "title": "What is code?",
+      "whyChosen": "Code tracing and debugging, with an explanation of what a trace proves.",
+      "version": "1.0.0",
+      "declaredStatus": "draft",
+      "curriculum": {
+        "reference": "GCSE Computer Science, programming: sequence, selection and iteration",
+        "level": "Key Stage 3 to GCSE",
+        "note": "Scope cited against the published subject content; no specification text reproduced."
+      },
+      "prerequisites": [],
+      "objectives": [
+        {
+          "statement": "Read a short program and predict its output without running it.",
+          "evidence": "Given a loop that adds the numbers one to five, the learner states that the output is fifteen and can point to the line where the running total changes."
+        },
+        {
+          "statement": "Trace a program's variables one line at a time and record their values.",
+          "evidence": "The learner produces a table whose rows are the loop iterations and whose columns are the loop variable and the running total, and the final row matches the printed output."
+        },
+        {
+          "statement": "Find a fault in a program by comparing the trace with the intended behaviour, and repair it.",
+          "evidence": "Given a loop that starts at zero or stops one iteration early, the learner names the line, states what it should be, and explains why the change fixes the output."
+        }
+      ],
+      "priorKnowledge": [
+        {
+          "id": "d1",
+          "question": "A recipe says: crack two eggs, whisk, then pour into a pan. Does the order matter?",
+          "answer": "Yes. Steps in a sequence happen in order, and swapping them changes the result — pouring unwhisked eggs into a pan is a different outcome.",
+          "targets": [
+            "what-is-code"
+          ]
+        },
+        {
+          "id": "d2",
+          "question": "What is a variable in mathematics?",
+          "answer": "A name that stands for a value which can change, such as x in an equation.",
+          "targets": [
+            "what-is-code"
+          ]
+        }
+      ],
+      "introduction": {
+        "hook": "A calculator has no idea what a number is. Press the buttons in one order and you get an answer; press the same buttons in another order and you get a different one. The machine did exactly what it was told both times.",
+        "why": "Code is a list of instructions a computer follows exactly, in order, without judgement. That is why a program can be wrong while running perfectly: the computer has no idea what you meant. Learning to read code is learning to predict what the machine will do, which is the only reliable way to find out why it did something else."
+      },
+      "explanation": [
+        {
+          "heading": "A program is a sequence of instructions",
+          "paragraphs": [
+            "Code is written as a list of statements, and the computer executes them one after another, top to bottom, unless a statement changes the order. Each statement does one small thing: stores a value, adds two numbers, compares two values, prints something. Nothing happens by implication — if the program does not say it, it does not happen.",
+            "That is why the same instructions in a different order produce a different result. It is also why a program that runs is not necessarily correct: the computer will faithfully execute a wrong instruction."
+          ]
+        },
+        {
+          "heading": "Variables are named boxes",
+          "paragraphs": [
+            "A variable is a name for a stored value. Writing total = 0 puts zero in a box labelled total. Later, total = total + 5 reads the value in the box, adds five, and puts the new value back in the same box. The equals sign here is not a mathematical claim that both sides are equal; it is an instruction to store.",
+            "Understanding that distinction is what makes a trace possible. After total = total + 5 you can say exactly what is in the box, and that is the state of the program at that moment."
+          ]
+        },
+        {
+          "heading": "Selection and iteration change which lines run",
+          "paragraphs": [
+            "An if statement runs a block only when a condition is true. A for loop runs a block once for each value in a sequence. Between them they are why a program can be short and still do a great deal of work.",
+            "A for loop is not a vague repetition. It names a variable, gives it each value in turn, and runs the body once per value. Knowing how many times the body runs is the difference between predicting the output and guessing it."
+          ]
+        },
+        {
+          "heading": "A trace is how you find out what a program actually did",
+          "paragraphs": [
+            "A trace is a table with one row per iteration and one column per variable that changes. Fill it in by hand, following the program line by line. At the end, the last row tells you the values the program finished with, which is what the output must be.",
+            "Tracing is also the debugging method. If the intended answer is fifteen and the trace ends at ten, the difference is not a mystery: the last iteration did not run, or the running total started in the wrong place. The trace localises the fault to a line, which a guess cannot do."
+          ]
+        }
+      ],
+      "representations": [
+        {
+          "id": "r1",
+          "kind": "computing.code",
+          "body": "A program that adds the numbers from one to five. Read it as five instructions plus a loop, not as a sentence.",
+          "caption": "The loop variable n takes the values one, two, three, four and five. The running total is updated once per value, and the print happens after the loop.",
+          "notation": "total = 0\nfor n in range(1, 6):\n    total = total + n\nprint(total)"
+        },
+        {
+          "id": "r2",
+          "kind": "computing.trace",
+          "body": "The trace of the program above. Each row is one pass through the loop; the last row is the state when the loop ends.",
+          "caption": "The total after the final iteration is fifteen, so that is what the program prints. If your prediction is different, the disagreement is in one of these five rows.",
+          "notation": "n = 1  total = 1\nn = 2  total = 3\nn = 3  total = 6\nn = 4  total = 10\nn = 5  total = 15"
+        },
+        {
+          "id": "r3",
+          "kind": "computing.test",
+          "body": "Three tests for a program that is meant to add the numbers from one to n. One normal case, one boundary case and one invalid case, because a program that works for five may fail at zero.",
+          "caption": "The boundary case is the one that catches a loop written as range(1, n) instead of range(1, n + 1): it returns zero for n equal to one.",
+          "notation": "n = 5 → 15\nn = 1 → 1\nn = 0 → 0"
+        },
+        {
+          "id": "r4",
+          "kind": "computing.debug",
+          "body": "A faulty version of the same program. The loop stops one value early, so the last addition never happens.",
+          "caption": "The output is ten rather than fifteen. The fault is the upper bound of the range, not the addition and not the print.",
+          "notation": "total = 0\nfor n in range(1, 5):\n    total = total + n\nprint(total)"
+        }
+      ],
+      "workedExamples": [
+        {
+          "id": "w1",
+          "prompt": "Predict the output of this program without running it:\n\ntotal = 0\nfor n in range(1, 6):\n    total = total + n\nprint(total)",
+          "steps": [
+            {
+              "move": "Work out how many times the loop body runs: range(1, 6) gives one, two, three, four and five, so five times.",
+              "why": "The upper bound in a range is exclusive in Python. Reading it as inclusive gives four iterations and a wrong total, which is the most common prediction error in this shape."
+            },
+            {
+              "move": "Trace the running total: after one it is one, after two it is three, after three it is six, after four it is ten, after five it is fifteen.",
+              "why": "Each iteration adds the current loop value to what is already in the box. Writing the intermediate values down is what makes the final answer checkable rather than remembered."
+            },
+            {
+              "move": "Read the print statement: it is outside the loop, so it prints once, after the last iteration, giving fifteen.",
+              "why": "Indentation decides which lines are inside the loop. A print inside the loop would print five times, once per iteration."
+            }
+          ],
+          "answer": "The program prints 15."
+        },
+        {
+          "id": "w2",
+          "prompt": "This program is meant to add the numbers from one to five but prints ten. Find the fault and repair it:\n\ntotal = 0\nfor n in range(1, 5):\n    total = total + n\nprint(total)",
+          "steps": [
+            {
+              "move": "Trace the program as written: n takes one to four, giving totals one, three, six and ten.",
+              "why": "A trace turns 'it is wrong' into 'it stops after four'. Debugging starts from what the program did, not from what it was meant to do."
+            },
+            {
+              "move": "Compare the trace with the intended behaviour: the addition is correct and the print is correct, but the last iteration is missing.",
+              "why": "Two of the three parts of the program behave correctly, which narrows the fault to the loop bound. Changing the addition would break a part that already works."
+            },
+            {
+              "move": "Repair the range to range(1, 6), then re-trace: the final total is fifteen, which is the intended output.",
+              "why": "An exclusive upper bound must be one more than the last value you want. Re-tracing confirms the repair rather than assuming it."
+            }
+          ],
+          "answer": "Change range(1, 5) to range(1, 6). The output becomes 15."
+        }
+      ],
+      "misconceptions": [
+        {
+          "id": "m1",
+          "belief": "The computer understands what you meant, so small mistakes in the code will be worked out.",
+          "whyItFails": "A computer executes exactly the instructions it is given. There is no step that checks intent. A loop that runs four times instead of five is not a rough approximation of the intended program; it is a different program that happens to look similar.",
+          "correction": "Read the program as written, not as intended. If the code does not say it, it does not happen — which is what makes a trace more reliable than intuition.",
+          "contrast": {
+            "wrong": "it obviously means one to five, so the computer will add all five",
+            "right": "range(1, 5) stops at four, so the computer adds four numbers"
+          }
+        },
+        {
+          "id": "m2",
+          "belief": "A program that runs without an error message is correct.",
+          "whyItFails": "An error message only reports that the program could not run. A program that produces the wrong answer runs perfectly. Ten is a perfectly valid output of the faulty loop, and the computer has no way to know that fifteen was wanted.",
+          "correction": "Correctness is tested against expected outputs, not against the absence of crashes. Test a normal case, a boundary case and an invalid case.",
+          "contrast": {
+            "wrong": "no error, so it works",
+            "right": "it runs and prints 10, but the test says 15, so it is wrong"
+          }
+        },
+        {
+          "id": "m3",
+          "belief": "The equals sign in total = total + 5 is a mathematical equation.",
+          "whyItFails": "Read as an equation, total would have to equal itself plus five, which is impossible. The statement is not a claim about equality; it is an instruction to evaluate the right-hand side and store the result in the named box.",
+          "correction": "Read assignment as 'becomes'. The right-hand side is calculated first using the current value, and the result replaces what was in the variable.",
+          "contrast": {
+            "wrong": "total = total + 5 is impossible, so nothing changes",
+            "right": "total becomes its old value plus five"
+          }
+        }
+      ],
+      "guidedPractice": [
+        {
+          "id": "p1",
+          "prompt": "How many times does the body of this loop run?\n\nfor i in range(0, 4):\n    print(i)",
+          "hint": "List the values range(0, 4) produces before counting them.",
+          "answer": "Four times, printing 0, 1, 2 and 3.",
+          "feedback": {
+            "correct": "You listed the values the range produces rather than counting to the end number, which is the reliable method.",
+            "incorrect": "The upper bound is exclusive, so 4 is not produced. List the values first and count the list."
+          }
+        },
+        {
+          "id": "p2",
+          "prompt": "Trace this program and state its output:\n\ntotal = 1\nfor n in range(1, 4):\n    total = total + n\nprint(total)",
+          "hint": "Start from one, and add each of one, two and three in turn.",
+          "answer": "Seven: one plus one is two, plus two is four, plus three is seven.",
+          "feedback": {
+            "correct": "Your trace carried the running total forward from the previous iteration rather than restarting at the loop value.",
+            "incorrect": "Check whether you restarted from the loop value each time. Each iteration updates whatever is already in the box."
+          }
+        },
+        {
+          "id": "p3",
+          "prompt": "This loop is meant to print the numbers 1 to 5 but prints 1 to 4. What single change fixes it?\n\nfor i in range(1, 5):\n    print(i)",
+          "hint": "Decide which value is missing, then ask what the upper bound must be to include it.",
+          "answer": "Change the range to range(1, 6).",
+          "feedback": {
+            "correct": "You changed the bound rather than the starting value, which is the only edit that includes five without adding a duplicate.",
+            "incorrect": "Changing the start to zero would add a number you do not want. The missing value is at the top of the range."
+          }
+        }
+      ],
+      "assessment": [
+        {
+          "id": "a1",
+          "kind": "code",
+          "prompt": "Write a program that prints the total of the even numbers from 2 to 10 inclusive. Then give the trace of the running total for at least two iterations, and state the output.",
+          "modelAnswer": "total = 0\nfor n in range(2, 11, 2):\n    total = total + n\nprint(total)\n\nThe trace is: n = 2 gives total 2; n = 4 gives total 6; and so on to n = 10, which gives 30. The output is 30.",
+          "marking": [
+            "Uses a loop with an upper bound that includes ten.",
+            "Updates a running total inside the loop rather than recomputing it from scratch.",
+            "Prints the total after the loop, not inside it.",
+            "Gives a trace whose final value matches the stated output."
+          ],
+          "code": {
+            "starterCode": "total = 0\nfor n in range(2, 10, 2):\n    total = total + n\nprint(total)",
+            "tests": [
+              {
+                "name": "the total includes 10",
+                "expectedStdout": "30"
+              }
+            ]
+          }
+        },
+        {
+          "id": "a2",
+          "kind": "short-answer",
+          "prompt": "Explain why a program can run without any error message and still be wrong. Use an example from a loop in your answer.",
+          "modelAnswer": "An error message only means the program could not run. A loop with the wrong upper bound still runs and still prints a number; the number is simply not the one intended. For example, range(1, 5) adds one to four and prints ten, which is a valid output of a wrong program.",
+          "marking": [
+            "Distinguishes a runtime error from an incorrect output.",
+            "Gives a concrete loop example with a wrong bound.",
+            "States that correctness is judged against expected output, not against the absence of a crash."
+          ]
+        },
+        {
+          "id": "a3",
+          "kind": "ordering",
+          "prompt": "Put the steps of this total-finding algorithm in the order a program runs them. Use Up and Down; no dragging is required.",
+          "modelAnswer": "A total starts at zero. The loop visits each even number, adds that number to the total, and only after the loop finishes does the program print the total. Printing inside the loop would show every intermediate total instead of the final one.",
+          "marking": [
+            "Starts by setting the running total to zero.",
+            "Visits each even number in turn.",
+            "Adds the current number to the running total inside the loop.",
+            "Prints the total only after the loop has finished."
+          ],
+          "ordering": {
+            "items": [
+              {
+                "id": "s1",
+                "text": "Set the running total to 0."
+              },
+              {
+                "id": "s2",
+                "text": "Print the running total."
+              },
+              {
+                "id": "s3",
+                "text": "For each even number from 2 to 10, repeat the next step."
+              },
+              {
+                "id": "s4",
+                "text": "Add the current number to the running total."
+              }
+            ],
+            "correctOrder": [
+              "s1",
+              "s3",
+              "s4",
+              "s2"
+            ]
+          }
+        },
+        {
+          "id": "a4",
+          "kind": "matching",
+          "prompt": "Match each programming idea to the behaviour it describes.",
+          "modelAnswer": "Sequence means statements run in the written order. Selection chooses between paths using a condition. Iteration repeats a block. A variable is named storage whose value can change. A trace records the values at each step so the behaviour can be checked.",
+          "marking": [
+            "Matches sequence with ordered execution.",
+            "Matches selection with a conditional choice of path.",
+            "Matches iteration with repetition.",
+            "Matches a variable with named, changeable storage.",
+            "Matches a trace with recording values step by step."
+          ],
+          "matching": {
+            "leftHeading": "Programming idea",
+            "rightHeading": "Behaviour",
+            "left": [
+              {
+                "id": "c1",
+                "text": "Sequence"
+              },
+              {
+                "id": "c2",
+                "text": "Selection"
+              },
+              {
+                "id": "c3",
+                "text": "Iteration"
+              },
+              {
+                "id": "c4",
+                "text": "Variable"
+              },
+              {
+                "id": "c5",
+                "text": "Trace"
+              }
+            ],
+            "right": [
+              {
+                "id": "b1",
+                "text": "Statements execute in the order written"
+              },
+              {
+                "id": "b2",
+                "text": "A condition chooses which path runs"
+              },
+              {
+                "id": "b3",
+                "text": "A block of statements repeats"
+              },
+              {
+                "id": "b4",
+                "text": "Named storage whose value can change"
+              },
+              {
+                "id": "b5",
+                "text": "A record of values at each step"
+              }
+            ],
+            "pairs": {
+              "c1": "b1",
+              "c2": "b2",
+              "c3": "b3",
+              "c4": "b4",
+              "c5": "b5"
+            }
+          }
+        }
+      ],
+      "transfer": [
+        {
+          "id": "t1",
+          "prompt": "A vending machine program is meant to refuse a purchase when the credit is less than the price. It currently allows a purchase when the credit exactly equals the price minus one penny. Describe how you would find the fault using a trace, and what kind of test would have caught it before release.",
+          "whyItTransfers": "The setting is a state machine rather than a counting loop, and the fault is a boundary comparison rather than a range bound. The method — trace the state, compare with intended behaviour, test the boundary — is the same one the lesson taught.",
+          "answer": "Trace the credit and the decision for several inputs, including the exact boundary, and find the comparison that is off by one. A boundary test at credit equal to price minus one penny would have failed before release, which is why boundary cases belong in the test set.",
+          "marking": [
+            "Describes tracing the credit value and the decision at each step.",
+            "Identifies an off-by-one comparison as the likely fault.",
+            "Names a boundary test as the test that would have caught it."
+          ]
+        }
+      ],
+      "retrieval": [
+        {
+          "id": "x1",
+          "prompt": "What does range(1, 4) produce, and how many times does a loop over it run?",
+          "answer": "It produces 1, 2 and 3, so the loop body runs three times.",
+          "when": "next-day"
+        },
+        {
+          "id": "x2",
+          "prompt": "Explain the difference between `total = total + 1` and `total == total + 1`.",
+          "answer": "The single equals sign stores a new value in total; the double equals sign compares two values and produces true or false, changing nothing.",
+          "when": "week-later"
+        },
+        {
+          "id": "x3",
+          "prompt": "A loop is meant to run five times but runs four. What are the two most likely causes, and how would a trace distinguish them?",
+          "answer": "An exclusive upper bound one too low, or a starting value one too high. The trace shows which values the loop variable actually took, distinguishing the two immediately.",
+          "when": "month-later"
+        }
+      ],
+      "summary": [
+        "A program is a sequence of instructions executed exactly, in order.",
+        "A variable is a named box, and the equals sign stores rather than claims equality.",
+        "A loop's iteration count follows from the values it is given, not from the number written at the end.",
+        "A trace turns a wrong output into a named line, which is what makes debugging possible."
+      ],
+      "accessibility": [
+        {
+          "need": "screen-reader",
+          "alternative": "Code is announced line by line with indentation stated as 'inside the loop', so block structure is audible rather than visual."
+        },
+        {
+          "need": "low-vision",
+          "alternative": "Code renders at a large monospaced size with high contrast, and every listing is also available as plain text."
+        },
+        {
+          "need": "dyslexia",
+          "alternative": "Program listings are kept to under six lines, and the trace is given as a table so the values do not have to be held in memory."
+        },
+        {
+          "need": "motor",
+          "alternative": "The code assessment can be answered in a plain text box; no drag-and-drop block editor is required."
+        }
+      ],
+      "translations": [],
+      "reviews": [],
+      "learnerTesting": []
+    }
+  ]
+}

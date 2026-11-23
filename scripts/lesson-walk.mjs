@@ -253,6 +253,10 @@ const AUTHORED_CONTRACT = [
   { concept: "percentages", subject: "maths" },
   { concept: "linear-equations", subject: "maths" },
   { concept: "quadratics", subject: "maths" },
+  // Batch 53 — completing-square. It already has a FIGURED row because its plan
+  // owns the marked-corner rectangle; this row measures the authored contract
+  // (diagnostic, corrections, assessment and footer) on the same page.
+  { concept: "completing-square", subject: "maths" },
   { concept: "electricity-circuits", subject: "physics" },
   { concept: "energy-conservation", subject: "physics" },
   { concept: "forces-basics", subject: "physics" },
@@ -278,6 +282,107 @@ const AUTHORED_CONTRACT = [
   { concept: "vectors", subject: "maths" },
   { concept: "tree-diagrams", subject: "maths" },
   { concept: "scatter-correlation", subject: "maths" },
+  // Batch 54 — the curriculum-gap tranche. Every lesson below was authored to
+  // close the remaining outline gap, so it needs a paint row like every earlier
+  // batch. Listing rather than deriving keeps a missing page visible.
+  { concept: "ai-basics", subject: "computing" },
+  { concept: "algorithms-sort", subject: "computing" },
+  { concept: "complexity", subject: "computing" },
+  { concept: "cybersecurity", subject: "computing" },
+  { concept: "databases-sql", subject: "computing" },
+  { concept: "networks", subject: "computing" },
+  { concept: "recursion", subject: "computing" },
+  { concept: "statistics-data", subject: "computing" },
+  { concept: "web-stack", subject: "computing" },
+  { concept: "polynomials", subject: "maths" },
+  { concept: "binomial", subject: "maths" },
+  { concept: "trig-rule", subject: "maths" },
+  { concept: "circle-area-arc", subject: "maths" },
+  { concept: "mixture-problems", subject: "maths" },
+  { concept: "growth-decay", subject: "maths" },
+  { concept: "logs", subject: "maths" },
+  { concept: "calculus-diff", subject: "maths" },
+  { concept: "calculus-int", subject: "maths" },
+  { concept: "kinematics", subject: "maths" },
+  { concept: "proof", subject: "maths" },
+  { concept: "matrices-intro", subject: "maths" },
+  { concept: "sets-venn", subject: "maths" },
+  { concept: "financial-maths", subject: "maths" },
+  { concept: "bounds", subject: "maths" },
+  { concept: "loci-constructions", subject: "maths" },
+  { concept: "bearings", subject: "maths" },
+  { concept: "proportional-graphs", subject: "maths" },
+  { concept: "quadratic-graphs", subject: "maths" },
+  { concept: "algebraic-fractions", subject: "maths" },
+  { concept: "iteration", subject: "maths" },
+  { concept: "circle-geometry-adv", subject: "maths" },
+  { concept: "number-bases", subject: "maths" },
+  { concept: "logic-maths", subject: "maths" },
+  { concept: "newton-laws", subject: "physics" },
+  { concept: "momentum", subject: "physics" },
+  { concept: "work-power", subject: "physics" },
+  { concept: "light-optics", subject: "physics" },
+  { concept: "sound-acoustics", subject: "physics" },
+  { concept: "magnetism", subject: "physics" },
+  { concept: "em-induction", subject: "physics" },
+  { concept: "thermal-physics", subject: "physics" },
+  { concept: "pressure-fluids", subject: "physics" },
+  { concept: "atoms-nucleus", subject: "physics" },
+  { concept: "radioactivity", subject: "physics" },
+  { concept: "gravity-fields", subject: "physics" },
+  { concept: "astrophysics", subject: "physics" },
+];
+
+/** The first short-answer key in each gap lesson, submitted through the real
+ *  visible assessment control. The list is explicit so a typed item that stops
+ *  accepting its own model answer fails here rather than passing on prose. */
+const GAP_ASSESSMENTS = [
+  ["ai-basics", "computing", "training data"],
+  ["algorithms-sort", "computing", "3"],
+  ["complexity", "computing", "O(log n)"],
+  ["cybersecurity", "computing", "hashing"],
+  ["databases-sql", "computing", "WHERE"],
+  ["networks", "computing", "DNS"],
+  ["recursion", "computing", "120"],
+  ["statistics-data", "computing", "7"],
+  ["web-stack", "computing", "HTML"],
+  ["polynomials", "maths", "0"],
+  ["binomial", "maths", "9"],
+  ["trig-rule", "maths", "14"],
+  ["circle-area-arc", "maths", "6π"],
+  ["mixture-problems", "maths", "7"],
+  ["growth-decay", "maths", "562.43"],
+  ["logs", "maths", "5"],
+  ["calculus-diff", "maths", "8"],
+  ["calculus-int", "maths", "8"],
+  ["kinematics", "maths", "26"],
+  ["proof", "maths", "2n + 1"],
+  ["matrices-intro", "maths", "5"],
+  ["sets-venn", "maths", "7"],
+  ["financial-maths", "maths", "560"],
+  ["bounds", "maths", "12.5"],
+  ["loci-constructions", "maths", "perpendicular bisector"],
+  ["bearings", "maths", "045°"],
+  ["proportional-graphs", "maths", "1.5"],
+  ["quadratic-graphs", "maths", "1 and 3"],
+  ["algebraic-fractions", "maths", "x − 3"],
+  ["iteration", "maths", "3"],
+  ["circle-geometry-adv", "maths", "8 cm"],
+  ["number-bases", "maths", "11"],
+  ["logic-maths", "maths", "false"],
+  ["newton-laws", "physics", "3 m/s²"],
+  ["momentum", "physics", "2 m/s"],
+  ["work-power", "physics", "29.4 J"],
+  ["light-optics", "physics", "48.8°"],
+  ["sound-acoustics", "physics", "102 m"],
+  ["magnetism", "physics", "0.3 N"],
+  ["em-induction", "physics", "20 V"],
+  ["thermal-physics", "physics", "84,000 J"],
+  ["pressure-fluids", "physics", "30,000 Pa"],
+  ["atoms-nucleus", "physics", "6 protons"],
+  ["radioactivity", "physics", "10 g"],
+  ["gravity-fields", "physics", "980 N"],
+  ["astrophysics", "physics", "3.1 × 10³ m/s"],
 ];
 
 /** Every kind the figure union declares. A plan may only draw one of these. */
@@ -1337,6 +1442,31 @@ async function main() {
                 text: String(fig.textContent || "").trim(),
               };
             })(),
+            scatter: (() => {
+              const fig = root.querySelector('[data-figure="scatter"]');
+              if (!fig) return null;
+              const svg = fig.querySelector('svg');
+              const line = fig.querySelector('[data-scatter-line]');
+              return {
+                points: [...fig.querySelectorAll('[data-scatter-point]')].map((el) => ({
+                  x: Number(el.getAttribute("data-x")),
+                  y: Number(el.getAttribute("data-y")),
+                  cx: el.getBoundingClientRect().x,
+                  cy: el.getBoundingClientRect().y,
+                })),
+                line: line ? {
+                  x1: Number(line.getAttribute("x1")),
+                  y1: Number(line.getAttribute("y1")),
+                  x2: Number(line.getAttribute("x2")),
+                  y2: Number(line.getAttribute("y2")),
+                  dash: line.getAttribute("stroke-dasharray"),
+                } : null,
+                labels: [...fig.querySelectorAll("svg text")].map((el) => (el.textContent || "").trim()),
+                caption: (fig.querySelector(".authored-figure-cap")?.textContent || "").trim(),
+                ariaHidden: svg ? svg.getAttribute("aria-hidden") : null,
+                width: svg ? svg.getBoundingClientRect().width : 0,
+              };
+            })(),
           };`);
       } catch (e) { evalErr = String(e?.message ?? e); }
       authoredSeen.push({ concept, subject, seen, evalErr });
@@ -1344,6 +1474,28 @@ async function main() {
         seen ? `${concept}: the authored lesson renders with its contract (${seen.contract})` : `${concept}: NO authored lesson rendered on the page`);
       check(!!seen && seen.objectives >= 3 && seen.misconceptions >= 2 && seen.guided >= 3,
         seen ? `${concept}: ${seen.objectives} objectives, ${seen.misconceptions} misconceptions, ${seen.guided} guided items on screen` : `${concept}: sections could not be counted`);
+      if (concept === "scatter-correlation") {
+        const drawn = seen?.scatter;
+        check(!!drawn && drawn.points.length === 7,
+          `scatter-correlation: all seven paired observations are drawn as points (${drawn?.points.length ?? 0})`);
+        check(!!drawn && drawn.points.every((point, index) => point.x === index + 1),
+          "scatter-correlation: the plotted x-values are the observed hours 1 to 7");
+        check(!!drawn && JSON.stringify(drawn.points.map((point) => point.y)) === JSON.stringify([52, 58, 61, 68, 72, 79, 83]),
+          "scatter-correlation: the plotted y-values are the seven scores the lesson states");
+        check(!!drawn && drawn.points.every((point, index, all) => index === 0 || point.cx > all[index - 1].cx),
+          "scatter-correlation: the points run left to right as hours increase");
+        check(!!drawn && !!drawn.line && drawn.line.x2 > drawn.line.x1 && drawn.line.y2 < drawn.line.y1 && drawn.line.dash === "6 4",
+          "scatter-correlation: the fitted line is drawn as a rising dashed line, not described only in prose");
+        check(!!drawn && ["0", "1", "2", "3", "4", "5", "6", "7", "8"].every((label) => drawn.labels.includes(label)) &&
+          ["40", "50", "60", "70", "80", "90"].every((label) => drawn.labels.includes(label)),
+          "scatter-correlation: both axes carry their tick labels on the drawing");
+        check(!!drawn && drawn.labels.includes("Hours studied") && drawn.labels.includes("Test score"),
+          "scatter-correlation: both axes are named, so the cloud is not an unlabelled shape");
+        check(!!drawn && /strong and positive/i.test(drawn.caption) && /5x \+ 48/.test(drawn.caption),
+          "scatter-correlation: the accessible caption names the direction, strength and fitted line");
+        check(!!drawn && drawn.ariaHidden === "true" && drawn.width > 0,
+          `scatter-correlation: the drawing is a silent, painted SVG (${Math.round(drawn?.width ?? 0)} px wide)`);
+      }
       if (concept === "ratio") {
         const bar = seen?.bar;
         const widths = Array.isArray(bar?.parts) ? bar.parts.reduce((sum, part) => sum + part.width, 0) : 0;
@@ -1361,7 +1513,10 @@ async function main() {
       // anything sits under it.
       check(!!seen && seen.paragraphs >= 2 && seen.blocks >= 2 && seen.transferWords > 15 && seen.retrievalWords > 8,
         seen ? `${concept}: ${seen.paragraphs} prose paragraphs, ${seen.blocks} representation blocks, transfer ${seen.transferWords}w, retrieval ${seen.retrievalWords}w` : `${concept}: teaching body could not be counted`);
-      check(!!seen && seen.version === "1.0.0" && seen.saysStatus,
+      // THE FOOTER MUST STATE THE LESSON'S OWN VERSION, NOT A VERSION THIS
+      // HARNESS REMEMBERS. A content edit legitimately bumps 1.0.0 to 1.1.0;
+      // pinning the literal made a correct page look like a dishonest footer.
+      check(!!seen && /^1\.[0-9]+\.[0-9]+$/.test(seen.version ?? "") && seen.saysStatus,
         seen ? `${concept}: the footer states version ${seen.version} and the declared status (about: "${String(seen.about).slice(0, 90)}")` : `${concept}: no honest footer`);
       // THE PHONE WIDTH, measured on this page rather than borrowed from a plan's
       // figure: prose-heavy lessons are the ones that pushed a page sideways before.
@@ -1370,6 +1525,39 @@ async function main() {
       const wide = await p.evaluate(`return { scroll: document.documentElement.scrollWidth, client: document.documentElement.clientWidth };`);
       check(!!wide && wide.scroll <= wide.client,
         wide ? `${concept}: fits a 320-px screen (${wide.scroll} vs ${wide.client})` : `${concept}: width could not be measured`);
+      if (concept === "scatter-correlation") {
+        const narrowScatter = await p.evaluate(`
+          const fig = [...document.querySelectorAll('main .authored-lesson')]
+            .find((el) => el.getClientRects().length > 0)?.querySelector('[data-figure="scatter"]');
+          if (!fig) return null;
+          const svg = fig.querySelector('svg');
+          const box = svg ? svg.getBoundingClientRect() : null;
+          const labels = [...fig.querySelectorAll('svg text')].map((el) => {
+            const r = el.getBoundingClientRect();
+            return { text: (el.textContent || '').trim(), x: r.x, y: r.y, w: r.width, h: r.height };
+          });
+          const overlaps = [];
+          for (let i = 0; i < labels.length; i++) {
+            for (let j = i + 1; j < labels.length; j++) {
+              const a = labels[i], b = labels[j];
+              const ox = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+              const oy = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+              if (ox > 1 && oy > 1) overlaps.push(a.text + ' x ' + b.text);
+            }
+          }
+          return {
+            box: box ? { x: box.x, w: box.width } : null,
+            overlap: overlaps,
+            minTextHeight: labels.length ? Math.min(...labels.map((label) => label.h)) : 0,
+          };`);
+        check(!!narrowScatter && !!narrowScatter.box && narrowScatter.box.x >= -1 &&
+          narrowScatter.box.x + narrowScatter.box.w <= 321,
+          narrowScatter?.box ? `scatter-correlation: the cloud fits a 320-px screen (${Math.round(narrowScatter.box.w)} px)` : "scatter-correlation: the cloud's phone width could not be measured");
+        check(!!narrowScatter && narrowScatter.overlap.length === 0,
+          narrowScatter ? `scatter-correlation: its labels do not collide at 320${narrowScatter.overlap.length ? " — " + narrowScatter.overlap.slice(0, 3).join(", ") : ""}` : "scatter-correlation: phone label positions missing");
+        check(!!narrowScatter && narrowScatter.minTextHeight >= 8,
+          `scatter-correlation: its axis text stays legible at 320 (${(narrowScatter?.minTextHeight ?? 0).toFixed(1)} px high)`);
+      }
 
       // 320 is the narrowest supported screen, not the only phone. The two
       // intermediate widths catch a rule that fits 320 and 1280 but breaks the
@@ -1647,6 +1835,30 @@ async function main() {
       const verdict = await p.evaluate(`const i = ${sel}; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return { text: row.innerText, disabled: i.disabled };`);
       check(/Correct/.test(verdict.text) && !/could not be marked/.test(verdict.text) && verdict.disabled === false,
         `${concept}: ${item} is submitted visibly and marked correct ("${String(verdict.text).slice(0, 80)}")`);
+    }
+
+    // ── completing-square: the minimum read from the authored form ──────────
+    // The plan's marked-corner figure is already measured by FIGURED. This
+    // submits the authored assessment's minimum-value item through the visible
+    // control, so the page proves the server marks the lesson's own key rather
+    // than only painting the section.
+    section("Completing the square's minimum is marked by the server");
+    await viewport(1280, 900);
+    await goto(`${BASE}/learn/maths/completing-square`);
+    await p.waitFor(`return !!document.querySelector("main .authored-lesson");`, "the authored completing-square lesson", 30000);
+    {
+      const sel = `document.querySelector('input[id="completing-square-a2"]')`;
+      const state = await p.evaluate(`const i = ${sel}; return i ? { disabled: i.disabled } : null;`);
+      check(state?.disabled === false,
+        `completing-square: the visible assessment input is present and enabled (${state?.disabled ?? "missing"})`);
+      if (state?.disabled === false) {
+        await p.typeInto(sel, "2", "the completing-square minimum");
+        await p.clickExpr(`${sel}.parentElement.querySelector("button")`, "Check on completing-square a2");
+        await p.waitFor(`const i = ${sel}; if (!i) return false; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return row.innerText.includes("recorded on this concept as an independent answer");`, "the completing-square verdict", 15000);
+        const verdict = await p.evaluate(`const i = ${sel}; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return { text: row.innerText, disabled: i.disabled };`);
+        check(/Correct/.test(verdict.text) && /\b2\b/.test(verdict.text) && !/could not be marked/.test(verdict.text) && verdict.disabled === false,
+          `completing-square: a2 is submitted visibly, marked correct, and shows the minimum 2 ("${String(verdict.text).slice(0, 100)}")`);
+      }
     }
 
     // ── tree-diagrams: the second tree, answered through the page ───────────
@@ -2038,6 +2250,28 @@ async function main() {
       const equilibriaVerdict = await p.evaluate(`const i = ${equilibriaInput}; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return { text: row.innerText, disabled: i.disabled };`);
       check(/Correct/.test(equilibriaVerdict.text) && /\b0\.020\b/.test(equilibriaVerdict.text) && !/could not be marked/.test(equilibriaVerdict.text) && equilibriaVerdict.disabled === false,
         `equilibria: a2 is submitted visibly, marked correct, and shows Kc ("${String(equilibriaVerdict.text).slice(0, 100)}")`);
+    }
+
+    // ── the gap tranche's visible short answers, through the page ───────────
+    // Each lesson authored to close an outline gap is submitted through its
+    // real assessment control, not only checked as a module or painted as
+    // prose. The key is the lesson's own first short answer; a wrong key here
+    // means the visible form is not reaching the server's marking path.
+    section("Every gap lesson's short answer is marked by the server");
+    for (const [concept, subject, answer] of GAP_ASSESSMENTS) {
+      await viewport(1280, 900);
+      await goto(`${BASE}/learn/${subject}/${concept}`);
+      await p.waitFor(`return !!document.querySelector("main .authored-lesson");`, `the authored ${concept} lesson`, 30000);
+      const input = `document.querySelector('input[id="${concept}-a1"]')`;
+      const state = await p.evaluate(`const i = ${input}; return i ? { disabled: i.disabled } : null;`);
+      check(state?.disabled === false, `${concept}: a1 input is present and enabled (${state?.disabled ?? "missing"})`);
+      if (state?.disabled !== false) continue;
+      await p.typeInto(input, answer, `${concept} a1`);
+      await p.clickExpr(`${input}.parentElement.querySelector("button")`, `Check on ${concept} a1`);
+      await p.waitFor(`const i = ${input}; if (!i) return false; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return row.innerText.includes("recorded on this concept as an independent answer");`, `${concept} verdict`, 15000);
+      const verdict = await p.evaluate(`const i = ${input}; let row = i; for (let n = 0; n < 2 && row.parentElement; n++) row = row.parentElement; return { text: row.innerText, disabled: i.disabled };`);
+      check(/Correct/.test(verdict.text) && !/could not be marked/.test(verdict.text) && verdict.disabled === false,
+        `${concept}: a1 is submitted visibly and marked correct ("${String(verdict.text).slice(0, 90)}")`);
     }
 
   } finally {

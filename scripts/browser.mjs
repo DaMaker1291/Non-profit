@@ -54,15 +54,24 @@ export function client(ws, onEvent) {
       return;
     }
     if (!pending.has(m.id)) return;
-    const { resolve, reject } = pending.get(m.id);
+    const { resolve, reject, timer } = pending.get(m.id);
     pending.delete(m.id);
+    clearTimeout(timer);
     if (m.error) reject(new Error(`${m.error.message ?? "cdp error"}`));
     else resolve(m.result);
   });
   return (method, params = {}) =>
     new Promise((resolve, reject) => {
       const id = ++seq;
-      pending.set(id, { resolve, reject });
+      // A dropped CDP response must surface as a named timeout, not a walk that
+      // sits at 0% CPU forever. Twenty seconds is longer than any evaluate a
+      // walk legitimately runs; input events and page reads resolve in ms.
+      const timer = setTimeout(() => {
+        if (!pending.has(id)) return;
+        pending.delete(id);
+        reject(new Error(`CDP ${method} did not answer within 20s`));
+      }, 20000);
+      pending.set(id, { resolve, reject, timer });
       ws.send(JSON.stringify({ id, method, params }));
     });
 }

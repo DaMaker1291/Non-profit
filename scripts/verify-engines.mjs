@@ -7103,7 +7103,10 @@ console.log("\n▸ Where the learner is allowed to be");
   const dashSrc = fs.readFileSync("app/dashboard/page.tsx", "utf8");
   ok(dashSrc.includes("homeRouteFor") && !/router\.replace\("\/dashboard"\)/.test(dashSrc),
     "and /dashboard hands a teacher to their own home instead of rendering the learner's dashboard for them");
-  const landingSrc = fs.readFileSync("app/page.tsx", "utf8");
+  // The landing surface is two files since the numbers moved to the server: the
+  // route measures them (app/page.tsx) and the client component renders them
+  // (components/landing.tsx). The pins read the SURFACE, not one file of it.
+  const landingSrc = fs.readFileSync("app/page.tsx", "utf8") + fs.readFileSync("components/landing.tsx", "utf8");
   ok(/router\.replace\(appState\.route\)/.test(landingSrc),
     "as does the landing page, which used to send a teacher to the learner's dashboard by name");
   const accountSrc = fs.readFileSync("app/account/page.tsx", "utf8");
@@ -11032,7 +11035,10 @@ console.log("▸ AI explains, never records");
   // and `Next` stayed dead with nothing left on the screen to change. The screen
   // that asks for a course therefore also asks for the year group it can be
   // missing, and Home's card — which names `grade` — has somewhere to send them.
-  ok(curSource.includes("levelForGrade(") && curSource.includes('t("onb.grade")'),
+  // The reader is `tierForYear` now, not `levelForGrade`: the year answers a tier
+  // only where the qualification DECLARES that it does (SpecLevel.schoolYears),
+  // and the screen asks for the year group itself regardless.
+  ok(curSource.includes("tierForYear(") && curSource.includes('t("onb.grade")'),
     "the course screen can set the year group it is missing, instead of sending the learner back a step");
   // The year group is not guessed. An unset one shows the honest "not at school"
   // answer rather than the field's own label sitting in the box as though the
@@ -11116,8 +11122,11 @@ console.log("▸ AI explains, never records");
   // exactly as a stored qualification already was (`needsSpec` has always said
   // so); `!specId` is what keeps the never-seeded rule intact — choosing a
   // DIFFERENT qualification is a new course and asks for its tier again.
-  ok(/const needsLevel = Boolean\(chosenSpec\) && chosenSpec!\.levels\.length > 1 && !levelAnswer;/.test(curSrc) &&
-     /const storedLevel = chosenSpec && !specId \? levelOf\(chosenSpec, storedCourse\?\.specLevel\) : null;/.test(curSrc) &&
+  // The tier list is the QUALIFICATION'S FOR THIS SUBJECT (`tiersForSubject`), and
+  // a stored tier counts only when this subject offers it — a GCSE "higher" left
+  // on a record that now points at IGCSE is not an answer to IGCSE's question.
+  ok(/const needsLevel = Boolean\(chosenSpec\) && tiers\.length > 1 && !levelAnswer;/.test(curSrc) &&
+     /const storedLevel = chosenSpec && !specId \? \(tiers\.find\(\(l\) => l\.id === storedCourse\?\.specLevel\) \?\? null\) : null;/.test(curSrc) &&
      /const levelAnswer = pickedLevel \?\? storedLevel \?\? gradeLevel;/.test(curSrc),
     "a tier is the learner's answer whether they picked it here or it is already stored, so choosing a qualification never enrols them at its first tier");
   // AND A TIER CHANGED ON ITS OWN MUST REACH THE COURSE THAT IS SAVED. `active`
@@ -11167,7 +11176,7 @@ console.log("▸ AI explains, never records");
     "and the qualification control opens empty when nothing is chosen, so picking the fallback is a real choice");
   ok(/disabled=\{!canSave\}/.test(curSrc) && curSrc.includes('fill(t("onb.needFields")'),
     "the button is disabled by that same gate and the screen names what it is waiting for");
-  ok(curSrc.includes('levelForGrade(chosenSpec, profile?.grade ?? "")') && curSrc.includes('t("onb.grade")'),
+  ok(curSrc.includes('tierForYear(chosenSpec, profile?.grade ?? "", subject)') && curSrc.includes('t("onb.grade")'),
     "and the year group is asked beside the course, so the gap card that sends a learner here can be closed");
 
   // ── Said once, where it is true ────────────────────────────────────────
@@ -12550,11 +12559,23 @@ console.log("▸ Every offered country can complete a course");
     const options = S.specOptionsFor(code, "maths", pathway);
     if (options.length === 0) { problems.push(`${code}: offers no qualification for maths`); continue; }
     const spec = options[0];
+    // THE YEAR IS THE COURSE'S, NOT THE COUNTRY'S. A qualification is offered by
+    // one pathway and its years are that pathway's (`pathwayForSpec`), so the
+    // fixture asks for a year of the route the QUALIFICATION leads to — the same
+    // rule `courseGaps` now applies. This fixture used to hand every country the
+    // first year of the pathway in force, which only agreed while the first
+    // qualification offered happened to belong to that pathway: for a country
+    // with no mapped route it offered Cambridge IGCSE (Years 10–13) and then
+    // declared "Foundations" (the skills pathway's band), and the assertion
+    // failed on the fixture's own assumption rather than on a blocked learner.
+    const courseRoute =
+      C.routeForPathwayId(code, R.pathwayForSpec(code, spec.id)?.id) ?? route;
+    if (courseRoute.grades.length === 0) problems.push(`${code}: ${spec.id} offers no years to choose`);
     const gaps = S.courseGaps(
       {
         country: code,
         pathway,
-        grade: route.grades[0],
+        grade: courseRoute.grades[0],
         subjects: ["maths"],
         subjectCourses: { maths: { spec: spec.id, specLevel: spec.levels[0].id } },
       },
@@ -12664,6 +12685,115 @@ console.log("▸ A country can run more than one education system");
     "and an Anglophone year is refused once the Francophone system is chosen");
   ok(cmGaps(undefined, "Form 5", "cm-gce-o", "form5").includes("pathway"),
     "with no system chosen, the course is incomplete and the gateway says which field is missing");
+
+  // ── A SCHOOL YEAR IS NOT AN EXAMINATION TIER ────────────────────────────
+  //
+  // Two concepts a learner answers, and the model keeps them apart: `grade` is the
+  // year their own system names ("Year 11", "Form 4", "Class 10"), `specLevel`
+  // is the tier the qualification examines at (Core/Extended, Foundation/Higher,
+  // SL/HL). The tests below draw every one of them FROM THE DATA — tier lists from
+  // `tiersForSubject`, year→tier links only where a level declares `schoolYears` —
+  // and assert that nothing is invented where the qualification has not said it.
+  {
+    const gcse = S.specById("uk-gcse");
+    const igcse = S.specById("int-igcse");
+    const ib = S.specById("int-ib");
+    const cbse = S.specById("in-cbse");
+    const kcse = S.specById("ke-kcse");
+    const indep = S.specById("any-independent");
+    const ids = (list) => list.map((l) => l.id).join(",");
+
+    // GCSE: two real tiers for maths, and a real choice at every GCSE year.
+    ok(ids(S.tiersForSubject(gcse, "maths")) === "foundation,higher",
+      "GCSE mathematics offers Foundation and Higher, read from the qualification");
+    ok(S.tierForYear(gcse, "Year 11", "maths") === null,
+      "and a GCSE Year 11 learner's tier is a choice the exam puts, not an inference from the year");
+    // ...but GCSE Computer Science is untiered, and the model says so rather than
+    // offering the science tiers to a subject no paper tiers.
+    ok(S.tiersForSubject(gcse, "computing").length === 0,
+      "GCSE Computer Science is untiered, and its tier list is empty rather than borrowed from mathematics");
+
+    // Cambridge IGCSE: international system #1. Core and Extended both span Years
+    // 10–11, so the year cannot answer the tier.
+    ok(ids(S.tiersForSubject(igcse, "maths")) === "core,extended",
+      "Cambridge IGCSE offers Core and Extended");
+    ok(S.tierForYear(igcse, "Year 11", "maths") === null,
+      "and its year groups do not decide between them");
+    ok(S.tierForYear(igcse, "Core", "maths") === null,
+      "a year that is not one of its years never resolves a tier, even when it shares a tier's name");
+
+    // IB: international system #2. MYP is Years 10–11; SL and HL share 12–13.
+    ok(S.tierForYear(ib, "Year 10", "maths")?.id === "myp",
+      "the IB's MYP is the declared tier for Years 10–11");
+    ok(S.tierForYear(ib, "Year 12", "maths") === null,
+      "while SL and HL share Years 12–13, so the tier is asked rather than guessed");
+    ok(ids(S.tiersForSubject(ib, "physics")) === "myp,sl,hl",
+      "and every IB subject is offered the tiers the qualification declares");
+
+    // National systems where the year IS the stage of the examination.
+    ok(S.tierForYear(cbse, "Class 10", "maths")?.id === "class10",
+      "a CBSE Class 10 learner sits the Class 10 course, because the qualification declares it");
+    ok(S.tierForYear(cbse, "Class 9", "maths")?.id === "class8-9",
+      "and Class 9 sits the Class 8–9 course");
+    ok(S.tierForYear(kcse, "Form 4", "maths")?.id === "form4",
+      "a KCSE Form 4 learner sits the Form 4 examination");
+    ok(S.tierForYear(kcse, "Class 10", "maths") === null,
+      "but another system's year is refused rather than matched across curricula");
+
+    // The independent pathway: its bands ARE its years, declared once.
+    ok(S.tierForYear(indep, "Core", "maths")?.id === "core",
+      "on the independent pathway a band is the year, and the link is declared once");
+    ok(ids(S.tiersForSubject(indep, "maths")) === "foundations,core,advanced",
+      "the independent pathway's three bands are all offered");
+
+    // AN INCOMPLETE COURSE IS NOT A CONFIRMED ONE. No tier on a course that has
+    // two is reported: the serving fallback is labelled, and the gate names it.
+    const noTier = S.resolveCourse(
+      { country: "GB", grade: "Year 11", subjects: ["maths"], subjectCourses: { maths: { spec: "uk-gcse" } } },
+      "maths",
+    );
+    ok(noTier.complete === false && noTier.gaps.includes("specLevel") && noTier.source === "fallback" && noTier.tier === null,
+      "a GCSE maths course with no tier is INCOMPLETE, and the fallback it serves with is labelled as one");
+    ok(S.courseSummaryFor(
+      { country: "GB", grade: "Year 11", subjects: ["maths"], subjectCourses: { maths: { spec: "uk-gcse" } } },
+      "maths",
+    ).tierConfirmed === false,
+      "and the summary a surface reads says the tier is not confirmed");
+
+    // A tier stored for a DIFFERENT course is not this course's answer.
+    const stale = S.resolveCourse(
+      { country: "XX", grade: "Year 10", subjects: ["maths"], subjectCourses: { maths: { spec: "int-igcse", specLevel: "higher" } } },
+      "maths",
+    );
+    ok(stale.tier === null && stale.gaps.includes("specLevel"),
+      "a GCSE tier left on a record that now points at IGCSE is refused, not carried over");
+
+    // An untiered subject needs no tier, and a stray one is not a gap.
+    const untiered = S.resolveCourse(
+      { country: "GB", grade: "Year 11", subjects: ["computing"], subjectCourses: { computing: { spec: "uk-gcse", specLevel: "foundation" } } },
+      "computing",
+    );
+    ok(untiered.tiers.length === 0 && !untiered.gaps.includes("specLevel"),
+      "an untiered subject is complete without a tier, and a stray stored one is not reported as a gap");
+
+    // THE COMPLETE COURSE STAYS COMPLETE — the backward-compatible reading of
+    // every record already in the store.
+    const complete = S.resolveCourse(
+      { country: "GB", grade: "Year 11", subjects: ["maths"], subjectCourses: { maths: { spec: "uk-gcse", specLevel: "higher" } } },
+      "maths",
+    );
+    ok(complete.complete === true && complete.tier?.id === "higher" && complete.source === "chosen" && complete.year === "Year 11",
+      "a course that answers both halves stays complete, with year and tier kept apart");
+
+    // AND THE SCREEN MAY NOT OUT-RUN THE MODEL. The depth card reads `active`,
+    // which falls back to the first tier for display — so it showed Foundation's
+    // 45% as "this depth for your tier" under a line saying the tier was still to
+    // choose. A guess wearing a number is the cosmetic fix this work exists to
+    // avoid, so the card waits for an answer.
+    const page = fs.readFileSync("app/curriculum/page.tsx", "utf8");
+    ok(/chosenSpec && !needsLevel && <section/.test(page) && /t\(\"curr\.untiered\"\)/.test(page),
+      "the depth figure and the untiered sentence both come after the model has an answer, never before it");
+  }
 
   // The international programmes are still there — as a choice.
   const intl = R.pathwayById("int-international");
@@ -12957,7 +13087,7 @@ console.log("▸ Home: one day, one decision");
 // these are claims about every render path.
 {
   const nav = fs.readFileSync("components/nav.tsx", "utf8");
-  const land = fs.readFileSync("app/page.tsx", "utf8");
+  const land = fs.readFileSync("app/page.tsx", "utf8") + fs.readFileSync("components/landing.tsx", "utf8");
   const concept = fs.readFileSync("app/learn/[subject]/[concept]/page.tsx", "utf8");
   const panel = fs.readFileSync("components/tutor-panel.tsx", "utf8");
   const dimsSrc = fs.readFileSync("components/dims.tsx", "utf8");
@@ -13133,6 +13263,23 @@ console.log("▸ Home: one day, one decision");
     "the subject rows measure their counts and depth from the content itself");
   ok(!/\d+\s*\{\s*t\("home\.concepts"\)/.test(land),
     "and no concept count is written into the page as a literal");
+
+  // THE MEASUREMENT COSTS THE VISITOR NOTHING. Counting the bank used to import
+  // it — ~553 KiB compressed of question templates in the landing page's first
+  // download, hoisted into the shared chunk so sign-up paid for it too. The route
+  // measures on the server now and the client half renders what it is given, so
+  // the pins are: the numbers are still MEASURED, and the client half imports
+  // neither the bank nor the genome.
+  {
+    const route = fs.readFileSync("app/page.tsx", "utf8");
+    const view = fs.readFileSync("components/landing.tsx", "utf8");
+    ok(!/^"use client"/m.test(route) && /bankDepth\(/.test(route) && /bySubject\(/.test(route),
+      "the landing numbers are measured on the server, so the visitor's download does not carry the bank");
+    ok(/^"use client"/m.test(view) && /<Landing\b/.test(route) && /subjectLevel=\{SUBJECT_LEVEL\}/.test(route),
+      "and the rendered page receives them as props from the route that counted them");
+    ok(!/from "@\/lib\/questions"/.test(view) && !/from "@\/lib\/genome"/.test(view) && !/from "@\/lib\/question-bank"/.test(view),
+      "the client half imports neither the question bank nor the genome, so neither can creep back into the first download");
+  }
   // Unknown is not zero, ON THE FRONT PAGE. What the product has not seen is
   // drawn as an empty ruled square — so the last thing a visitor reads before
   // signing up is the rule the whole engine is built on.
@@ -18018,6 +18165,69 @@ console.log("▸ A lesson's assessment can be marked, and a translation is whole
   for (const lesson of lessons) {
     for (const item of lesson.assessment) {
       if (!grading.isGradable(item)) continue;
+      if (item.structured) {
+        // A structured item is proved through the SAME marker the route uses:
+        // its authored keys must earn every mark, and nonsense must earn none.
+        // There is no single `answer`/`check` to compare here, so the generic
+        // key test below would otherwise read the item as a broken key.
+        const answers = item.structured.parts.map((part, partIndex) => {
+          if (part.response === "short") return (part.short ?? []).map((c) => c.accept[0] ?? "").join(" ");
+          if (part.response === "algebra") return part.algebra?.accepted[0] ?? "";
+          // A GRAPH KEY IS A LINE, NOT A SINGLE ANSWER. Feed two points that
+          // lie on the authored line and inside its grid; the marker compares
+          // the line those points define with the key.
+          if (part.response === "graph" && part.graph) {
+            const g = part.graph;
+            const xs = [g.xMin, g.xMax].filter((x) => {
+              const y = g.m * x + g.c;
+              return y >= g.yMin && y <= g.yMax;
+            });
+            const pair = xs.length >= 2 ? xs.slice(0, 2) : [g.xMin, g.xMin + 1];
+            return pair.map((x) => `${x},${g.m * x + g.c}`).join(" ");
+          }
+          // A PLOT KEY IS THE REQUIRED POINTS. The joining line is explicit so
+          // the B2/B1 scheme marks the same drawing the question asks for.
+          if (part.response === "plot" && part.plot) {
+            return JSON.stringify({ points: part.plot.points.map((p) => [p.x, p.y]), line: true });
+          }
+          // A READ-OFF FOLLOWS THE LEARNER'S EARLIER LINE. The answer here is
+          // the value on the line the previous part's answer defines, which is
+          // exactly what follow-through marking rewards.
+          if (part.response === "readoff" && part.readOff) {
+            const sourceIndex = item.structured.parts.findIndex((p) => p.id === part.readOff.from);
+            const source = item.structured.parts[sourceIndex];
+            const line = source?.response === "graph"
+              ? source.graph
+              : source?.response === "plot"
+                ? source.plot
+                : null;
+            return line ? String(line.m * part.readOff.at + line.c) : "";
+          }
+          if (part.response === "table" && part.table) {
+            const cells = part.table.rows.flatMap((row) =>
+              row.cells.filter((cell) => cell.answer !== undefined),
+            );
+            return JSON.stringify(cells.map((cell) => cell.accepted?.[0] ?? String(cell.answer)));
+          }
+          // A unit-bearing answer's authored key is its accepted form, not the
+          // bare number: "3" without "A" is correctly refused by the unit gate.
+          // Feed the complete authored key so this test checks the item against
+          // its own scheme rather than against a truncated answer the scheme
+          // deliberately rejects.
+          return part.accepted?.[0] ?? (part.answer === undefined ? "" : String(part.answer));
+        });
+        const working = item.structured.parts.map((part) => part.method?.accept[0] ?? "");
+        const full = grading.gradeStructuredAssessment(item, answers, working);
+        if (!full || full.awarded !== full.marks || full.parts.some((part) => !part.correct)) {
+          inconsistent.push(`${lesson.conceptId}/${item.id} rejects its own structured key`);
+        }
+        const blank = item.structured.parts.map(() => "\u0000 not an answer \u0000");
+        const none = grading.gradeStructuredAssessment(item, blank, item.structured.parts.map(() => ""));
+        if (!none || none.awarded !== 0) {
+          inconsistent.push(`${lesson.conceptId}/${item.id} accepts a nonsense structured answer`);
+        }
+        continue;
+      }
       if (grading.gradeAuthoredAssessment(item, item.modelAnswer) !== true) {
         inconsistent.push(`${lesson.conceptId}/${item.id} rejects its own model answer`);
       }
@@ -18141,8 +18351,158 @@ console.log("▸ Authored lessons meet the lesson contract");
   const nonzero = catalogue.totals.byStatus;
   ok((nonzero.published ?? 0) === 0 && (nonzero.learner_tested ?? 0) === 0 && (nonzero.educator_reviewed ?? 0) === 0,
     `no concept is claimed as reviewed, tested or published (${JSON.stringify({ published: nonzero.published ?? 0, learner_tested: nonzero.learner_tested ?? 0, educator_reviewed: nonzero.educator_reviewed ?? 0 })})`);
-  ok(catalogue.gaps.length > 0,
-    `the gaps are reported rather than hidden (${catalogue.gaps.length} concepts still need an authored lesson)`);
+  const unserved = catalogue.concepts.filter((c) => c.lesson === null);
+  ok(catalogue.gaps.length === unserved.length &&
+    unserved.every((c) => c.status === "outline" || c.status === "metadata_only"),
+    `the gaps are reported rather than hidden (${catalogue.gaps.length} reported, ${unserved.length} concepts without an authored lesson)`);
+}
+
+console.log("▸ A classroom decides how the lesson runs");
+{
+  // A teacher declares the room once and every lesson after it follows. The
+  // assertions below are the two rules that make that safe: derive ONLY from a
+  // declaration, and NAME what was defaulted when one is missing.
+  const cc = require("../.verify/classroom-context.js");
+  const empty = cc.normalizeClassroom({});
+  ok(empty.languages.length === 0 && empty.materials.length === 0 && empty.devices === undefined,
+    "an empty declaration invents nothing");
+  const gaps = cc.classroomGaps(empty);
+  ok(gaps.filter((g) => g.quick).map((g) => g.field).join(",") === "classSize,devices,internet,languages",
+    `the quick-start questions are the four that change the plan (${gaps.filter((g) => g.quick).length})`);
+  ok(!cc.classroomReady(empty), "an undeclared classroom is not called ready");
+  ok(cc.describeClassroom(empty) === "", "a class with no classroom recorded prints no classroom facts");
+
+  const junk = cc.normalizeClassroom({
+    classSize: 9999, devices: "sometimes", internet: "maybe", materials: ["printer", "rockets"],
+    access: ["low-vision", "telepathy"], languages: ["fr", "fr", "bad code!", "en"],
+  });
+  ok(junk.classSize === 500, `a class size is bounded, not trusted (${junk.classSize})`);
+  ok(junk.devices === undefined && junk.internet === undefined,
+    "a value outside the closed list is DROPPED, not coerced to the nearest option");
+  ok(junk.materials.join(",") === "printer" && junk.access.join(",") === "low-vision",
+    "unknown materials and needs are dropped rather than stored");
+  ok(junk.languages.join(",") === "fr,en",
+    `language codes are deduped and validated (${junk.languages.join(",")})`);
+
+  // THE CASE THE MISSION NAMES: 65 pupils, a board, no devices, no power.
+  const low = cc.normalizeClassroom({
+    classSize: 65, devices: "none", internet: "none", power: "none",
+    languages: ["fr", "wo", "en"], materials: [], access: ["low-vision"], mixedAge: true,
+  });
+  const lowPlan = cc.teachingPlan(low);
+  ok(lowPlan.delivery === "whole-class" && lowPlan.contextId === "no-student-devices",
+    `a room with no pupil device teaches whole-class (${lowPlan.delivery}/${lowPlan.contextId})`);
+  ok(lowPlan.pupilDevices === false && lowPlan.accounts === false,
+    "and assumes neither a pupil device nor a pupil account");
+  ok(lowPlan.printer === false && lowPlan.projector === false,
+    "no printer and no electricity means no printer and no projector");
+  ok(lowPlan.offline === true, "a room with no connection is planned offline");
+  ok(lowPlan.evidence.route === "teacher-observation",
+    `with no device and no printer, evidence is the teacher's observation (${lowPlan.evidence.route})`);
+  ok(lowPlan.adaptations.includes("large-class") && lowPlan.adaptations.includes("multilingual"),
+    `65 pupils and three languages are both adaptations (${lowPlan.adaptations.join(",")})`);
+  ok(lowPlan.groupSize === 6, `a large class is grouped at six, not at a pair (${lowPlan.groupSize})`);
+  ok(lowPlan.constraints.some((c) => c.includes("65")) && lowPlan.constraints.some((c) => c.includes("electricity")),
+    "the plan says why it will not project, or read sixty-five books in one lesson");
+  ok(lowPlan.languageSupport.some((s) => s.includes("fr")) && lowPlan.languageSupport.some((s) => s.includes("wo")),
+    "the language support names the instruction language and the discussion languages");
+  ok(lowPlan.constraints.some((c) => c.startsWith("Low vision:")),
+    "a declared access need becomes a delivery change, in words a teacher can act on");
+
+  // THE OTHER END: one device each, reliable, a printer and a projector.
+  const rich = cc.normalizeClassroom({
+    classSize: 24, devices: "one-per-pupil", internet: "reliable", power: "reliable",
+    languages: ["en"], materials: ["board", "textbooks", "printer", "projector"],
+  });
+  const richPlan = cc.teachingPlan(rich);
+  ok(richPlan.delivery === "individual" && richPlan.contextId === "individual-devices",
+    `a device each is individual learning (${richPlan.delivery}/${richPlan.contextId})`);
+  ok(richPlan.accounts === true && richPlan.evidence.route === "learner-accounts",
+    "and every answer is recorded against the pupil who entered it");
+  ok(richPlan.printer === true && richPlan.projector === true, "declared equipment is available to the plan");
+  ok(richPlan.assumed.length === 0,
+    `a fully declared room assumes nothing (${richPlan.assumed.join(",") || "none"})`);
+  ok(cc.classroomReady(rich), "and only that room is called ready");
+  ok(!richPlan.adaptations.includes("multilingual"), "one language is not a multilingual adaptation");
+
+  const shared = cc.teachingPlan(cc.normalizeClassroom({
+    classSize: 30, devices: "shared", internet: "intermittent", languages: ["en"], materials: ["board"],
+  }));
+  ok(shared.delivery === "shared-device", "a few shared devices is shared-device teaching");
+  ok(shared.evidence.route === "kiosk" && shared.evidence.sentence.includes("sync"),
+    "and an intermittent connection records a kiosk answer and syncs it when the connection returns");
+  ok(!shared.adaptations.includes("large-class"), "thirty pupils is not a large class by the plan's own bar");
+  ok(shared.adaptations.includes("limited-materials"), "a board on its own is a limited-materials room");
+
+  const noNet = cc.teachingPlan(cc.normalizeClassroom({
+    classSize: 12, devices: "one-per-pupil", internet: "none", languages: ["en"], materials: ["printer"],
+  }));
+  ok(noNet.delivery === "offline" && noNet.evidence.route === "printed-answers",
+    "a device each with no connection is an offline lesson with printed evidence, not a broken one");
+
+  const noPower = cc.teachingPlan(cc.normalizeClassroom({
+    classSize: 20, devices: "teacher-only", internet: "none", power: "none",
+    languages: ["en"], materials: ["projector", "printer"],
+  }));
+  ok(noPower.projector === false, "a projector in a room with no electricity is not a projector");
+
+  // The run-sheet mode must exist in the presenter's own list, or the plan names
+  // a room the presentation cannot actually run in.
+  const cs = require("../.verify/classroom-session.js");
+  const ids = cs.CLASSROOM_CONTEXTS.map((c) => c.id);
+  ok(["no-student-devices", "shared-devices", "individual-devices", "large-class", "multilingual", "limited-materials"].every((id) => ids.includes(id)),
+    `every mode the plan can name exists in the presenter's run of show (${ids.length} modes)`);
+  ok(lowPlan.adaptations.every((a) => ids.includes(a)),
+    "and every adaptation the planner adds is a mode the presenter knows");
+
+  // SOURCE PINS: the declaration has to reach the record, not only the screen.
+  const fs = require("fs");
+  const read = (p) => fs.readFileSync(p, "utf8");
+  const typesSrc = read("lib/types.ts");
+  ok(/classroom\?: ClassroomProfile/.test(typesSrc),
+    "the class record carries the classroom (lib/types.ts)");
+  const classesSrc = read("app/api/classes/route.ts");
+  ok(/classroomForStore\(body\.classroom\)/.test(classesSrc) && /normalizeClassroom/.test(classesSrc),
+    "the class door normalises the declaration instead of storing it raw");
+  const setupSrc = read("app/teacher/setup/page.tsx");
+  ok(/teachingPlan\(draft\)/.test(setupSrc) && /classroomGaps\(draft\)/.test(setupSrc),
+    "the setup page renders the plan the model derives, not a second calculation");
+  ok(setupSrc.includes("/key") && setupSrc.includes("Teacher guide (print)"),
+    "and it opens the worksheet, the guide and the key from one place");
+  ok(read("app/teacher/page.tsx").includes("/teacher/setup?class="),
+    "the teacher console links to the setup flow");
+}
+
+console.log("▸ Every authored lesson can be taught, and the guide keeps the answers out");
+{
+  const authored = require("../.verify/lessons/authored/index.js");
+  const teacherGuide = require("../.verify/teacher-guide.js");
+  const lessons = authored.AUTHORED_LESSONS;
+
+  // THE TEACHING MINIMUM. A lesson with an explanation and no assessment is a
+  // paragraph; one with questions and no worked example is a test. Each part is
+  // counted separately so a gap names itself instead of averaging away.
+  const incomplete = lessons.filter((l) =>
+    !(l.objectives.length && l.priorKnowledge.check.length && l.explanation.length &&
+      l.workedExamples.length && l.misconceptions.length && l.guidedPractice.length &&
+      l.assessment.length && l.transfer.length && l.summary.length));
+  ok(incomplete.length === 0,
+    `every authored lesson has objectives, prior knowledge, explanation, worked examples, misconceptions, guided practice, assessment, transfer and a summary (${lessons.length} lessons, ${incomplete.length} incomplete${incomplete.length ? ": " + incomplete.slice(0, 4).map((l) => l.conceptId).join(", ") : ""})`);
+
+  const guides = lessons.map((l) => ({ lesson: l, guide: teacherGuide.teacherGuideFor(l, l.conceptId, "no-student-devices") }));
+  ok(guides.every(({ guide }) => guide.sequence.length > 0 && guide.objectives.length > 0),
+    "every lesson produces a teacher run sheet with a sequence and objectives");
+  ok(guides.every(({ guide }) => guide.assessment.every((a) => !("modelAnswer" in a))),
+    "and the printable guide names no assessment answer — the separate key is the only marking copy");
+  ok(guides.every(({ guide }) => guide.groups.length > 0),
+    "every guide offers differentiated groups rather than one task for the class");
+
+  const plans = require("../.verify/lesson-plans.js");
+  const unplanned = lessons.filter((l) => !plans.planFor(l.conceptId, "en"));
+  ok(unplanned.every((l) => teacherGuide.teacherGuideFor(l, l.conceptId, "shared-devices").sequence.length > 0),
+    `an authored lesson without a written plan still yields a run sheet (${lessons.length - unplanned.length}/${lessons.length} have a plan; ${unplanned.length} teach from the lesson itself)`);
+  ok(plans.plannedConceptIds().length >= lessons.length,
+    "and the planned set covers the authored set, so a teacher is never sent to an unplanned lesson by the picker");
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

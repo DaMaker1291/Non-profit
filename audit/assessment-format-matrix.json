@@ -1,0 +1,5677 @@
+{
+  "generatedBy": "scripts/assessment-format-matrix.mjs",
+  "generatedAt": "2026-11-13T23:07:56.974Z",
+  "contract": "openmind.assessment-format-matrix/1.0",
+  "policy": {
+    "universal": [
+      "multiple-choice",
+      "short-answer",
+      "transfer"
+    ],
+    "constructedResponse": "recommended in maths, physics, chemistry and biology; Computing's contract does not permit this kind, so its written explanations are assessed through short-answer items with marking criteria",
+    "multipleChoice": "generated retrieval practice; recorded as a separate surface from authored items",
+    "numerical": "the lesson's worked examples or guided practice teach a calculation; a quantitative subject alone is not enough",
+    "graph": "the lesson teaches a graph/chart or names axes/gradient; present when an assessment plots or reads one, including a prose item that reads a named chart/graph",
+    "code": "computing",
+    "practical": "an experiment representation or explicit plan/measure/investigate language; present only when an assessment asks the learner to plan or measure",
+    "diagram": "a diagram is taught AND the lesson asks for labelling/structure; present only when an assessment asks for one",
+    "debugging": "computing lessons that teach debugging; present only when an assessment asks the learner to debug or trace a fault",
+    "optional": "gap-fill, matching, ordering and extra structured forms are useful but not compulsory"
+  },
+  "totals": {
+    "lessons": 135,
+    "withAllRecommended": 84,
+    "withMissingRecommended": 51,
+    "bySubject": {
+      "maths": {
+        "lessons": 67,
+        "withAllRecommended": 45,
+        "missingRecommended": 22
+      },
+      "physics": {
+        "lessons": 18,
+        "withAllRecommended": 12,
+        "missingRecommended": 6
+      },
+      "chemistry": {
+        "lessons": 16,
+        "withAllRecommended": 8,
+        "missingRecommended": 9
+      },
+      "biology": {
+        "lessons": 16,
+        "withAllRecommended": 2,
+        "missingRecommended": 23
+      },
+      "computing": {
+        "lessons": 18,
+        "withAllRecommended": 17,
+        "missingRecommended": 1
+      }
+    },
+    "byFormat": {
+      "multiple-choice": {
+        "recommended": 135,
+        "present": 135,
+        "missingRecommended": 0
+      },
+      "short-answer": {
+        "recommended": 135,
+        "present": 135,
+        "missingRecommended": 0
+      },
+      "constructed-response": {
+        "recommended": 117,
+        "present": 117,
+        "missingRecommended": 0
+      },
+      "numerical": {
+        "recommended": 76,
+        "present": 123,
+        "missingRecommended": 0
+      },
+      "structured": {
+        "recommended": 0,
+        "present": 4,
+        "missingRecommended": 0
+      },
+      "gap-fill": {
+        "recommended": 0,
+        "present": 1,
+        "missingRecommended": 0
+      },
+      "matching": {
+        "recommended": 0,
+        "present": 2,
+        "missingRecommended": 0
+      },
+      "ordering": {
+        "recommended": 0,
+        "present": 1,
+        "missingRecommended": 0
+      },
+      "diagram": {
+        "recommended": 19,
+        "present": 2,
+        "missingRecommended": 19
+      },
+      "graph": {
+        "recommended": 47,
+        "present": 17,
+        "missingRecommended": 30
+      },
+      "practical": {
+        "recommended": 14,
+        "present": 3,
+        "missingRecommended": 12
+      },
+      "code": {
+        "recommended": 18,
+        "present": 18,
+        "missingRecommended": 0
+      },
+      "debugging": {
+        "recommended": 9,
+        "present": 32,
+        "missingRecommended": 0
+      },
+      "transfer": {
+        "recommended": 135,
+        "present": 135,
+        "missingRecommended": 0
+      }
+    }
+  },
+  "lessons": [
+    {
+      "id": "fractions",
+      "subject": "maths",
+      "version": "1.1.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "debugging",
+        "diagram",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "variety": 8,
+      "numerical": true
+    },
+    {
+      "id": "electricity-circuits",
+      "subject": "physics",
+      "version": "1.0.0",
+      "title": "GCSE Physics",
+      "present": [
+        "constructed-response",
+        "diagram",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "structured",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "graph"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "debugging"
+      ],
+      "variety": 8,
+      "numerical": true
+    },
+    {
+      "id": "energy-conservation",
+      "subject": "physics",
+      "version": "1.0.0",
+      "title": "GCSE Physics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "graph"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "motion-graphs",
+      "subject": "physics",
+      "version": "1.2.0",
+      "title": "GCSE Physics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "structured",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 8,
+      "numerical": true
+    },
+    {
+      "id": "newton-laws",
+      "subject": "physics",
+      "version": "1.0.0",
+      "title": "GCSE Physics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "momentum",
+      "subject": "physics",
+      "version": "1.0.0",
+      "title": "GCSE Physics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "work-power",
+      "subject": "physics",
+      "version": "1.0.0",
+      "title": "GCSE Physics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "graph"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "light-optics",
+      "subject": "physics",
+      "version": "1.0.0",
+      "title": "GCSE Physics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "graph"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "sound-acoustics",
+      "subject": "physics",
+      "version": "1.0.0",
+      "title": "GCSE Physics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "magnetism",
+      "subject": "physics",
+      "version": "1.0.0",
+      "title": "GCSE Physics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "graph"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "em-induction",
+      "subject": "physics",
+      "version": "1.0.0",
+      "title": "GCSE Physics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": false
+    },
+    {
+      "id": "thermal-physics",
+      "subject": "physics",
+      "version": "1.0.0",
+      "title": "GCSE Physics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "pressure-fluids",
+      "subject": "physics",
+      "version": "1.0.0",
+      "title": "GCSE Physics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "atoms-nucleus",
+      "subject": "physics",
+      "version": "1.0.0",
+      "title": "GCSE Physics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": false
+    },
+    {
+      "id": "radioactivity",
+      "subject": "physics",
+      "version": "1.0.0",
+      "title": "GCSE Physics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": false
+    },
+    {
+      "id": "gravity-fields",
+      "subject": "physics",
+      "version": "1.0.0",
+      "title": "GCSE Physics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "astrophysics",
+      "subject": "physics",
+      "version": "1.0.0",
+      "title": "GCSE Physics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "waves-basics",
+      "subject": "physics",
+      "version": "1.0.0",
+      "title": "GCSE Physics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "equations-stoich",
+      "subject": "chemistry",
+      "version": "1.0.0",
+      "title": "GCSE Chemistry",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "photosynthesis",
+      "subject": "biology",
+      "version": "1.0.0",
+      "title": "GCSE Biology",
+      "present": [
+        "constructed-response",
+        "gap-fill",
+        "generated-practice",
+        "graph",
+        "matching",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "practical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "practical"
+      ],
+      "missingOptional": [
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 8,
+      "numerical": false
+    },
+    {
+      "id": "what-is-code",
+      "subject": "computing",
+      "version": "1.0.0",
+      "title": "GCSE Computer Science",
+      "present": [
+        "code",
+        "debugging",
+        "generated-practice",
+        "matching",
+        "multiple-choice",
+        "numerical",
+        "ordering",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "code",
+        "debugging",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "structured",
+        "diagram"
+      ],
+      "variety": 9,
+      "numerical": true
+    },
+    {
+      "id": "place-value",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "debugging",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram"
+      ],
+      "variety": 7,
+      "numerical": false
+    },
+    {
+      "id": "decimals",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "debugging",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram"
+      ],
+      "variety": 7,
+      "numerical": true
+    },
+    {
+      "id": "addition",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "subtraction",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "debugging",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram"
+      ],
+      "variety": 7,
+      "numerical": true
+    },
+    {
+      "id": "rounding",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "debugging",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram"
+      ],
+      "variety": 7,
+      "numerical": false
+    },
+    {
+      "id": "multiplication",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "diagram",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "diagram"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "division",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "debugging",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram"
+      ],
+      "variety": 7,
+      "numerical": true
+    },
+    {
+      "id": "negatives",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "debugging",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram"
+      ],
+      "variety": 7,
+      "numerical": true
+    },
+    {
+      "id": "order-ops",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "debugging",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram"
+      ],
+      "variety": 7,
+      "numerical": true
+    },
+    {
+      "id": "fraction-ops",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "percentages",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "quadratics",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 7,
+      "numerical": true
+    },
+    {
+      "id": "completing-square",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 7,
+      "numerical": true
+    },
+    {
+      "id": "cells",
+      "subject": "biology",
+      "version": "1.0.0",
+      "title": "GCSE Biology",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 5,
+      "numerical": false
+    },
+    {
+      "id": "forces-basics",
+      "subject": "physics",
+      "version": "1.0.0",
+      "title": "GCSE Physics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "practical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "practical"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "periodic-table",
+      "subject": "chemistry",
+      "version": "1.0.0",
+      "title": "GCSE Chemistry",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": false
+    },
+    {
+      "id": "compounds-mixtures",
+      "subject": "chemistry",
+      "version": "1.0.0",
+      "title": "GCSE Chemistry",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "diagram",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "diagram"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 5,
+      "numerical": false
+    },
+    {
+      "id": "algorithms-search",
+      "subject": "computing",
+      "version": "1.0.0",
+      "title": "GCSE Computer Science",
+      "present": [
+        "code",
+        "debugging",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "code",
+        "debugging",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram"
+      ],
+      "variety": 7,
+      "numerical": false
+    },
+    {
+      "id": "enzymes",
+      "subject": "biology",
+      "version": "1.0.0",
+      "title": "GCSE Biology",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "practical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "practical"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 7,
+      "numerical": true
+    },
+    {
+      "id": "atoms-elements",
+      "subject": "chemistry",
+      "version": "1.0.0",
+      "title": "GCSE Chemistry",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "variables",
+      "subject": "computing",
+      "version": "1.0.0",
+      "title": "GCSE Computer Science",
+      "present": [
+        "code",
+        "debugging",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "code",
+        "debugging",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram"
+      ],
+      "variety": 7,
+      "numerical": false
+    },
+    {
+      "id": "diffusion",
+      "subject": "biology",
+      "version": "1.0.0",
+      "title": "GCSE Biology",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "practical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "graph",
+        "practical"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 5,
+      "numerical": false
+    },
+    {
+      "id": "electron-shells",
+      "subject": "chemistry",
+      "version": "1.0.0",
+      "title": "GCSE Chemistry",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": false
+    },
+    {
+      "id": "loops",
+      "subject": "computing",
+      "version": "1.0.0",
+      "title": "GCSE Computer Science",
+      "present": [
+        "code",
+        "debugging",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "code",
+        "debugging",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram"
+      ],
+      "variety": 7,
+      "numerical": false
+    },
+    {
+      "id": "respiration",
+      "subject": "biology",
+      "version": "1.0.0",
+      "title": "GCSE Biology",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "diagram",
+        "multiple-choice",
+        "practical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "practical",
+        "diagram"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 5,
+      "numerical": false
+    },
+    {
+      "id": "breathing-gas",
+      "subject": "biology",
+      "version": "1.0.0",
+      "title": "GCSE Biology",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "diagram",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "practical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "graph",
+        "practical",
+        "diagram"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "digestion",
+      "subject": "biology",
+      "version": "1.0.0",
+      "title": "GCSE Biology",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "diagram",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "graph",
+        "diagram"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "microscopy",
+      "subject": "biology",
+      "version": "1.0.0",
+      "title": "GCSE Biology",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "diagram",
+        "multiple-choice",
+        "numerical",
+        "practical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "practical",
+        "diagram"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "conditionals",
+      "subject": "computing",
+      "version": "1.0.0",
+      "title": "GCSE Computer Science",
+      "present": [
+        "code",
+        "debugging",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "code",
+        "debugging",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram"
+      ],
+      "variety": 7,
+      "numerical": false
+    },
+    {
+      "id": "binary-data",
+      "subject": "computing",
+      "version": "1.0.0",
+      "title": "GCSE Computer Science",
+      "present": [
+        "code",
+        "debugging",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "code",
+        "debugging",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram"
+      ],
+      "variety": 7,
+      "numerical": true
+    },
+    {
+      "id": "lists-arrays",
+      "subject": "computing",
+      "version": "1.0.0",
+      "title": "GCSE Computer Science",
+      "present": [
+        "code",
+        "debugging",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "code",
+        "debugging",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram"
+      ],
+      "variety": 7,
+      "numerical": false
+    },
+    {
+      "id": "functions-code",
+      "subject": "computing",
+      "version": "1.0.0",
+      "title": "GCSE Computer Science",
+      "present": [
+        "code",
+        "debugging",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "code",
+        "debugging",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram"
+      ],
+      "variety": 7,
+      "numerical": false
+    },
+    {
+      "id": "dictionaries",
+      "subject": "computing",
+      "version": "1.0.0",
+      "title": "GCSE Computer Science",
+      "present": [
+        "code",
+        "debugging",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "code",
+        "debugging",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram"
+      ],
+      "variety": 7,
+      "numerical": false
+    },
+    {
+      "id": "algebra-expressions",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": false
+    },
+    {
+      "id": "linear-equations",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "angles-lines",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "area-perimeter",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "averages",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "coordinates",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 7,
+      "numerical": false
+    },
+    {
+      "id": "data-charts",
+      "subject": "maths",
+      "version": "1.1.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "structured",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 8,
+      "numerical": true
+    },
+    {
+      "id": "indices-intro",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": false
+    },
+    {
+      "id": "probability-basics",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "debugging",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram"
+      ],
+      "variety": 7,
+      "numerical": false
+    },
+    {
+      "id": "ratio",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "debugging",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "diagram",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "diagram"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram"
+      ],
+      "variety": 7,
+      "numerical": true
+    },
+    {
+      "id": "proportion",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "graph"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": false
+    },
+    {
+      "id": "sequences",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "debugging",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "graph"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram"
+      ],
+      "variety": 7,
+      "numerical": false
+    },
+    {
+      "id": "biodiversity",
+      "subject": "biology",
+      "version": "1.0.0",
+      "title": "GCSE Biology",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "practical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "practical"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "circulation",
+      "subject": "biology",
+      "version": "1.0.0",
+      "title": "GCSE Biology",
+      "present": [
+        "constructed-response",
+        "debugging",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "diagram",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "practical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "graph",
+        "practical",
+        "diagram"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram"
+      ],
+      "variety": 7,
+      "numerical": true
+    },
+    {
+      "id": "ecosystems",
+      "subject": "biology",
+      "version": "1.0.0",
+      "title": "GCSE Biology",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "diagram",
+        "multiple-choice",
+        "numerical",
+        "practical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "practical",
+        "diagram"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "evolution",
+      "subject": "biology",
+      "version": "1.0.0",
+      "title": "GCSE Biology",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "practical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "practical"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "genetics",
+      "subject": "biology",
+      "version": "1.0.0",
+      "title": "GCSE Biology",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "practical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "practical"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "hormones",
+      "subject": "biology",
+      "version": "1.0.0",
+      "title": "GCSE Biology",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "diagram",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "diagram"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": false
+    },
+    {
+      "id": "immune-health",
+      "subject": "biology",
+      "version": "1.0.0",
+      "title": "GCSE Biology",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": false
+    },
+    {
+      "id": "nervous-system",
+      "subject": "biology",
+      "version": "1.0.0",
+      "title": "GCSE Biology",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "practical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "diagram",
+        "multiple-choice",
+        "numerical",
+        "practical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "diagram"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 7,
+      "numerical": true
+    },
+    {
+      "id": "acids-bases",
+      "subject": "chemistry",
+      "version": "1.0.0",
+      "title": "GCSE Chemistry",
+      "present": [
+        "constructed-response",
+        "debugging",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "diagram",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "diagram"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram"
+      ],
+      "variety": 7,
+      "numerical": true
+    },
+    {
+      "id": "covalent-bonding",
+      "subject": "chemistry",
+      "version": "1.0.0",
+      "title": "GCSE Chemistry",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "diagram",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "diagram"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": false
+    },
+    {
+      "id": "electrolysis",
+      "subject": "chemistry",
+      "version": "1.0.0",
+      "title": "GCSE Chemistry",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "energy-changes",
+      "subject": "chemistry",
+      "version": "1.1.0",
+      "title": "GCSE Chemistry",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "practical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "diagram",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "diagram"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 7,
+      "numerical": true
+    },
+    {
+      "id": "analysis-tests",
+      "subject": "chemistry",
+      "version": "1.0.0",
+      "title": "GCSE Chemistry",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "diagram",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "graph",
+        "diagram"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "ionic-bonding",
+      "subject": "chemistry",
+      "version": "1.0.0",
+      "title": "GCSE Chemistry",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "diagram",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "diagram"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": false
+    },
+    {
+      "id": "metallic-bonding",
+      "subject": "chemistry",
+      "version": "1.0.0",
+      "title": "GCSE Chemistry",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "diagram",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "diagram"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": false
+    },
+    {
+      "id": "moles-calcs",
+      "subject": "chemistry",
+      "version": "1.0.0",
+      "title": "GCSE Chemistry",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "organic-intro",
+      "subject": "chemistry",
+      "version": "1.0.0",
+      "title": "GCSE Chemistry",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "diagram",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "diagram"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "equilibria",
+      "subject": "chemistry",
+      "version": "1.0.0",
+      "title": "A-level Chemistry",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "rates-reaction",
+      "subject": "chemistry",
+      "version": "1.1.0",
+      "title": "GCSE Chemistry",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "practical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "practical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 8,
+      "numerical": true
+    },
+    {
+      "id": "standard-form",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "diagram",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "diagram"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "algebra-expand",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": false
+    },
+    {
+      "id": "straight-lines",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "debugging",
+        "generated-practice",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram"
+      ],
+      "variety": 8,
+      "numerical": true
+    },
+    {
+      "id": "inequalities",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "debugging",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram"
+      ],
+      "variety": 7,
+      "numerical": true
+    },
+    {
+      "id": "surds",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "debugging",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram"
+      ],
+      "variety": 7,
+      "numerical": false
+    },
+    {
+      "id": "simultaneous",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 7,
+      "numerical": true
+    },
+    {
+      "id": "sim-equations-quad",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "debugging",
+        "generated-practice",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram"
+      ],
+      "variety": 8,
+      "numerical": true
+    },
+    {
+      "id": "functions",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "graph"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "trig-ratios",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "debugging",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "graph"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram"
+      ],
+      "variety": 7,
+      "numerical": false
+    },
+    {
+      "id": "trig-identity",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "graph"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "circle-theorems",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": false
+    },
+    {
+      "id": "pythagoras",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "debugging",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram"
+      ],
+      "variety": 7,
+      "numerical": true
+    },
+    {
+      "id": "volume",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "transformations",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 7,
+      "numerical": false
+    },
+    {
+      "id": "vectors",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": false
+    },
+    {
+      "id": "tree-diagrams",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": false
+    },
+    {
+      "id": "scatter-correlation",
+      "subject": "maths",
+      "version": "1.1.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "debugging",
+        "generated-practice",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "structured",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "diagram"
+      ],
+      "variety": 9,
+      "numerical": true
+    },
+    {
+      "id": "ai-basics",
+      "subject": "computing",
+      "version": "1.0.0",
+      "title": "GCSE Computer Science",
+      "present": [
+        "code",
+        "debugging",
+        "generated-practice",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "code",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram"
+      ],
+      "variety": 6,
+      "numerical": false
+    },
+    {
+      "id": "algorithms-sort",
+      "subject": "computing",
+      "version": "1.0.0",
+      "title": "GCSE Computer Science",
+      "present": [
+        "code",
+        "debugging",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "code",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram"
+      ],
+      "variety": 7,
+      "numerical": false
+    },
+    {
+      "id": "complexity",
+      "subject": "computing",
+      "version": "1.0.0",
+      "title": "GCSE Computer Science",
+      "present": [
+        "code",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "code",
+        "graph",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "graph"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": false
+    },
+    {
+      "id": "cybersecurity",
+      "subject": "computing",
+      "version": "1.0.0",
+      "title": "GCSE Computer Science",
+      "present": [
+        "code",
+        "generated-practice",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "code",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 5,
+      "numerical": false
+    },
+    {
+      "id": "databases-sql",
+      "subject": "computing",
+      "version": "1.0.0",
+      "title": "GCSE Computer Science",
+      "present": [
+        "code",
+        "generated-practice",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "code",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 5,
+      "numerical": false
+    },
+    {
+      "id": "networks",
+      "subject": "computing",
+      "version": "1.0.0",
+      "title": "GCSE Computer Science",
+      "present": [
+        "code",
+        "generated-practice",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "code",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 5,
+      "numerical": false
+    },
+    {
+      "id": "recursion",
+      "subject": "computing",
+      "version": "1.0.0",
+      "title": "GCSE Computer Science",
+      "present": [
+        "code",
+        "debugging",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "code",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram"
+      ],
+      "variety": 7,
+      "numerical": false
+    },
+    {
+      "id": "statistics-data",
+      "subject": "computing",
+      "version": "1.0.0",
+      "title": "GCSE Computer Science",
+      "present": [
+        "code",
+        "generated-practice",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "code",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 7,
+      "numerical": true
+    },
+    {
+      "id": "web-stack",
+      "subject": "computing",
+      "version": "1.0.0",
+      "title": "GCSE Computer Science",
+      "present": [
+        "code",
+        "generated-practice",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "code",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 5,
+      "numerical": false
+    },
+    {
+      "id": "polynomials",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "graph"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": false
+    },
+    {
+      "id": "binomial",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "graph"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": false
+    },
+    {
+      "id": "trig-rule",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "circle-area-arc",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "graph"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "mixture-problems",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "graph"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "growth-decay",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "graph"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": false
+    },
+    {
+      "id": "logs",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "graph"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "calculus-diff",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "graph"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "calculus-int",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "graph"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": false
+    },
+    {
+      "id": "kinematics",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 7,
+      "numerical": true
+    },
+    {
+      "id": "proof",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": false
+    },
+    {
+      "id": "matrices-intro",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": false
+    },
+    {
+      "id": "sets-venn",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "graph"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": false
+    },
+    {
+      "id": "financial-maths",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "graph"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "bounds",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": false
+    },
+    {
+      "id": "loci-constructions",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "graph"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 5,
+      "numerical": false
+    },
+    {
+      "id": "bearings",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "graph"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": false
+    },
+    {
+      "id": "proportional-graphs",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 7,
+      "numerical": true
+    },
+    {
+      "id": "quadratic-graphs",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "graph",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 7,
+      "numerical": false
+    },
+    {
+      "id": "algebraic-fractions",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "iteration",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "graph"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": false
+    },
+    {
+      "id": "circle-geometry-adv",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "graph",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [
+        "graph"
+      ],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": false
+    },
+    {
+      "id": "number-bases",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "numerical",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 6,
+      "numerical": true
+    },
+    {
+      "id": "logic-maths",
+      "subject": "maths",
+      "version": "1.0.0",
+      "title": "GCSE Mathematics",
+      "present": [
+        "constructed-response",
+        "generated-practice",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "recommended": [
+        "constructed-response",
+        "multiple-choice",
+        "short-answer",
+        "transfer"
+      ],
+      "optional": [
+        "debugging",
+        "diagram",
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured"
+      ],
+      "missingRecommended": [],
+      "missingOptional": [
+        "gap-fill",
+        "matching",
+        "ordering",
+        "structured",
+        "diagram",
+        "debugging"
+      ],
+      "variety": 5,
+      "numerical": false
+    }
+  ]
+}

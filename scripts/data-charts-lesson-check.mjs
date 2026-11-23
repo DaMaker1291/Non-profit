@@ -34,7 +34,7 @@ const share = (count, total) => count / total;
 // ── Shape and honesty ────────────────────────────────────────────────────────
 ok(lesson.conceptId === "data-charts", "the lesson is for data-charts");
 ok(lesson.contract === "openmind.lesson/1.0", "the lesson uses the current contract");
-ok(lesson.version === "1.0.0", "the lesson version is 1.0.0");
+ok(lesson.version === "1.1.0", "the lesson version is 1.1.0");
 ok(lesson.declaredStatus === "draft", "the lesson declares draft, not a reviewed rung");
 ok(lesson.reviews.length === 0, "the lesson claims no subject-teacher review");
 ok(lesson.learnerTesting.length === 0, "the lesson claims no learner testing");
@@ -61,7 +61,7 @@ ok(lesson.workedExamples.every((example) => example.steps.every((step) => step.w
   "every move states a reason, not only an instruction");
 ok(lesson.misconceptions.length === 3, "there are three misconceptions taught");
 ok(lesson.guidedPractice.length === 3, "there are three guided practice items");
-ok(lesson.assessment.length === 3, "there are three assessment items");
+ok(lesson.assessment.length === 4, "there are four assessment items");
 ok(lesson.assessment.some((item) => item.kind === "constructed-response"),
   "at least one assessment asks for reasoning in words");
 ok(lesson.assessment.filter((item) => item.kind === "short-answer")
@@ -159,6 +159,7 @@ ok(lesson.guidedPractice[2].answer.includes("11.5%"),
 const a1 = lesson.assessment.find((item) => item.id === "a1");
 const a2 = lesson.assessment.find((item) => item.id === "a2");
 const a3 = lesson.assessment.find((item) => item.id === "a3");
+const a4 = lesson.assessment.find((item) => item.id === "a4");
 const a1Data = { bus: 80, walk: 50, car: 40, cycle: 30 };
 const a1Total = sum(Object.values(a1Data));
 ok(a1Total === 200, "a1's survey totals 200 learners");
@@ -181,6 +182,17 @@ ok(a3 && close(116 - 108, 8), "a3's true difference is 8");
 ok(a3?.check.accepted.some((answer) => answer.trim() === "8"), "a3 accepts 8");
 ok(a2?.marking.length >= 2 && a3?.marking.length >= 2,
   "the short-answer items carry marking criteria, not only a key");
+ok(a4?.kind === "structured" && a4.structured?.parts[0]?.response === "table",
+  "a4 is a structured table item, not another prose question");
+const angleCells = a4?.structured?.parts[0]?.table?.rows[1]?.cells ?? [];
+ok(angleCells.length === 3 && angleCells.every((cell) => cell.answer !== undefined),
+  "a4's table has one answer cell per travel category");
+ok(close(sum(angleCells.map((cell) => Number(cell.answer))), 360),
+  "a4's three table answers sum to 360°");
+ok(close(angleCells[0]?.answer, 90) && close(angleCells[1]?.answer, 180) && close(angleCells[2]?.answer, 90),
+  "a4's table answers are the three computed pie angles");
+ok(a4?.structured?.parts[0]?.table?.rows[0]?.cells.every((cell) => cell.given !== undefined),
+  "a4 prints the counts but leaves the angles blank for the learner");
 
 // ── Transfer: counts against shares ─────────────────────────────────────────
 const schoolA = { total: 400, cyclists: 40 };

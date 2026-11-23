@@ -56,7 +56,7 @@ const lessons = authored.AUTHORED_LESSONS.map((lesson) => {
   const steps = lesson.workedExamples.flatMap((example) => example.steps);
   const unscored = lesson.assessment.filter((item) => item.scored === false).length;
   const gradable = lesson.assessment.filter(
-    (item) => item.scored !== false && (item.check || item.kind === "code"),
+    (item) => item.scored !== false && (item.check || item.structured || item.kind === "code"),
   ).length;
   // Constructed responses include the explicitly unscored reflection: a1 is
   // still a constructed response, but it is not a graded item and is reported

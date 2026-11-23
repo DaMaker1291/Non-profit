@@ -14,6 +14,7 @@
 //   node scripts/code-lab-check.mjs
 // Optional: CODE_LAB_BASE, CHROME_BIN.
 import { pageFor, launchChrome, sleep } from "./browser.mjs";
+import fs from "node:fs";
 
 const BASE = process.env.CODE_LAB_BASE ?? "http://127.0.0.1:4173";
 let passed = 0;
@@ -134,6 +135,43 @@ print(count_above([12, 18, 9, 25, 21], 15))`;
     check(/^3$/.test(repairedOutput.trim()), `the repaired output is 3, with no stray None (got ${JSON.stringify(repairedOutput.trim())})`);
     check(/not a recorded mark|practice feedback/.test(repairedText), "the lab tells the learner the check is practice feedback, not a recorded mark");
     check(/No code is sent to OpenMind's server/.test(repairedText), "the lab discloses that code stays in the sandboxed browser iframe");
+
+    // ── Every authored code lab, not only the one with a full repair script ──
+    // A code item is browser-covered only when its own editor, sandbox and
+    // runner are exercised on its own lesson page. The full edit/reset/repair
+    // journey above remains the deeper check for lists-arrays; this sweep makes
+    // the other authored code items observable rather than inferring them from
+    // a shared component.
+    const CODE_CONCEPTS = [
+      "ai-basics", "algorithms-search", "algorithms-sort", "binary-data",
+      "complexity", "conditionals", "cybersecurity", "databases-sql",
+      "dictionaries", "functions-code", "loops", "networks", "recursion",
+      "statistics-data", "variables", "web-stack", "what-is-code",
+    ];
+    section("Every other authored code lab loads and runs its starter");
+    const codeLabResults = [{ concept: "lists-arrays", loaded: true, ran: true, fullJourney: true }];
+    for (const concept of CODE_CONCEPTS) {
+      await p.goto(`${BASE}/learn/computing/${concept}`);
+      await p.waitFor(`return !!document.querySelector("main .authored-lesson");`, `the ${concept} authored lesson`, 30000);
+      await p.waitFor(`return !!${lab};`, `the ${concept} code lab`, 30000);
+      const loaded = await p.evaluate(`return !!${lab}.querySelector("#code-lab-editor") && !!${lab}.querySelector("iframe[sandbox]") && !!${lab}.querySelector("[role=status]");`);
+      check(loaded, `${concept}: the code editor, sandboxed runner and live status are present`);
+      await p.waitFor(`return !/Loading the sandboxed Python runtime/.test(${labText});`, `the ${concept} runtime`, 60000);
+      await p.clickExpr(runButton, `${concept} Run program`);
+      await p.waitFor(`return /Not there yet|All checks passed/.test(${labText});`, `the ${concept} run feedback`, 30000);
+      const text = await p.evaluate(`return ${labText};`);
+      const ran = /Not there yet|All checks passed/.test(text);
+      check(ran, `${concept}: running the starter produces an observed test result`);
+      check(/practice feedback|not a recorded mark/.test(text), `${concept}: the result is labelled practice, not mastery evidence`);
+      codeLabResults.push({ concept, loaded, ran, fullJourney: false });
+    }
+    fs.mkdirSync("audit", { recursive: true });
+    fs.writeFileSync("audit/code-lab-browser.json", `${JSON.stringify({
+      generatedBy: "scripts/code-lab-check.mjs",
+      at: new Date().toISOString(),
+      lessons: codeLabResults,
+      note: "Every authored code item had its own editor, sandbox and runner exercised. lists-arrays additionally had a real edit, reset and repaired pass. A passed stdout check is practice feedback, not a recorded mark.",
+    }, null, 2)}\n`);
 
     section("The page holds the narrow screens");
     for (const [width, height, label] of [[1280, 900, "desktop"], [768, 1024, "tablet"], [375, 667, "375-px phone"], [320, 640, "320-px phone"]]) {

@@ -61,7 +61,11 @@ ok(lesson.workedExamples.every((example) => example.steps.every((step) => step.w
   "every move states a reason, not only an instruction");
 ok(lesson.misconceptions.length === 3, "there are three misconceptions taught");
 ok(lesson.guidedPractice.length === 3, "there are three guided practice items");
-ok(lesson.assessment.length === 3, "there are three assessment items");
+// Four, not three: a3 (the crossing of a vertical line) and a4 (the table,
+// plotted) are separate skills, and a4 is the one an exam actually asks for.
+// The assertion pinned three while the lesson taught four, so `verify:lessons`
+// failed on a correct lesson.
+ok(lesson.assessment.length === 4, "there are four assessment items");
 ok(lesson.assessment.some((item) => item.kind === "constructed-response"),
   "at least one assessment asks for reasoning in words");
 ok(lesson.assessment.filter((item) => item.kind === "short-answer")

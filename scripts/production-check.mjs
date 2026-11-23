@@ -188,6 +188,11 @@ record("question coverage", contentOk, "npm run verify:q — every generated que
 const releaseOk = runScript("verify:content-release");
 record("content release version", releaseOk, "the served content matches the published version");
 
+// A school-local mirror is a release artefact too: the export must be complete,
+// checksummed from disk, free of learner records/keys, and served read-only.
+const localContentOk = runScript("verify:local-content");
+record("school-local content mirror", localContentOk, "npm run verify:local-content — export, SHA-256, no accounts/keys, read-only HTTP");
+
 // The curriculum-integrity gate (§7): the country → education-system → years →
 // qualifications registry. It fails when a pathway names a course nobody can be
 // enrolled in, when a year list has a hole, when a pathway claims research it
@@ -391,8 +396,20 @@ section("6 · accessibility smoke (real browser)");
 if (process.env.OPENMIND_CHECK_UI === "1") {
   const uiOk = runScript("verify:ui", { UI_WALK_BASE: DEV_BASE, OPENMIND_DATA_DIR: devData });
   record("accessibility / UI walk", uiOk, "npm run verify:ui (Chrome)");
+  // These three browser journeys are print, offline assessment and measured
+  // low-bandwidth delivery. They run against the PRODUCTION artefact, not the
+  // dev server, because that is the bundle a school would receive.
+  const printOk = runScript("verify:print", { PRINT_BASE: PROD_BASE });
+  record("print / paper browser walk", printOk, "npm run verify:print — Chrome print-to-PDF, table, plot and separate key");
+  const offlineAssessOk = runScript("verify:offline-assessment-browser", { OPENMIND_BASE: PROD_BASE });
+  record("offline assessment browser walk", offlineAssessOk, "npm run verify:offline-assessment-browser — restart, local marking, one sync");
+  const bandwidthOk = runScript("verify:bandwidth", { BANDWIDTH_BASE: PROD_BASE });
+  record("measured low-bandwidth delivery", bandwidthOk, "npm run verify:bandwidth — 2G/3G emulation with the cache disabled");
 } else {
   skip("accessibility / UI walk", "set OPENMIND_CHECK_UI=1 (needs Chrome installed)");
+  skip("print / paper browser walk", "set OPENMIND_CHECK_UI=1 (needs Chrome installed)");
+  skip("offline assessment browser walk", "set OPENMIND_CHECK_UI=1 (needs Chrome installed)");
+  skip("measured low-bandwidth delivery", "set OPENMIND_CHECK_UI=1 (needs Chrome installed)");
 }
 
 // ── 7. What this deployment does NOT have ───────────────────────────────────

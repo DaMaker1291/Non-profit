@@ -495,7 +495,17 @@ for (const [label, path] of [
 
 // SETTING THE CLASS'S WORK, and the needs door that proposes it.
 const due = Date.now() + 86_400_000;
-wouldPass("set work, by the owner account", await ask("owner", "/api/assignments", { body: { action: "create", clsId, conceptIds: ["fractions"], dueAt: due } }));
+// The owner reaches the CONTENT review gate, not the authority gate. No lesson
+// has a qualified-teacher approval yet (`PILOT_APPROVALS` is empty), so the
+// truthful answer is the review refusal. Treating this as "allowed" would
+// either demand an approval that does not exist or weaken the gate; the
+// assertion is that authority succeeded and the refusal names the real reason.
+{
+  const ownerAssign = await ask("owner", "/api/assignments", { body: { action: "create", clsId, conceptIds: ["fractions"], dueAt: due } });
+  ok(ownerAssign.status === 400 && /not yet approved for a class/.test(ownerAssign.body?.error ?? ""),
+    "set work, by the owner account reaches the content-review gate",
+    `status ${ownerAssign.status}: ${ownerAssign.body?.error ?? ""}`);
+}
 wouldBe("set work, by another teacher", await ask("foreign", "/api/assignments", { body: { action: "create", clsId, conceptIds: ["ratio"], dueAt: due } }), 403, "not_the_teacher");
 wouldBe("set work, by the teacher's own capability", await ask("teacherCapability", "/api/assignments", { body: { action: "create", clsId, conceptIds: ["ratio"], dueAt: due } }), 401, "teacher_account_required");
 wouldBe("set work, by a classroom session", await ask("kiosk", "/api/assignments", { body: { action: "create", clsId, conceptIds: ["ratio"], dueAt: due } }), 401, "teacher_account_required");

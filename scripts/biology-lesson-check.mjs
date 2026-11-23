@@ -58,9 +58,15 @@ function normalized(value) {
   return String(value).toLowerCase().replace(/[^a-z0-9]+/g, "");
 }
 
+// The assessment count is pinned PER LESSON rather than at a shared 4. The
+// shared assertion was wrong for digestion, which carries five items because
+// its fifth is the surface-area calculation the lesson teaches and the other
+// four are recall; it failed `npm run verify:lessons` for as long as the item
+// existed. Pinning the count keeps the guarantee (an item cannot disappear
+// silently) without forcing the two lessons to have the same length.
 for (const [id, lesson, expected] of [
-  ["digestion", digest, { misconceptions: 4, minParagraphs: 15 }],
-  ["microscopy", microscopy, { misconceptions: 3, minParagraphs: 11 }],
+  ["digestion", digest, { misconceptions: 4, minParagraphs: 15, assessments: 5 }],
+  ["microscopy", microscopy, { misconceptions: 3, minParagraphs: 11, assessments: 4 }],
 ]) {
   ok(Boolean(lesson), `${id}: an authored lesson exists`);
   if (!lesson) continue;
@@ -81,7 +87,7 @@ for (const [id, lesson, expected] of [
   ok(lesson.misconceptions.every((item) => item.whyItFails.length > 60 && item.correction.length > 40), `${id}: every misconception explains why it fails and what replaces it`);
   ok(lesson.guidedPractice.length === 3, `${id}: has three guided practice items`);
   ok(lesson.guidedPractice.every((item) => item.hint.length > 20 && item.feedback.correct.length > 20 && item.feedback.incorrect.length > 20), `${id}: every guided item has a hint and two feedback paths`);
-  ok(lesson.assessment.length === 4, `${id}: has four assessment items`);
+  ok(lesson.assessment.length === expected.assessments, `${id}: has ${expected.assessments} assessment items`);
   ok(lesson.assessment.every((item) => item.marking.length >= 2), `${id}: every assessment item has at least two marking criteria`);
   ok(lesson.transfer.length === 1, `${id}: has a transfer task`);
   ok(lesson.transfer.every((item) => item.whyItTransfers.length > 60 && item.marking.length >= 2), `${id}: the transfer task explains what transfers and how it is marked`);

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ─────────────────────────────────────────────────────────────────────────────
-// RATIO / PROPORTION / SEQUENCES — the server path, and what the store kept.
+// RATIO / PROPORTION / SEQUENCES / SCATTER — the server path, and what the store kept.
 //
 // The browser walk proves the rendered controls accept a submission. The
 // arithmetic gate proves the keys independently. Neither proves that a
@@ -10,6 +10,7 @@
 //   • correct submissions for each lesson are marked server-side;
 //   • a wrong submission is recorded as a wrong attempt, not discarded;
 //   • lessonCheck counts are per concept, not one shared counter;
+//   • a four-mark structured item returns its parts and records partial credit;
 //   • the evidence ledger has one event per submission, independent and hint-free;
 //   • a wrong capability secret is refused.
 //
@@ -80,7 +81,7 @@ ok(
   `a scratch learner was created (HTTP ${created.status})`,
 );
 
-const check = (conceptId, itemId, answer, secret = liveSecret) =>
+const check = (conceptId, itemId, answer, secret = liveSecret, extra = {}) =>
   call(
     "/api/progress",
     json({
@@ -89,6 +90,7 @@ const check = (conceptId, itemId, answer, secret = liveSecret) =>
       conceptId,
       itemId,
       answer,
+      ...extra,
       secret,
     }),
   );
@@ -119,6 +121,30 @@ ok(
   "a wrong ratio submission is marked wrong and kept as an attempt",
 );
 
+// A four-mark structured item travels as one answer per part. The full scheme
+// earns 4/4; the same answers with the final values wrong keep the two method
+// marks, and the API must return that split rather than a single boolean.
+const structuredFull = await check("scatter-correlation", "a6", undefined, liveSecret, {
+  answers: ["24", "7"],
+  working: ["4 × 3 + 12", "40 - 12 = 4x"],
+});
+ok(
+  structuredFull.status === 200 && structuredFull.body?.correct === true &&
+    structuredFull.body?.awarded === 4 && structuredFull.body?.marks === 4 &&
+    structuredFull.body?.parts?.length === 2,
+  `a structured item is marked part by part and earns full marks (${structuredFull.status}, ${structuredFull.body?.awarded}/${structuredFull.body?.marks})`,
+);
+const structuredPartial = await check("scatter-correlation", "a6", undefined, liveSecret, {
+  answers: ["99", "99"],
+  working: ["4 × 3 + 12", "28 / 4"],
+});
+ok(
+  structuredPartial.status === 200 && structuredPartial.body?.correct === false &&
+    structuredPartial.body?.awarded === 2 && structuredPartial.body?.marks === 4 &&
+    structuredPartial.body?.parts?.every((part) => part.awarded === 1),
+  `a method-only structured answer keeps 2/4 instead of collapsing to zero (${structuredPartial.body?.awarded}/${structuredPartial.body?.marks})`,
+);
+
 const denied = await check("proportion", "a1", "30", "wrong-wrong-wrong");
 ok(denied.status === 401, "a wrong capability secret is refused");
 
@@ -138,6 +164,7 @@ const expected = new Map([
   ["ratio", { asked: 2, correct: 1 }],
   ["proportion", { asked: 1, correct: 1 }],
   ["sequences", { asked: 1, correct: 1 }],
+  ["scatter-correlation", { asked: 2, correct: 1 }],
 ]);
 for (const [conceptId, want] of expected) {
   const got = entry?.progress?.[conceptId]?.lessonCheck;
@@ -146,6 +173,11 @@ for (const [conceptId, want] of expected) {
     `the store keeps ${conceptId} separately at asked ${want.asked} / correct ${want.correct} (${JSON.stringify(got)})`,
   );
 }
+const structuredMarks = entry?.progress?.["scatter-correlation"];
+ok(
+  structuredMarks?.marksAwarded === 6 && structuredMarks?.marksAvailable === 8,
+  `the learner model carries the structured marks, not only the two attempts (${structuredMarks?.marksAwarded}/${structuredMarks?.marksAvailable})`,
+);
 
 // ── The evidence ledger: API and file ───────────────────────────────────────
 const ledger = await call(
@@ -153,22 +185,27 @@ const ledger = await call(
 );
 const events = Array.isArray(ledger.body?.events) ? ledger.body.events : [];
 const ours = events.filter((event) =>
-  /^lesson:(ratio|proportion|sequences):/.test(String(event.questionId ?? "")),
+  /^lesson:(ratio|proportion|sequences|scatter-correlation):/.test(String(event.questionId ?? "")),
 );
 ok(ledger.status === 200, "the learner's own evidence ledger is readable");
-ok(ours.length === 4, `the ledger holds exactly four new lesson events (${ours.length})`);
+ok(ours.length === 6, `the ledger holds exactly six new lesson events (${ours.length})`);
 ok(
-  ours.filter((event) => event.correct === true).length === 3 &&
-    ours.filter((event) => event.correct === false).length === 1,
-  "three right and one wrong attempt are preserved separately",
+  ours.filter((event) => event.correct === true).length === 4 &&
+    ours.filter((event) => event.correct === false).length === 2,
+  "four right and two wrong attempts are preserved separately",
+);
+ok(
+  ours.some((event) => event.questionId === "lesson:scatter-correlation:a6" &&
+    event.score?.awarded === 2 && event.score?.max === 4),
+  "the partial structured answer keeps its 2/4 score in the evidence ledger",
 );
 ok(
   ours.every((event) => event.mode === "independent" && event.hints === 0),
   "every lesson event is independent and hint-free",
 );
 ok(
-  new Set(ours.map((event) => event.questionId)).size === 3,
-  "the three lesson items are named separately",
+  new Set(ours.map((event) => event.questionId)).size === 4,
+  "the four lesson items are named separately",
 );
 
 let fileEvents = [];
@@ -180,17 +217,17 @@ try {
     .filter(Boolean)
     .map((line) => JSON.parse(line))
     .filter((event) =>
-      /^lesson:(ratio|proportion|sequences):/.test(
+      /^lesson:(ratio|proportion|sequences|scatter-correlation):/.test(
         String(event.questionId ?? ""),
       ),
     );
 } catch (error) {
   failures.push(`the on-disk evidence ledger could not be read (${error.message})`);
 }
-ok(fileEvents.length === 4, `the on-disk ledger has the same four events (${fileEvents.length})`);
+ok(fileEvents.length === 6, `the on-disk ledger has the same six events (${fileEvents.length})`);
 ok(
-  fileEvents.filter((event) => event.correct === true).length === 3 &&
-    fileEvents.filter((event) => event.correct === false).length === 1,
+  fileEvents.filter((event) => event.correct === true).length === 4 &&
+    fileEvents.filter((event) => event.correct === false).length === 2,
   "the on-disk ledger keeps the correct and wrong attempts apart",
 );
 

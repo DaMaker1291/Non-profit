@@ -7,6 +7,7 @@
 // prompt rather than reading the lesson's own answer back to itself.
 //
 // Run: node scripts/secondary-maths-lesson-check.mjs
+import fs from "node:fs";
 import { createRequire } from "node:module";
 import { compileEngines } from "./compile-engines.mjs";
 
@@ -26,6 +27,8 @@ const { MATHS_VOLUME: volume } = require("../.verify/lessons/authored/maths-volu
 const { MATHS_TRANSFORMATIONS: transformations } = require("../.verify/lessons/authored/maths-transformations.js");
 const { MATHS_VECTORS: vectors } = require("../.verify/lessons/authored/maths-vectors.js");
 const { MATHS_SCATTER_CORRELATION: scatter } = require("../.verify/lessons/authored/maths-scatter-correlation.js");
+const lessonFigures = require("../.verify/lesson-figure.js");
+const { gradeStructuredAssessment } = require("../.verify/lesson-assessment.js");
 const { evaluate } = require("mathjs");
 
 let passed = 0;
@@ -668,7 +671,7 @@ check(samePoint(scale(-1, [4, 0]), [-4, 0]), "vectors: x5 reverse is (-4,0)");
 
 // ── Scatter correlation: line arithmetic, ranges and causal restraint ────────
 check(scatter.conceptId === "scatter-correlation", "scatter: filed under its genome id");
-check(scatter.contract === "openmind.lesson/1.0" && scatter.version === "1.0.0",
+check(scatter.contract === "openmind.lesson/1.0" && scatter.version === "1.1.0",
   "scatter: current contract and version");
 check(scatter.declaredStatus === "draft" && scatter.reviews.length === 0 && scatter.learnerTesting.length === 0,
   "scatter: declares draft and claims no review or learner testing");
@@ -682,6 +685,36 @@ check(scatter.retrieval.some((item) => item.when === "week-later") &&
 for (const item of scatter.assessment.filter((entry) => entry.check)) {
   check(item.check.accepted.some((accepted) => normalized(accepted) === normalized(item.modelAnswer)),
     `scatter/${item.id}: the model answer is one of its own accepted answers`);
+}
+
+// A four-mark item is not a prose rubric: every mark has its own independently
+// markable point, and the marker must award partial credit.
+const structuredItem = scatter.assessment.find((entry) => entry.id === "a6");
+check(structuredItem?.kind === "structured" && structuredItem.structured?.parts.length === 2,
+  "scatter/a6: four-mark item is a structured response with two parts");
+if (structuredItem?.structured) {
+  const parts = structuredItem.structured.parts;
+  check(parts.reduce((n, part) => n + part.marks, 0) === 4,
+    "scatter/a6: the parts are worth four marks in total");
+  check(structuredItem.marking.length === 4,
+    "scatter/a6: one marking criterion for each of the four marks");
+
+  const full = gradeStructuredAssessment(structuredItem, ["24", "7"], ["4 × 3 + 12", "40 - 12 = 4x"]);
+  check(full?.awarded === 4 && full.marks === 4 && full.parts.every((part) => part.correct),
+    "scatter/a6: method and answer on both parts award 4/4");
+
+  const methodOnlyOnA = gradeStructuredAssessment(structuredItem, ["99", "99"], ["4 × 3 + 12", "28 / 4"]);
+  check(methodOnlyOnA?.awarded === 2 && methodOnlyOnA.parts[0].awarded === 1 &&
+    methodOnlyOnA.parts[1].awarded === 1 && methodOnlyOnA.parts.every((part) => !part.correct),
+    "scatter/a6: correct working with wrong answers keeps 2/4 rather than collapsing to zero");
+
+  const answersOnly = gradeStructuredAssessment(structuredItem, ["24", "7"], ["", ""]);
+  check(answersOnly?.awarded === 2 && answersOnly.parts.every((part) => part.awarded === 1),
+    "scatter/a6: correct final answers without working keep their own 2/4");
+
+  const unanswered = gradeStructuredAssessment(structuredItem, ["", ""], ["", ""]);
+  check(unanswered?.answered === 0 && unanswered.awarded === 0,
+    "scatter/a6: an all-blank response is not recorded as a wrong answer");
 }
 
 check((78 - 58) / (6 - 2) === 5, "scatter: w2 gradient is 5");
@@ -700,6 +733,51 @@ check(scatter.assessment.some((item) => item.kind === "constructed-response") &&
   "scatter: constructed responses carry a multi-point rubric");
 check(scatter.misconceptions.some((item) => item.id === "m1" && /common cause|third variable|chance/i.test(item.whyItFails)),
   "scatter: the correlation/causation misconception names a common cause, reverse causation or chance");
+
+// ── The scatter lesson's drawing is the data, not a decoration ──────────────
+const scatterBlock = scatter.representations.find((block) => block.figure?.spec.kind === "scatter");
+check(!!scatterBlock, "scatter: the lesson draws its cloud instead of only listing paired numbers");
+check(lessonFigures.LESSON_FIGURE_KINDS.includes("scatter"),
+  "scatter: the authored-figure union declares the scatter kind");
+if (scatterBlock) {
+  const spec = scatterBlock.figure.spec;
+  const layout = lessonFigures.scatterLayout(spec);
+  check(spec.points.length === 7, "scatter: all seven observed pairs are plotted");
+  check(spec.points.every((point, index) => point.x === index + 1),
+    "scatter: the plotted x-values are the observed hours 1 to 7");
+  check(JSON.stringify(spec.points.map((point) => point.y)) === JSON.stringify([52, 58, 61, 68, 72, 79, 83]),
+    "scatter: the plotted scores are the seven values the prose and table state");
+  check(layout.points.length === 7 && layout.points.every((point) =>
+    point.cx >= layout.plot.x && point.cx <= layout.plot.x + layout.plot.w &&
+    point.cy >= layout.plot.y && point.cy <= layout.plot.y + layout.plot.h),
+    "scatter: every plotted point lies inside the drawn plot");
+  check(layout.xTicks.map((tick) => tick.value).join(",") === "0,1,2,3,4,5,6,7,8",
+    "scatter: the x-axis is labelled 0 to 8, including the observed 1-to-7 range");
+  check(layout.yTicks.map((tick) => tick.value).join(",") === "40,50,60,70,80,90",
+    "scatter: the y-axis is labelled 40 to 90 at equal intervals");
+  check(!!layout.line, "scatter: the fitted line is drawn, not left to the caption");
+  if (layout.line) {
+    const { start, end, gradient, intercept } = layout.line;
+    check(close(gradient, 5) && close(intercept, 48),
+      "scatter: the drawn line is y = 5x + 48");
+    check(close(start.y, gradient * start.x + intercept) && close(end.y, gradient * end.x + intercept),
+      "scatter: both drawn line endpoints satisfy the fitted equation");
+    check(close(start.x, 0) && close(start.y, 48) && close(end.x, 8) && close(end.y, 88),
+      "scatter: the line is clipped to the declared axes, entering at (0, 48) and leaving at (8, 88)");
+    check(start.cx >= layout.plot.x && end.cx <= layout.plot.x + layout.plot.w &&
+      start.cy >= layout.plot.y && end.cy <= layout.plot.y + layout.plot.h,
+      "scatter: the drawn line stays inside the plot rectangle");
+  }
+  check(/strong and positive/i.test(scatterBlock.figure.caption),
+    "scatter: the caption names the direction and strength of the drawn cloud");
+  check(/5x \+ 48/.test(scatterBlock.figure.caption) && /\(2, 58\)/.test(scatterBlock.figure.caption),
+    "scatter: the caption identifies the dashed fitted line and a point on it");
+}
+const lessonFigureSource = fs.readFileSync("components/lesson-figure.tsx", "utf8");
+check(lessonFigureSource.includes("scatterLayout") &&
+  lessonFigureSource.includes("data-scatter-point") &&
+  lessonFigureSource.includes("data-scatter-line"),
+  "scatter: the renderer plots the point data and the fitted line as separate SVG elements");
 
 console.log("Secondary mathematics authored lessons — independent checks");
 console.log(`  ${passed} passed, ${failures.length} failed`);

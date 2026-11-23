@@ -11,7 +11,13 @@
 //   6. restores the network and proves the queue drains through /api/evidence;
 //   7. reads the ledger and proves exactly one event; then replays the same
 //      submission and proves it is a duplicate, not a second event;
-//   8. signs out and proves the learner's local packs and queue are gone.
+//   8. hands the device back OFFLINE and proves the unsynchronised queue is
+//      retained, scoped to that learner, and invisible to the next learner;
+//   9. signs a second learner in on the same browser profile, restarts offline,
+//      and proves no pack, answer or queue crosses over;
+//  10. signs the first learner back in and proves the held queue drains ONCE;
+//  11. signs out and proves local packs/drafts are gone while no unsynchronised
+//      evidence was deleted.
 //
 // Run against a PRODUCTION build, because the service worker is intentionally
 // unregistered in development:
@@ -130,12 +136,21 @@ function offline(send, on) {
 
 let browser = null;
 let second = null;
+let third = null;
 try {
   const ping = await fetch(`${BASE}/api/health`);
   if (!ping.ok) throw new Error(`health ${ping.status}`);
 
   section("A pupil downloads an authored lesson while online");
   const pupil = await account("student", "offline_p1");
+  // THE SECOND LEARNER IS CREATED NOW, BUT DOES NOT TOUCH THE BROWSER UNTIL
+  // THE HAND-BACK. That is the shared-computer sequence: one profile, one
+  // browser, two people, and no assumption that the first one is gone.
+  const classmate = await account("student", "offline_p2");
+  check((await patch(classmate, {
+    onboarded: true, handle: "offline_p2", grade: "Year 10", subjects: ["maths"],
+    subjectCourses: { maths: { spec: "uk-gcse", specLevel: "foundation" } },
+  })).status === 200, "the second learner's profile is complete");
   check((await patch(pupil, {
     onboarded: true, handle: "offline_p1", grade: "Year 10", subjects: ["maths"],
     subjectCourses: { maths: { spec: "uk-gcse", specLevel: "foundation" } },
@@ -152,6 +167,10 @@ try {
   const downloaded = await p.allText();
   check(downloaded.includes("Fractions"), "the saved lesson is the authored Fractions lesson");
   check(downloaded.includes("MIT"), "the pack states its rights and licence");
+  check(/written assessment/i.test(downloaded) && /printable worksheet/i.test(downloaded),
+    "the pack names the printed worksheet as the route to the written assessment");
+  check(/teacher answer key is a separate/i.test(downloaded),
+    "the pack does not present its marked practice as the teacher's answer key");
   const control = await awaitController(p);
   check(control, "a production service worker controls the lesson page");
 
@@ -222,36 +241,128 @@ try {
   check(reopened.status && reopened.working, "the queued answer and Working offline status survived the restart");
   check(reopened.text.includes("Fractions"), "the reopened page is still the downloaded Fractions lesson");
 
-  section("The network returns; the queued answer is synchronised once");
-  await offline(second.send, false);
-  const cameBack = await q.waitFor(`return navigator.onLine === true;`, "the browser to report online", 15000).then(() => true).catch(() => false);
-  check(cameBack, "the browser observes the restored connection");
-  let synced = await q.waitFor(
-    `return !!document.querySelector('[data-offline-status="synced"]') && !!document.querySelector('[data-offline-answer-status="synced"]');`,
-    "the server-confirmed Synced state",
-    30000,
-  ).then(() => true).catch(() => false);
-  if (!synced) {
-    // A reload is still a real reconnect path; the mount sync must drain the
-    // queue, and the page must then show the server-confirmed state.
-    await q.goto(url);
-    await q.waitFor(`return !!document.querySelector("[data-offline-study]");`, "the lesson after reconnect", 30000);
-    synced = await q.waitFor(
-      `return !!document.querySelector('[data-offline-status="synced"]');`,
-      "the server-confirmed Synced state after reload",
-      30000,
-    ).then(() => true).catch(() => false);
-  }
-  check(synced, "the page says Synced only after the server answered");
-  const after = await q.evaluate(`return (document.querySelector("[data-offline-study]")?.innerText || "").replace(/\\n+/g, " · ");`);
-  check(/Synced/i.test(after), "the visible status names the server confirmation");
+  section("Learner A hands the device back while still offline");
+  await q.clickExpr(exactButton("Hand back this device"), "Hand back this device");
+  await q.waitFor(
+    `return !localStorage.getItem("openmind:profileId") && localStorage.getItem("openmind:signedOut") === "1";`,
+    "the offline hand-back to clear the identity",
+    20000,
+  );
+  const handed = await q.evaluate(`return (() => {
+    const keys = Object.keys(localStorage);
+    const queueKey = keys.find((k) => k.startsWith("openmind:sync-queue:"));
+    const queue = queueKey ? JSON.parse(localStorage.getItem(queueKey) || "[]") : [];
+    return {
+      keys,
+      packKey: keys.find((k) => k.startsWith("openmind:offline-pack:")) ?? null,
+      draftKey: keys.find((k) => k.startsWith("openmind:offline-draft:")) ?? null,
+      queueKey: queueKey ?? null,
+      queue,
+      signedOut: localStorage.getItem("openmind:signedOut"),
+      profileId: localStorage.getItem("openmind:profileId"),
+    };
+  })();`);
+  check(handed.profileId === null, "the hand-back really cleared the signed-in identity offline");
+  check(handed.packKey === null && handed.draftKey === null, "the hand-back removed A's packs and drafts from the screen");
+  const ledgerAtHandback = await call(`/api/evidence?id=${encodeURIComponent(pupil.id)}&secret=${encodeURIComponent(pupil.secret)}`, { method: "GET" });
+  const eventsAtHandback = Array.isArray(ledgerAtHandback.body?.events) ? ledgerAtHandback.body.events : [];
+  check(handed.queueKey && handed.queue.length === 1 && handed.queue[0]?.body?.events?.[0]?.id === eventId,
+    `the unsynchronised answer was NOT deleted at sign-out (keys=${JSON.stringify(handed.keys)}, ledger=${eventsAtHandback.length})`);
+  check(handed.signedOut === "1", "the device records that it was handed back, so a server cookie cannot restore A");
 
-  const ledger = await call(`/api/evidence?id=${encodeURIComponent(pupil.id)}&secret=${encodeURIComponent(pupil.secret)}`, { method: "GET" });
-  const events = Array.isArray(ledger.body?.events) ? ledger.body.events : [];
+  section("Learner B signs in on the same browser profile");
+  await offline(second.send, false);
+  await q.goto(`${BASE}/onboarding?mode=signin`);
+  await signIn(q, second.requests, classmate);
+  await sleep(1200);
+  const separated = await q.evaluate(`return (() => {
+    const keys = Object.keys(localStorage);
+    const queueFor = (prefix) => {
+      const k = keys.find((x) => x.startsWith(prefix));
+      return { key: k ?? null, rows: k ? JSON.parse(localStorage.getItem(k) || "[]") : [] };
+    };
+    return {
+      profileId: localStorage.getItem("openmind:profileId"),
+      signedOut: localStorage.getItem("openmind:signedOut"),
+      allQueues: keys.filter((k) => k.startsWith("openmind:sync-queue")).map((k) => ({ key: k, rows: JSON.parse(localStorage.getItem(k) || "[]") })),
+      aQueue: queueFor(${JSON.stringify(`openmind:sync-queue:${pupil.id}`)}),
+      bQueue: queueFor(${JSON.stringify(`openmind:sync-queue:${classmate.id}`)}),
+    };
+  })();`);
+  check(separated.profileId === classmate.id, "B's identity replaced A's after a real sign-in");
+  check(separated.signedOut === null, "B's successful sign-in cleared the hand-back marker");
+  const ledgerAtB = await call(`/api/evidence?id=${encodeURIComponent(pupil.id)}&secret=${encodeURIComponent(pupil.secret)}`, { method: "GET" });
+  const eventsAtB = Array.isArray(ledgerAtB.body?.events) ? ledgerAtB.body.events : [];
+  check(separated.aQueue.rows.length === 1 && separated.aQueue.rows[0]?.body?.events?.[0]?.id === eventId,
+    `A's unsynchronised answer is still held under A's own key (ledger=${eventsAtB.length}, queues=${JSON.stringify(separated.allQueues.map((q) => ({ key: q.key, n: q.rows.length })))})`);
+  check(separated.bQueue.rows.length === 0, "B's queue is empty: A's evidence was not adopted or drained under B");
+
+  await q.goto(url);
+  await q.waitFor(`return !!document.querySelector("#offline-concept");`, "B's download chooser, not A's lesson", 25000);
+  const bView = await q.evaluate(`return {
+    text: (document.body.innerText || "").replace(/\\n+/g, " · "),
+    study: !!document.querySelector("[data-offline-study]"),
+    answer: !!document.querySelector("[data-offline-answer-status]"),
+  };`);
+  check(!bView.study && !bView.answer, "B cannot open A's downloaded lesson or answers");
+  check(!bView.text.includes(eventId), "A's event id is not rendered to B");
+
+  section("The browser is restarted offline while B is signed in");
+  await offline(second.send, true);
+  await second.close();
+  second = null;
+  await sleep(1200);
+  third = await open(profileDir, ports.pop());
+  const r = third.p;
+  await offline(third.send, true);
+  await r.waitFor(`return navigator.onLine === false;`, "the third browser to report offline", 10000);
+  let bRestartError = null;
+  try { await r.goto(url); } catch (e) { bRestartError = e.message; }
+  await r.waitFor(`return !!document.querySelector("#offline-concept");`, "B's cached download chooser after a restart", 30000);
+  const bRestart = await r.evaluate(`return (() => {
+    const keys = Object.keys(localStorage);
+    const aKey = ${JSON.stringify(`openmind:sync-queue:${pupil.id}`)};
+    return {
+      text: (document.body.innerText || "").replace(/\\n+/g, " · "),
+      study: !!document.querySelector("[data-offline-study]"),
+      profileId: localStorage.getItem("openmind:profileId"),
+      aQueue: aKey ? JSON.parse(localStorage.getItem(aKey) || "[]") : [],
+      packs: keys.filter((k) => k.startsWith("openmind:offline-pack:")),
+      drafts: keys.filter((k) => k.startsWith("openmind:offline-draft:")),
+    };
+  })();`);
+  check(bRestartError === null, `B's offline page was served from the device (${bRestartError ?? "no navigation error"})`);
+  check(bRestart.profileId === classmate.id, "the restarted browser still names B, not A");
+  check(!bRestart.study && !/Correct|Not yet|Local only/.test(bRestart.text), "no previous learner answers are visible after the restart");
+  check(bRestart.packs.length === 0 && bRestart.drafts.length === 0,
+    `B's device holds none of A's packs or drafts (${JSON.stringify(bRestart.packs.concat(bRestart.drafts))})`);
+  check(bRestart.aQueue.length === 1, "A's held answer survived B's restart and was not drained");
+
+  section("B hands the device back; A signs in again");
+  await offline(third.send, false);
+  await r.goto(`${BASE}/account`);
+  await r.waitFor(`return !!${exactButton("Sign out")};`, "B's account sign-out control", 25000);
+  await r.clickExpr(exactButton("Sign out"), "Sign out");
+  await r.waitFor(`return location.pathname === "/" || location.pathname === "/onboarding";`, "B's signed-out screen", 25000);
+  await r.goto(`${BASE}/onboarding?mode=signin`);
+  await signIn(r, third.requests, pupil);
+  let events = [];
+  for (let i = 0; i < 30; i++) {
+    const ledger = await call(`/api/evidence?id=${encodeURIComponent(pupil.id)}&secret=${encodeURIComponent(pupil.secret)}`, { method: "GET" });
+    events = Array.isArray(ledger.body?.events) ? ledger.body.events : [];
+    if (events.length > 0) break;
+    await sleep(1000);
+  }
   const mine = events.filter((e) => e.id === eventId);
-  check(ledger.status === 200 && mine.length === 1, `the server ledger has exactly one event for this submission (${mine.length})`);
+  check(mine.length === 1, `the server ledger has exactly one event for this submission (${mine.length})`);
   check(events.length === 1, `the learner's ledger contains exactly one answer (${events.length})`);
   check(mine[0]?.provenance === "device" || mine[0]?.source === "practice", "the recorded event is an answer event");
+  const heldAfter = await r.evaluate(`return (() => {
+    const k = ${JSON.stringify(`openmind:sync-queue:${pupil.id}`)};
+    const raw = localStorage.getItem(k);
+    return raw ? JSON.parse(raw) : [];
+  })();`);
+  check(heldAfter.length === 0, "A's queue is empty only after the server accepted the event");
 
   // Replay the EVENT, not the request that carried it. Sending the whole body
   // as an event is a malformed request, and the first version of this walk
@@ -267,16 +378,28 @@ try {
   const events2 = Array.isArray(ledger2.body?.events) ? ledger2.body.events : [];
   check(events2.length === 1, `the replay did not add an event (${events2.length})`);
 
-  section("Sign-out removes the learner's local work");
-  await q.goto(`${BASE}/account`);
-  await q.waitFor(`return !!${exactButton("Sign out")};`, "the account sign-out control", 25000);
-  await q.clickExpr(exactButton("Sign out"), "Sign out");
-  await q.waitFor(`return location.pathname === "/" || location.pathname === "/onboarding";`, "the signed-out screen", 25000);
-  const leftover = await q.evaluate(`return Object.keys(localStorage).filter((k) => k.startsWith("openmind:offline-") || k.startsWith("openmind:sync-queue"));`);
-  check(leftover.length === 0, `no offline packs, drafts or queue remain after sign-out (${JSON.stringify(leftover)})`);
+  section("Sign-out removes local work and never deletes held evidence");
+  await r.goto(`${BASE}/account`);
+  await r.waitFor(`return !!${exactButton("Sign out")};`, "the account sign-out control", 25000);
+  await r.clickExpr(exactButton("Sign out"), "Sign out");
+  await r.waitFor(`return location.pathname === "/" || location.pathname === "/onboarding";`, "the signed-out screen", 25000);
+  const leftover = await r.evaluate(`return (() => {
+    const keys = Object.keys(localStorage);
+    const queueKey = keys.find((k) => k.startsWith("openmind:sync-queue"));
+    return {
+      packsAndDrafts: keys.filter((k) => k.startsWith("openmind:offline-")),
+      queueKey: queueKey ?? null,
+      queue: queueKey ? JSON.parse(localStorage.getItem(queueKey) || "[]") : [],
+      signedOut: localStorage.getItem("openmind:signedOut"),
+    };
+  })();`);
+  check(leftover.packsAndDrafts.length === 0, `no offline packs or drafts remain after sign-out (${JSON.stringify(leftover.packsAndDrafts)})`);
+  check(leftover.queue.length === 0, "the queue is empty because the server accepted it, not because sign-out deleted it");
+  check(leftover.signedOut === "1", "sign-out records the hand-back for the next page load");
 } finally {
   try { if (browser) await browser.close(); } catch { /* best effort */ }
   try { if (second) await second.close(); } catch { /* best effort */ }
+  try { if (third) await third.close(); } catch { /* best effort */ }
   try { rmSync(profileDir, { recursive: true, force: true }); } catch { /* best effort */ }
 }
 
