@@ -139,9 +139,12 @@ const REPAIRED = {
 // down is the point of the exercise: a text-length cue was replaced by a DIGIT
 // cue, because the multi-clause distractor each fix wrote contains no numeral
 // while the key quotes one.
+// `hormones` was on this list and has been removed: it is now repaired rather
+// than attempted (82.5% → 35.0% at the serve; 21.5% on held-out seeds, with no
+// strategy above 22.5%). Removing it here is the record of that change — the
+// note is not allowed to keep describing a defect that no longer exists.
 const ATTEMPTED = {
   "gravity-fields": "served row is the field-strength item; its key is the only option containing a number (digit strategy 88.3%)",
-  hormones: "served row is the feedback-sequence item; its key is the only option quoting the set point (digit strategy 82.5%)",
 };
 
 // Every cue a learner can read off an option set without knowing the subject.

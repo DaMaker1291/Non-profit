@@ -1,0 +1,216 @@
+{
+  "generatedAt": "2026-11-23T18:19:34.918Z",
+  "seedsPerConcept": 40,
+  "pilotConcepts": 20,
+  "conceptsWithNoTaggedDraw": [
+    "addition",
+    "division",
+    "fractions",
+    "multiplication",
+    "place-value",
+    "subtraction"
+  ],
+  "note": "A numeric draw has no options, so it cannot carry a misconception tag by construction. A concept whose MULTIPLE-CHOICE draws also carry none gives a wrong answer no diagnosis and fires no repair — that is the gap this file records.",
+  "rows": [
+    {
+      "conceptId": "addition",
+      "title": "Addition",
+      "subject": "maths",
+      "draws": 40,
+      "tagged": 0,
+      "numeric": 20,
+      "multipleChoice": 20,
+      "repaired": false
+    },
+    {
+      "conceptId": "decimals",
+      "title": "Decimals",
+      "subject": "maths",
+      "draws": 40,
+      "tagged": 23,
+      "numeric": 20,
+      "multipleChoice": 20,
+      "repaired": true
+    },
+    {
+      "conceptId": "division",
+      "title": "Division",
+      "subject": "maths",
+      "draws": 40,
+      "tagged": 0,
+      "numeric": 20,
+      "multipleChoice": 20,
+      "repaired": false
+    },
+    {
+      "conceptId": "fractions",
+      "title": "Fractions",
+      "subject": "maths",
+      "draws": 40,
+      "tagged": 0,
+      "numeric": 20,
+      "multipleChoice": 20,
+      "repaired": false
+    },
+    {
+      "conceptId": "multiplication",
+      "title": "Multiplication",
+      "subject": "maths",
+      "draws": 40,
+      "tagged": 0,
+      "numeric": 20,
+      "multipleChoice": 20,
+      "repaired": false
+    },
+    {
+      "conceptId": "negatives",
+      "title": "Negative numbers",
+      "subject": "maths",
+      "draws": 40,
+      "tagged": 40,
+      "numeric": 20,
+      "multipleChoice": 20,
+      "repaired": true
+    },
+    {
+      "conceptId": "order-ops",
+      "title": "Order of operations",
+      "subject": "maths",
+      "draws": 40,
+      "tagged": 40,
+      "numeric": 20,
+      "multipleChoice": 20,
+      "repaired": true
+    },
+    {
+      "conceptId": "place-value",
+      "title": "Place value",
+      "subject": "maths",
+      "draws": 40,
+      "tagged": 0,
+      "numeric": 20,
+      "multipleChoice": 20,
+      "repaired": false
+    },
+    {
+      "conceptId": "subtraction",
+      "title": "Subtraction",
+      "subject": "maths",
+      "draws": 40,
+      "tagged": 0,
+      "numeric": 20,
+      "multipleChoice": 20,
+      "repaired": false
+    },
+    {
+      "conceptId": "algebra-expressions",
+      "title": "Algebraic expressions",
+      "subject": "maths",
+      "draws": 40,
+      "tagged": 32,
+      "numeric": 20,
+      "multipleChoice": 20,
+      "repaired": true
+    },
+    {
+      "conceptId": "coordinates",
+      "title": "Coordinates & graphs",
+      "subject": "maths",
+      "draws": 40,
+      "tagged": 8,
+      "numeric": 20,
+      "multipleChoice": 20,
+      "repaired": true
+    },
+    {
+      "conceptId": "fraction-ops",
+      "title": "Fraction arithmetic",
+      "subject": "maths",
+      "draws": 40,
+      "tagged": 26,
+      "numeric": 20,
+      "multipleChoice": 20,
+      "repaired": true
+    },
+    {
+      "conceptId": "indices-intro",
+      "title": "Index laws",
+      "subject": "maths",
+      "draws": 40,
+      "tagged": 4,
+      "numeric": 20,
+      "multipleChoice": 20,
+      "repaired": true
+    },
+    {
+      "conceptId": "linear-equations",
+      "title": "Linear equations",
+      "subject": "maths",
+      "draws": 40,
+      "tagged": 26,
+      "numeric": 20,
+      "multipleChoice": 20,
+      "repaired": true
+    },
+    {
+      "conceptId": "percentages",
+      "title": "Percentages",
+      "subject": "maths",
+      "draws": 40,
+      "tagged": 27,
+      "numeric": 20,
+      "multipleChoice": 20,
+      "repaired": true
+    },
+    {
+      "conceptId": "algebra-expand",
+      "title": "Expanding & factorising",
+      "subject": "maths",
+      "draws": 40,
+      "tagged": 36,
+      "numeric": 20,
+      "multipleChoice": 20,
+      "repaired": true
+    },
+    {
+      "conceptId": "straight-lines",
+      "title": "Straight line graphs",
+      "subject": "maths",
+      "draws": 40,
+      "tagged": 39,
+      "numeric": 20,
+      "multipleChoice": 20,
+      "repaired": true
+    },
+    {
+      "conceptId": "completing-square",
+      "title": "Completing the square",
+      "subject": "maths",
+      "draws": 40,
+      "tagged": 40,
+      "numeric": 20,
+      "multipleChoice": 20,
+      "repaired": true
+    },
+    {
+      "conceptId": "quadratics",
+      "title": "Quadratic equations",
+      "subject": "maths",
+      "draws": 40,
+      "tagged": 40,
+      "numeric": 20,
+      "multipleChoice": 20,
+      "repaired": true
+    },
+    {
+      "conceptId": "surds",
+      "title": "Surds",
+      "subject": "maths",
+      "draws": 40,
+      "tagged": 40,
+      "numeric": 20,
+      "multipleChoice": 20,
+      "repaired": true
+    }
+  ]
+}

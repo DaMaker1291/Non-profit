@@ -106,10 +106,11 @@ served level as still exploitable — but by a DIFFERENT strategy:
 |---|---:|---:|---|
 | `ai-basics` | 100% | **36.7%** | shortest text (a real, large improvement) |
 | `gravity-fields` | 90.7% | 88.3% | **digits 88.3%** — the key is the only option containing a number |
-| `hormones` | 100% | 82.5% | **digits 82.5%** — the key is the only option quoting the set point |
+| `hormones` | 100% | 82.5% → **35.0%** | repaired on 23 Nov: every option carries its own figure and the key's length rank varies |
 
 The rewrite gave each distractor a multi-clause form and the key kept its numeral.
-These two are recorded as backlog, not claimed as fixed. That is why the gate
+`gravity-fields` is still recorded as backlog, not claimed as fixed; `hormones`
+was fixed in the 23 November pass (details in §7). That is why the gate
 scores all eight strategies separately: a combined figure would have reported a
 repair that a learner can still exploit.
 
@@ -207,11 +208,34 @@ distinct options, and 84 (0.009%) with a zero-valued distractor.
 ## 7. What remains (the named backlog)
 
 Measured by `npm run gate:options` on the served@0.75 surface (60 draws each, 40
-attempts — the call `app/api/progress/route.ts` makes): **63 of 135 concepts are
+attempts — the call `app/api/progress/route.ts` makes): **62 of 135 concepts are
 still above the 35% reporting line**, and **21 are repaired and asserted
 absolutely** at their served level. Bank-wide, the best of the eight strategies
-is **25.16%** against a 25% chance line, so no single strategy beats chance
+is **25.14%** against a 25% chance line, so no single strategy beats chance
 across the bank; what remains is per concept.
+
+### The 23 November pass: one concept fixed, two attempts reverted
+
+`hormones` was the highest-value fix and it worked: the served negative-feedback
+branch now gives every option its own figure (the level sticking at 188 mg/100
+ml, an overshoot to 148, the target moving to 188), and the key is phrased three
+ways so its length rank spreads instead of sitting at one value. Gate reading
+**82.5% → 35.0%**; held-out (`--prefix=phase5-final:`, 60 seeds) **21.5%
+achievable, longest 21.5%, shortest 22.5%, digits 5.9%, middles 20.3%** — every
+strategy below the chance line's neighbourhood, not merely the one that was
+named.
+
+Two other repairs were written and then **reverted**, because the gate showed
+they moved the cue instead of removing it: lengthening `astrophysics`'
+distractors lifted its key-is-longest share to **78.3%** (from a 61.9% held-out
+baseline), and re-cutting `gravity-fields`' numeric answers left its standard-form
+family at **88.3% digits**. Both are recorded here rather than silently dropped:
+a repair that is not measured on the served surface is a guess, and the gate
+caught both within one run. The remaining backlog, worst first, is `astrophysics`
+(61.9%), `evolution` (58.6%), `equilibria` (52.2%), `completing-square` (51.6%),
+`respiration` (51.1%), `dictionaries` (49.7%) — all length cues on prose options,
+so the technique that worked for `hormones` (parallel clauses plus a varying key
+rank) applies unchanged.
 
 This section replaces an earlier figure of **82 of 135**. That number was true
 when it was written and is kept here only as a record of direction: most of the
@@ -242,13 +266,17 @@ anywhere by hand:
 `periodic-table` 76.7% (longest) · `logic-maths` 73.3% (digits) ·
 `data-charts` 71.7% (magnitude)
 
-Two of those the gate records as **rewritten but not fixed**, and they are the
-clearest illustration of the cue-substitution trap: `gravity-fields` reads 88.3%
-on the digit strategy because its served field-strength key is the only option
-containing a number, and `hormones` reads 82.5% the same way because its served
-feedback-sequence key is the only option quoting the set point. The length repair
-worked, and handed the cue to a different strategy — which is why §4 insists on
-checking all eight.
+This is the clearest illustration of the cue-substitution trap, and it cost two
+runs to learn. `gravity-fields` reads 88.3% on the digit strategy because its
+served field-strength key is the only option containing a number; `hormones` read
+82.5% the same way because its served feedback-sequence key was the only option
+quoting the set point. The length repair worked and handed the cue to a different
+strategy — which is why §4 insists on checking all eight. `hormones` has since
+been repaired properly (35.0% at the serve, 21.5% held-out, no strategy above
+22.5%): each distractor now quotes its own figure, and the key is phrased three
+ways so its length rank is not fixed. Attempts to do the same for `astrophysics`
+and `gravity-fields` were reverted when the gate showed the cue had moved rather
+than shrunk (78.3% longest, 88.3% digits).
 
 Two distinct workstreams are visible in that list and should not be confused:
 

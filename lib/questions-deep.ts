@@ -4381,11 +4381,31 @@ export const DEEP_GENS: Record<string, DeepGen> = {
     return {
       prompt: `A graph shows blood glucose at ${level} mg/100 ml (set point: ${setpoint}). Trace the negative-feedback sequence that restores the set point.`,
       // key = third-longest (rank 3)
-      correct: `The pancreas releases ${hormone}; glucose ${effect} toward ${setpoint}; the release then stops`,
-      wrongs: pickDistinct(`The pancreas releases ${hormone}; glucose ${effect} toward ${setpoint}; the release then stops`, [
-        `The level stays ${dir} the set point, because feedback can only slow a change and never reverses it`,
-        `The body deliberately overshoots to the opposite extreme before it corrects back again`,
-        `The set point rises to meet the new level, adapting the body's target`,
+      // THREE PHRASINGS, SO THE KEY IS SOMETIMES LONGEST, SOMETIMES MIDDLE AND
+      // SOMETIMES SHORTEST. A single fixed phrasing puts the key at the same
+      // length rank on every draw, and that rank is itself the cue: the first
+      // fix here made every key the second-longest option, and "pick a middle
+      // one" then scored 43.3%. Varying the wording (never the science) spreads
+      // the rank, which is the only honest way to move this number.
+      correct: [
+        `The pancreas releases ${hormone}; glucose ${effect} toward ${setpoint} mg/100 ml; once the set point is reached the release stops, which is what makes it feedback rather than a one-way correction`,
+        `The pancreas releases ${hormone}; glucose ${effect} toward ${setpoint} mg/100 ml; once there, the release stops`,
+        `Pancreas releases ${hormone}; glucose ${effect} to ${setpoint}`,
+      ][r.int(0, 2)],
+      // EVERY OPTION CARRIES A FIGURE, AND THE KEY IS NEITHER THE LONGEST NOR
+      // THE SHORTEST. Both halves are needed. With prose-only distractors the
+      // key was the only option containing a number, so "pick the option with a
+      // figure" found the answer; giving the distractors numbers then made the
+      // key the unique SHORTEST, and the gate caught that substitution
+      // immediately (86.7% shortest against an 82.5% baseline). The numbers
+      // below are each the subject of their misconception — the level sticking
+      // where it started, an overshoot past the set point, or the target itself
+      // moving — and the longest option is distractor one, so neither extreme
+      // identifies the answer.
+      wrongs: pickDistinct(`pancreas-${hormone}-${setpoint}`, [
+        `The level stays ${dir} the set point at ${level} mg/100 ml, because feedback can only slow a change and can never reverse it`,
+        `The body overshoots to ${level > setpoint ? level - 40 : level + 40} mg/100 ml first, then corrects back`,
+        `The set point rises to meet the new level, so the target becomes ${level} mg/100 ml instead of ${setpoint}`,
       ]),
       tags: [],
       explanation: `Negative feedback has four steps: DETECT the deviation from the set point, RELEASE the corrective hormone, COUNTERACT the deviation, SWITCH OFF when the set point returns. The switch-off is what makes it feedback rather than a one-way correction — and the set point itself never moves in these graphs.`,
