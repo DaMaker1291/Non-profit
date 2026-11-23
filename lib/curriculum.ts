@@ -144,11 +144,19 @@ export function boardName(id: string | undefined | null): string {
   return id.toUpperCase();
 }
 
-/** Emergency continuity core (§17): literacy + numeracy foundations that work
- *  fully offline from a printed pack. Filter NextStep/diagnostics to these. */
-export const CONTINUITY_CORE = [
+/** Emergency continuity core (§17): the foundations that work fully offline
+ *  from a printed pack. Filter NextStep/diagnostics to these.
+ *
+ *  THIS LIST HELD "reading" AND "sentences" AND STILL CLAIMED LITERACY. Neither
+ *  id exists in the genome: no concept, no lesson, no question, no print sheet.
+ *  A continuity pack filtered to them selected NOTHING, and the comment above
+ *  the array promised a literacy core the product has never had. The ids are
+ *  removed rather than kept as aspiration, and the absence is now stated where
+ *  it can be read (lib/right-level.ts#LITERACY_GAP). Adding a literacy strand
+ *  requires the named decision in OPENMIND_SCOPE.json, not an entry here. */
+export const CONTINUITY_CORE: readonly string[] = [
   "place-value", "addition", "subtraction", "multiplication", "division",
-  "fractions", "decimals", "percentages", "reading", "sentences",
+  "fractions", "decimals", "percentages",
 ];
 
 export function isContinuityMode(): boolean {

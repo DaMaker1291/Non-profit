@@ -10,6 +10,7 @@ import { ctitle } from "@/lib/content-i18n";
 import { dueLabel, fill, localeFor } from "@/lib/i18n";
 import { MISCONCEPTIONS_BY_ID } from "@/lib/misconceptions";
 import { buildWeeklyPlan, classSubject } from "@/lib/teacher-plan";
+import { describeClassroom } from "@/lib/classroom-context";
 import { SUBJECT_IDS, SUBJECT_LABELS } from "@/lib/subjects";
 import { specOptionsFor } from "@/lib/specifications";
 import HubStatus from "@/components/hub-status";
@@ -448,6 +449,21 @@ export default function TeacherPage() {
         <>
           <h1>{t("teach.title")}</h1>
           <p className="lead">{t("teach.sub")}</p>
+          <nav aria-label="Low-resource teaching tools" style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "12px 0 6px" }}>
+            {classes.length > 0 && (
+              // THE FIRST LESSON, ONE CLICK FROM THE CONSOLE. The setup page is
+              // where a teacher says what is in the room and picks the lesson;
+              // without this door it existed but nothing led to it.
+              <Link className="btn secondary" href={`/teacher/setup?class=${classes[0].id}`}>Lessons →</Link>
+            )}
+                          {/* THE STEP BEFORE A LESSON. A class that spans four rungs cannot be
+                  taught by one explanation, and nothing on this console said so
+                  or sent the teacher anywhere that did. */}
+              <Link className="btn secondary" href="/teacher/right-level">Right-level groups</Link>
+              <Link className="btn secondary" href="/teacher/paper">Record paper marks</Link>
+            <Link className="btn ghost" href="/print">Printable lessons</Link>
+            <Link className="btn ghost" href="/kiosk">Shared-device sign-in</Link>
+          </nav>
 
           {/* ── TODAY, BEFORE THE TOOLS THAT ACT ON IT (§teacher home) ─────
 
@@ -688,6 +704,13 @@ export default function TeacherPage() {
                 label={t("teach.pickCourse")}
               />
               <span>· {t("teach.prov")}</span>
+              {" · "}
+              {/* THE ROOM, WHERE THE CLASS IS. A teacher reading the class should
+                  see what the plan assumes about their room, and one link should
+                  take them to the place that changes it. */}
+              <Link href={`/teacher/setup?class=${cls.id}`}>
+                {describeClassroom(cls.classroom) || "Set up this classroom"} →
+              </Link>
             </p>
 
             {/* ── THE CLASS'S THREE JOBS, AS THREE TABS ──────────────────
@@ -1651,6 +1674,7 @@ function StudentEvidence({
                       {/* Disclosed, never hidden: a device-reported answer is
                           one the server did not watch happen. */}
                       {r.offline && <span className="muted"> · {t("evv.offline")}</span>}
+                      {r.teacherEntered && <span className="muted"> · teacher-entered{r.observed === false ? " (group/unobserved)" : " (observed)"}</span>}
                       {r.hypothesisIds.length > 0 && (
                         <span className="muted"> · △ {r.hypothesisIds.map((id) => MISCONCEPTIONS_BY_ID[id]?.name ?? id).join(", ")}</span>
                       )}

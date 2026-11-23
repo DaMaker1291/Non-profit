@@ -278,6 +278,13 @@ export const ENGINE_SOURCES = [
   // FLAGS BEHAVIOURALLY (Secure follows the scheme, never blanket-on or
   // blanket-off) rather than reading the source for a string.
   "lib/server/auth.ts",
+  // The mail door and the email proof. Compiled with authentication because
+  // they are the same lifecycle: a token is minted by the sign-up path, hashed
+  // by the store and consumed by a route, and a mirror that omitted them would
+  // measure a sign-up that cannot prove an address.
+  "lib/server/seo.ts",
+  "lib/server/mail.ts",
+  "lib/server/verification.ts",
   // THE WAY BACK IN (lib/recovery-code.ts). Compiled because its claims are the
   // ones a credential must not get wrong quietly: the printed length has to buy
   // the entropy the header claims, the alphabet has to exclude the characters a
@@ -422,7 +429,26 @@ export const ENGINE_SOURCES = [
   "lib/lesson-frameworks.ts",
   "lib/lesson-verify.ts",
   "lib/lesson-assessment.ts",
+  "lib/lesson-interactions.ts",
+  "lib/offline-assessment.ts",
   "lib/lesson-translate.ts",
+  // The printables and the teacher-led run of show. Compiled with the authored
+  // set because the low-resource gate must prove EVERY authored lesson can be
+  // printed, keyed and presented, and that the worksheet contains no answers.
+  "lib/lesson-print.ts",
+  "lib/classroom-session.ts",
+  "lib/classroom-context.ts",
+  // THE STEP BEFORE EVERY LESSON. The placement staircase, the class bands and
+  // the move-up rule are decisions, not copy: the gate has to drive them on the
+  // real module to prove an unmeasured pupil is never handed a level and a
+  // group answer never promotes a child.
+  "lib/right-level.ts",
+  // The band's paper check. Compiled because the sheet's two promises are
+  // checkable and neither is visible on a printed page: the pupil sheet must
+  // carry no answer, and the same rung on the same date must draw the same
+  // six items or two classes are not sitting the same test.
+  "lib/right-level-sheet.ts",
+  "lib/teacher-guide.ts",
   "lib/probability-simulation.ts",
   "lib/probability-activities.ts",
   "lib/lessons/authored/maths-fractions.ts",
@@ -442,6 +468,7 @@ export const ENGINE_SOURCES = [
   "lib/lessons/authored/fraction-ops.ts",
   "lib/lessons/authored/percentages.ts",
   "lib/lessons/authored/maths-quadratics.ts",
+  "lib/lessons/authored/maths-completing-square.ts",
   "lib/lessons/authored/biology-cells.ts",
   "lib/lessons/authored/physics-forces.ts",
   "lib/lessons/authored/chemistry-periodic-table.ts",
@@ -475,6 +502,18 @@ export const ENGINE_SOURCES = [
   "lib/lessons/authored/maths-sequences.ts",
   "lib/lessons/authored/maths-linear-equations.ts",
   "lib/lessons/authored/translations.ts",
+  "lib/lessons/authored/computing-gaps.ts",
+  "lib/lessons/authored/maths-gaps-1.ts",
+  "lib/lessons/authored/maths-gaps-2.ts",
+  "lib/lessons/authored/maths-gaps-3.ts",
+  "lib/lessons/authored/maths-gaps-4.ts",
+  "lib/lessons/authored/maths-gaps-5.ts",
+  "lib/lessons/authored/maths-gaps-6.ts",
+  "lib/lessons/authored/maths-gaps-7.ts",
+  "lib/lessons/authored/physics-gaps-1.ts",
+  "lib/lessons/authored/physics-gaps-2.ts",
+  "lib/lessons/authored/physics-gaps-3.ts",
+  "lib/lessons/authored/physics-gaps-4.ts",
   "lib/lessons/authored/index.ts",
 ];
 
