@@ -73,7 +73,9 @@ belongs in Foundation at all.
 | Right-level placement | `/teacher/right-level` | Oral check, six rungs, class list, per-pupil rung saved to the class |
 | Paper placement sheet | `/print/right-level` | Pupil sheet, no answers |
 | Paper placement key | `/print/right-level/key` | Teacher-gated marking copy |
-| Lesson | `/lesson/algebra-expand` | Teacher-facing sequence, worked examples, misconceptions, guided practice |
+| Lesson | `/teach/maths/algebra-expand` | Teacher-facing sequence, worked examples, misconceptions, guided practice |
+| Pupil view | `/try/algebra-expand` | The same concept as a pupil sees it |
+| Print: lesson and key | `/print/maths/algebra-expand`, `/print/maths/algebra-expand/key` | Concept sheet and its teacher-gated marking copy |
 | Class setup | `/teacher` | Class, curriculum, lesson focus, print pack |
 | Assessment | `/api/next` + class practice | Six items per session, drawn from the concept's family |
 

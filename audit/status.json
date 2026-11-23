@@ -16,7 +16,7 @@
     "Assessment validity · Course × subject rows audited for depth": 311,
     "Storage · Lock tables in lib/ and app/": 1,
     "Storage · Owners of where learning data lives": 1,
-    "Storage · Route files importing the store": 25,
+    "Storage · Route files importing the store": 26,
     "Storage · JSON files the server modules own": 15,
     "Pilot (UK GCSE maths) · Concepts in the review cluster": 20,
     "Pilot (UK GCSE maths) · Items awaiting human review": 179,
@@ -133,7 +133,7 @@
     {
       "section": "Storage",
       "label": "Route files importing the store",
-      "value": 25,
+      "value": 26,
       "source": "app/api",
       "note": "86 export statements in a 1373-line store; this is the surface docs/STORAGE_SPEC.md has to port"
     },
