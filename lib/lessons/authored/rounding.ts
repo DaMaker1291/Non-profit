@@ -280,6 +280,13 @@ export const MATHS_ROUNDING: AuthoredLesson = {
       answer: "10.0, because rounding the tenths up carries into the ones.",
       when: "month-later",
     },
+    {
+      id: "x3",
+      prompt: "Round 3,847 to the nearest hundred and to the nearest ten. Explain why the answers differ.",
+      answer:
+        "To the nearest hundred it is 3,800, because the tens digit is 4. To the nearest ten it is 3,850, because the ones digit is 7. The accuracy changes which digit decides.",
+      when: "week-later",
+    },
   ],
 
   summary: [

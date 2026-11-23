@@ -358,6 +358,19 @@ print(stock["pens"])  # 10`,
         "Distinguishes counting occurrences from storing an ordered sequence.",
       ],
     },
+    {
+      id: "a5",
+      kind: "short-answer",
+      prompt:
+        "A stock dictionary starts with pens: 3. The programmer writes stock['pens'] = 5 and the result is 5, not 8. Identify the fault, explain what the assignment does to the old value, and write the statement that adds 5 instead.",
+      modelAnswer:
+        "Assigning stock['pens'] = 5 replaces the value; it does not read the old one. The dictionary does not add automatically. Read the old value and add: stock['pens'] = stock['pens'] + 5, which is 3 + 5 = 8. The augmented form stock['pens'] += 5 does the same thing.",
+      marking: [
+        "Identifies the assignment as replacement rather than addition.",
+        "Explains that the old value must be read before the new value is stored.",
+        "Gives stock['pens'] = stock['pens'] + 5 or the equivalent += update.",
+      ],
+    },
   ],
 
   transfer: [

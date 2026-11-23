@@ -291,6 +291,13 @@ export const MATHS_PERCENTAGES: AuthoredLesson = {
       answer: "10, because 12.5% is one eighth and an eighth of 80 is 10.",
       when: "week-later",
     },
+    {
+      id: "x3",
+      prompt: "Increase 80 by 15%, and explain the multiplier you used.",
+      answer:
+        "92. A 15% increase leaves 115% of the original, so the multiplier is 1.15; 80 times 1.15 is 92. Adding 15% of 80, which is 12, gives the same result.",
+      when: "month-later",
+    },
   ],
 
   summary: [

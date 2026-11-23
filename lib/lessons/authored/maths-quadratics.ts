@@ -301,6 +301,19 @@ export const MATHS_QUADRATICS: AuthoredLesson = {
         accepted: ["no real roots", "0 real roots", "zero real roots"],
       },
     },
+    {
+      id: "a4",
+      kind: "constructed-response",
+      prompt:
+        "The graph of y = x² − 5x + 6 is a parabola. State its two x-intercepts, use the discriminant to confirm that it has two real roots, and give the equation of its axis of symmetry.",
+      modelAnswer:
+        "Factorising gives (x − 2)(x − 3), so the x-intercepts are x = 2 and x = 3. The discriminant is b² − 4ac = 25 − 24 = 1, which is positive, so there are two distinct real roots and the parabola crosses the x-axis twice. The axis of symmetry is halfway between the roots: x = (2 + 3) / 2 = 2.5.",
+      marking: [
+        "Factorises or otherwise finds the two x-intercepts 2 and 3.",
+        "Calculates the discriminant as 1 and reads a positive value as two real roots.",
+        "Gives the axis of symmetry x = 2.5, halfway between the roots.",
+      ],
+    },
   ],
 
   transfer: [

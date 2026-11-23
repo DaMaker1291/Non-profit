@@ -384,6 +384,19 @@ export const BIOLOGY_DIGESTION: AuthoredLesson = {
         accepted: ["peristalsis", "peristaltic movement", "peristaltic waves"],
       },
     },
+    {
+      id: "a5",
+      kind: "short-answer",
+      prompt:
+        "A cube of food with edge length 3 mm is cut into 27 equal cubes, each with edge length 1 mm. The original surface area is 54 mm². Calculate the total surface area after cutting, in mm².",
+      modelAnswer:
+        "162 mm²",
+      marking: [
+        "Calculates the surface area of one 1 mm cube as 6 mm².",
+        "Multiplies by 27 small cubes to get 162 mm².",
+      ],
+      check: { accepted: ["162", "162 mm2", "162 mm²", "162mm2", "162mm²"] },
+    },
   ],
 
   transfer: [

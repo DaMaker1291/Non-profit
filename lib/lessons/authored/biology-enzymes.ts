@@ -271,10 +271,11 @@ export const BIOLOGY_ENZYMES: AuthoredLesson = {
       id: "a1",
       kind: "constructed-response",
       prompt:
-        "Explain why the rate of an enzyme-controlled reaction increases up to an optimum temperature and then falls sharply. Refer to collisions, active sites and denaturation in your answer.",
+        "A rate-temperature graph for an enzyme rises from 15 units per minute at 10 °C to a peak of 60 units per minute at 37 °C, then falls to 4 units per minute at 55 °C. Explain the shape before and after the optimum, referring to collisions, active sites and denaturation.",
       modelAnswer:
-        "As temperature rises, enzyme and substrate molecules gain kinetic energy and collide more often, so more enzyme-substrate complexes form and the rate increases. At the optimum, the rate is highest. Above it, the weak bonds holding the enzyme's folded shape break, so the active site loses its complementary shape. The substrate can no longer bind, fewer complexes form, and the rate falls. The enzyme is denatured, which is usually irreversible.",
+        "The graph shows the highest rate, 60 units per minute, at the optimum near 37 °C, and an almost stopped reaction at 55 °C. As temperature rises towards the optimum, enzyme and substrate molecules gain kinetic energy and collide more often, so more enzyme-substrate complexes form and the rate increases. Above the optimum, the weak bonds holding the enzyme's folded shape break, so the active site loses its complementary shape. The substrate can no longer bind, fewer complexes form, and the rate falls to 4 units per minute. The enzyme is denatured, which is usually irreversible.",
       marking: [
+        "Reads the peak near 37 °C and the fall to 4 units per minute at 55 °C from the graph.",
         "Explains the rise in terms of more frequent collisions giving more enzyme-substrate complexes.",
         "Identifies the optimum as the temperature of maximum rate.",
         "Explains the fall in terms of bonds breaking and the active site losing its shape.",

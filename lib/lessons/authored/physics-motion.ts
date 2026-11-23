@@ -12,7 +12,7 @@ import type { AuthoredLesson } from "../../lesson-contract";
 export const PHYSICS_MOTION: AuthoredLesson = {
   contract: "openmind.lesson/1.0",
   conceptId: "motion-graphs",
-  version: "1.0.0",
+  version: "1.2.0",
   subject: "physics",
   curriculum: {
     reference:
@@ -325,7 +325,7 @@ export const PHYSICS_MOTION: AuthoredLesson = {
     },
     {
       id: "a3",
-      kind: "short-answer",
+      kind: "constructed-response",
       prompt:
         "A runner completes one lap of a 400 m track and returns to the starting point in 80 s. Explain why the average speed is 5 m/s but the average velocity is zero.",
       modelAnswer:
@@ -334,6 +334,96 @@ export const PHYSICS_MOTION: AuthoredLesson = {
         "Distinguishes distance travelled from displacement.",
         "Calculates average speed as 5 m/s and explains that zero displacement makes average velocity zero.",
       ],
+    },
+    {
+      id: "a4",
+      kind: "structured",
+      prompt:
+        "A cyclist's velocity–time graph is the straight line y = 2x + 4, where y is velocity in m/s and x is time in seconds. Give the line on the grid, then read the velocity at 3 s from the line you have drawn.",
+      modelAnswer:
+        "The line y = 2x + 4 passes through (0, 4) and (6, 16), so those two points define it. At x = 3 the line gives y = 2 × 3 + 4 = 10, so the velocity is 10 m/s. The read-off is marked against the learner's own line, so a consistent follow-through keeps its mark even when the drawn line is slightly off.",
+      marking: [
+        "Plots a line with the correct gradient 2, within the allowed tolerance.",
+        "Plots a line with the correct intercept 4, within the allowed tolerance.",
+        "Reads a velocity at 3 s that is consistent with the learner's own line, within the stated tolerance.",
+      ],
+      structured: {
+        parts: [
+          {
+            id: "a",
+            prompt: "Give two points on the line y = 2x + 4.",
+            marks: 2,
+            response: "graph",
+            graph: {
+              xMin: 0,
+              xMax: 6,
+              yMin: 0,
+              yMax: 18,
+              m: 2,
+              c: 4,
+              tolerance: { m: 0.4, c: 1.5 },
+            },
+            explanation:
+              "Every point on the line satisfies y = 2x + 4. At x = 0 the velocity is 4 m/s, and at x = 6 it is 16 m/s. Two points fix a straight line, so the marker compares the line they define with the required gradient and intercept rather than demanding one particular pair.",
+          },
+          {
+            id: "b",
+            prompt: "Use your line to read the velocity at 3 s.",
+            marks: 1,
+            response: "readoff",
+            readOff: { from: "a", at: 3, tolerance: 1.2 },
+            explanation:
+              "At x = 3 the required line gives 10 m/s. The read-off follows the learner's own line: a learner who draws a line slightly high or low still earns the mark when the reading is consistent with that line. This separates reading a graph from remembering a number.",
+          },
+        ],
+      },
+    },
+    {
+      id: "a5",
+      kind: "structured",
+      prompt:
+        "Plot the cyclist's velocity from the table: at 0 s it is 4 m/s, at 2 s it is 8 m/s, at 4 s it is 12 m/s and at 6 s it is 16 m/s. Join the points with a straight line, then read the velocity at 5 s.",
+      modelAnswer:
+        "The four points are (0, 4), (2, 8), (4, 12) and (6, 16). They lie on the straight line v = 2t + 4, so joining them shows a constant acceleration of 2 m/s². At t = 5 s the line gives v = 2 × 5 + 4 = 14 m/s.",
+      marking: [
+        "Plots at least two of the four tabulated points within half a grid square and joins them with a straight line.",
+        "Plots all four points and joins them; the line is straight and passes through them.",
+        "Reads 14 m/s at 5 s from the learner's own line, within the stated tolerance.",
+      ],
+      structured: {
+        parts: [
+          {
+            id: "a",
+            prompt: "Plot the four points and join them with a straight line.",
+            marks: 2,
+            answer: 0,
+            response: "plot",
+            plot: {
+              xMin: 0,
+              xMax: 6,
+              yMin: 0,
+              yMax: 18,
+              points: [{ x: 0, y: 4 }, { x: 2, y: 8 }, { x: 4, y: 12 }, { x: 6, y: 16 }],
+              tolerance: 0.5,
+              partialMin: 2,
+              m: 2,
+              c: 4,
+              lineTolerance: { m: 0.4, c: 1.5 },
+            },
+            explanation:
+              "Each pair in the table is a point: (0, 4), (2, 8), (4, 12) and (6, 16). Plotting them on the same grid puts them in a straight line, because the velocity rises by 4 m/s every 2 s. Two points and a line earn the partial mark; all four points and a straight joining line earn both marks.",
+          },
+          {
+            id: "b",
+            prompt: "Use your line to read the velocity at 5 s.",
+            marks: 1,
+            response: "readoff",
+            readOff: { from: "a", at: 5, tolerance: 1.2 },
+            explanation:
+              "At t = 5 s the line is halfway between the points at 4 s and 6 s, so the velocity is halfway between 12 and 16 m/s: 14 m/s. The mark follows the learner's own plotted line, so a consistently drawn line still earns the reading even if it is slightly high or low.",
+          },
+        ],
+      },
     },
   ],
 

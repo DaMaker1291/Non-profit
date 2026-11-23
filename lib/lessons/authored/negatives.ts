@@ -294,6 +294,13 @@ export const MATHS_NEGATIVES: AuthoredLesson = {
       answer: "12, because two negative factors flip the sign twice.",
       when: "week-later",
     },
+    {
+      id: "x3",
+      prompt: "The temperature rises from −8 °C to 3 °C. Work out the rise and write the subtraction that shows it.",
+      answer:
+        "11 °C. The change is 3 − (−8) = 11: subtracting a negative move undoes it, so the temperature crosses zero and rises eleven degrees in total.",
+      when: "month-later",
+    },
   ],
 
   summary: [

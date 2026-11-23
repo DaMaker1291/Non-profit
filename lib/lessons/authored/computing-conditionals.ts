@@ -295,6 +295,14 @@ export const COMPUTING_CONDITIONALS: AuthoredLesson = {
         "Uses elif rather than a second independent if, so exactly one label is printed.",
         "Has an else that handles every score below 50, including zero.",
       ],
+      code: {
+        starterCode:
+          "def label(score):\n    if score > 90:\n        return \"excellent\"\n    elif score > 50:\n        return \"pass\"\n    else:\n        return \"retry\"\n\nprint(label(90))\nprint(label(50))\nprint(label(49))",
+        tests: [{
+          name: "both boundaries enter the intended branch",
+          expectedStdout: "excellent\npass\nretry",
+        }],
+      },
     },
     {
       id: "a2",
@@ -320,6 +328,19 @@ export const COMPUTING_CONDITIONALS: AuthoredLesson = {
         "States that a separate if is always tested, regardless of earlier branches.",
         "Gives an example where one value satisfies both conditions and produces two outputs.",
         "Connects the difference to control flow, not to the truth value of the conditions.",
+      ],
+    },
+    {
+      id: "a4",
+      kind: "short-answer",
+      prompt:
+        "For temperature = 35 this program prints both 'warm' and 'hot': if temperature >= 20 prints warm, then a separate if temperature >= 30 prints hot. Explain why both branches run and repair the chain so only 'hot' is printed.",
+      modelAnswer:
+        "The two if statements are independent decisions. Both conditions are true at 35, so both bodies run in order. An elif is tested only when the earlier condition was false, so order the most specific case first: if temperature >= 30 print hot; elif temperature >= 20 print warm; else print cool. Then 35 matches the first branch and the rest are skipped.",
+      marking: [
+        "Explains that separate if statements are each tested, so both true conditions run.",
+        "Uses if/elif/else so only one branch can run.",
+        "Orders the most specific threshold first, so 35 prints only hot.",
       ],
     },
   ],

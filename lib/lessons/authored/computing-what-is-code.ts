@@ -285,6 +285,11 @@ export const COMPUTING_WHAT_IS_CODE: AuthoredLesson = {
         "Prints the total after the loop, not inside it.",
         "Gives a trace whose final value matches the stated output.",
       ],
+      code: {
+        starterCode:
+          "total = 0\nfor n in range(2, 10, 2):\n    total = total + n\nprint(total)",
+        tests: [{ name: "the total includes 10", expectedStdout: "30" }],
+      },
     },
     {
       id: "a2",
@@ -298,6 +303,63 @@ export const COMPUTING_WHAT_IS_CODE: AuthoredLesson = {
         "Gives a concrete loop example with a wrong bound.",
         "States that correctness is judged against expected output, not against the absence of a crash.",
       ],
+    },
+    {
+      id: "a3",
+      kind: "ordering",
+      prompt:
+        "Put the steps of this total-finding algorithm in the order a program runs them. Use Up and Down; no dragging is required.",
+      modelAnswer:
+        "A total starts at zero. The loop visits each even number, adds that number to the total, and only after the loop finishes does the program print the total. Printing inside the loop would show every intermediate total instead of the final one.",
+      marking: [
+        "Starts by setting the running total to zero.",
+        "Visits each even number in turn.",
+        "Adds the current number to the running total inside the loop.",
+        "Prints the total only after the loop has finished.",
+      ],
+      ordering: {
+        items: [
+          { id: "s1", text: "Set the running total to 0." },
+          { id: "s2", text: "Print the running total." },
+          { id: "s3", text: "For each even number from 2 to 10, repeat the next step." },
+          { id: "s4", text: "Add the current number to the running total." },
+        ],
+        correctOrder: ["s1", "s3", "s4", "s2"],
+      },
+    },
+    {
+      id: "a4",
+      kind: "matching",
+      prompt:
+        "Match each programming idea to the behaviour it describes.",
+      modelAnswer:
+        "Sequence means statements run in the written order. Selection chooses between paths using a condition. Iteration repeats a block. A variable is named storage whose value can change. A trace records the values at each step so the behaviour can be checked.",
+      marking: [
+        "Matches sequence with ordered execution.",
+        "Matches selection with a conditional choice of path.",
+        "Matches iteration with repetition.",
+        "Matches a variable with named, changeable storage.",
+        "Matches a trace with recording values step by step.",
+      ],
+      matching: {
+        leftHeading: "Programming idea",
+        rightHeading: "Behaviour",
+        left: [
+          { id: "c1", text: "Sequence" },
+          { id: "c2", text: "Selection" },
+          { id: "c3", text: "Iteration" },
+          { id: "c4", text: "Variable" },
+          { id: "c5", text: "Trace" },
+        ],
+        right: [
+          { id: "b1", text: "Statements execute in the order written" },
+          { id: "b2", text: "A condition chooses which path runs" },
+          { id: "b3", text: "A block of statements repeats" },
+          { id: "b4", text: "Named storage whose value can change" },
+          { id: "b5", text: "A record of values at each step" },
+        ],
+        pairs: { c1: "b1", c2: "b2", c3: "b3", c4: "b4", c5: "b5" },
+      },
     },
   ],
 

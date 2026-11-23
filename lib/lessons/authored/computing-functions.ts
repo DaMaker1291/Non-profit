@@ -354,6 +354,19 @@ print(subtotal)       # NameError`,
       ],
       check: { accepted: ["24", "twenty four", "twenty-four"] },
     },
+    {
+      id: "a5",
+      kind: "short-answer",
+      prompt:
+        "This program prints 10 and then raises NameError: total(prices) builds subtotal and returns it, but the caller then runs print(subtotal). Identify the fault, explain why subtotal does not exist outside the call, and write the repair.",
+      modelAnswer:
+        "subtotal is a local variable. It is created when total is called and discarded when the call returns, so the caller has no name subtotal to read; the returned value is the only thing that crosses the boundary. Store the return value: answer = total([4, 6]) then print(answer). If the caller needs the subtotal later, the function must return it rather than relying on a local name.",
+      marking: [
+        "Identifies subtotal as local to the function call.",
+        "Explains that the local name is gone when the function returns, so the caller cannot read it.",
+        "Repairs the caller by storing and printing the returned value.",
+      ],
+    },
   ],
 
   transfer: [

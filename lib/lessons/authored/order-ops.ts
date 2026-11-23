@@ -287,6 +287,13 @@ export const MATHS_ORDER_OPS: AuthoredLesson = {
       answer: "13, because the bracket gives four, twice four is eight, and five more is thirteen.",
       when: "week-later",
     },
+    {
+      id: "x3",
+      prompt: "Work out 5 + 3 × (8 − 2), naming the order in which you evaluated each part.",
+      answer:
+        "23. The bracket gives six, the multiplication gives eighteen, and the addition gives twenty-three; the multiplication happens before the addition outside the bracket.",
+      when: "month-later",
+    },
   ],
 
   summary: [

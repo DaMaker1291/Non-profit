@@ -1,0 +1,17 @@
+import type { AuthoredLesson } from "../../lesson-contract";
+import { COMPUTING_AI_BASICS, COMPUTING_ALGORITHMS_SORT, COMPUTING_COMPLEXITY } from "./computing-gaps-1";
+import { COMPUTING_CYBERSECURITY, COMPUTING_DATABASES, COMPUTING_NETWORKS } from "./computing-gaps-2";
+import { COMPUTING_RECURSION, COMPUTING_STATISTICS_DATA, COMPUTING_WEB_STACK } from "./computing-gaps-3";
+
+/** The nine computing concepts that had an outline but no authored lesson. */
+export const COMPUTING_GAP_LESSONS: readonly AuthoredLesson[] = [
+  COMPUTING_AI_BASICS,
+  COMPUTING_ALGORITHMS_SORT,
+  COMPUTING_COMPLEXITY,
+  COMPUTING_CYBERSECURITY,
+  COMPUTING_DATABASES,
+  COMPUTING_NETWORKS,
+  COMPUTING_RECURSION,
+  COMPUTING_STATISTICS_DATA,
+  COMPUTING_WEB_STACK,
+];

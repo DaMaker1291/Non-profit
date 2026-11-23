@@ -285,6 +285,13 @@ export const MATHS_ADDITION: AuthoredLesson = {
       answer: "404, because 200 plus 205 is 405 and taking one leaves 404.",
       when: "week-later",
     },
+    {
+      id: "x3",
+      prompt: "Work out 276 plus 158, and say which columns needed an exchange.",
+      answer:
+        "434. The ones make fourteen, so ten ones become one ten; the tens then make thirteen, so ten tens become one hundred. The hundreds column holds the new hundred.",
+      when: "month-later",
+    },
   ],
 
   summary: [

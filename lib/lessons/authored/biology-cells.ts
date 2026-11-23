@@ -296,7 +296,7 @@ export const BIOLOGY_CELLS: AuthoredLesson = {
     },
     {
       id: "a2",
-      kind: "short-answer",
+      kind: "constructed-response",
       prompt:
         "A leaf cell and a root cell come from the same plant. Explain one difference between them and why it exists.",
       modelAnswer:

@@ -279,6 +279,13 @@ export const MATHS_MULTIPLICATION: AuthoredLesson = {
       answer: "Less, because eight tenths of 0.7 is a part of it.",
       when: "week-later",
     },
+    {
+      id: "x3",
+      prompt: "A rectangle is 18 tiles wide and 24 tiles long. Work out its area and explain the two partial products.",
+      answer:
+        "432 tiles. Split 24 into 20 and 4: 18 times 20 is 360, and 18 times 4 is 72; the two partial products add to 432.",
+      when: "month-later",
+    },
   ],
 
   summary: [

@@ -4,6 +4,27 @@ import { PHYSICS_CIRCUITS } from "./physics-circuits";
 import { PHYSICS_ENERGY } from "./physics-energy";
 import { PHYSICS_MOTION } from "./physics-motion";
 import { PHYSICS_WAVES } from "./physics-waves";
+import {
+  PHYSICS_NEWTON_LAWS,
+  PHYSICS_MOMENTUM,
+  PHYSICS_WORK_POWER,
+} from "./physics-gaps-1";
+import {
+  PHYSICS_LIGHT_OPTICS,
+  PHYSICS_SOUND_ACOUSTICS,
+  PHYSICS_MAGNETISM,
+} from "./physics-gaps-2";
+import {
+  PHYSICS_EM_INDUCTION,
+  PHYSICS_THERMAL_PHYSICS,
+  PHYSICS_PRESSURE_FLUIDS,
+} from "./physics-gaps-3";
+import {
+  PHYSICS_ATOMS_NUCLEUS,
+  PHYSICS_RADIOACTIVITY,
+  PHYSICS_GRAVITY_FIELDS,
+  PHYSICS_ASTROPHYSICS,
+} from "./physics-gaps-4";
 import { CHEMISTRY_EQUATIONS } from "./chemistry-equations";
 import { BIOLOGY_PHOTOSYNTHESIS } from "./biology-photosynthesis";
 import { COMPUTING_WHAT_IS_CODE } from "./computing-what-is-code";
@@ -19,6 +40,7 @@ import { MATHS_ORDER_OPS } from "./order-ops";
 import { MATHS_FRACTION_OPS } from "./fraction-ops";
 import { MATHS_PERCENTAGES } from "./percentages";
 import { MATHS_QUADRATICS } from "./maths-quadratics";
+import { MATHS_COMPLETING_SQUARE } from "./maths-completing-square";
 import { BIOLOGY_CELLS } from "./biology-cells";
 import { PHYSICS_FORCES } from "./physics-forces";
 import { CHEMISTRY_PERIODIC_TABLE } from "./chemistry-periodic-table";
@@ -87,6 +109,41 @@ import { MATHS_TRANSFORMATIONS } from "./maths-transformations";
 import { MATHS_VECTORS } from "./maths-vectors";
 import { MATHS_TREE_DIAGRAMS } from "./maths-tree-diagrams";
 import { MATHS_SCATTER_CORRELATION } from "./maths-scatter-correlation";
+import { COMPUTING_GAP_LESSONS } from "./computing-gaps";
+import {
+  MATHS_POLYNOMIALS,
+  MATHS_BINOMIAL,
+  MATHS_TRIG_RULE,
+  MATHS_CIRCLE_AREA_ARC,
+} from "./maths-gaps-1";
+import {
+  MATHS_MIXTURE_PROBLEMS,
+  MATHS_GROWTH_DECAY,
+  MATHS_LOGS,
+  MATHS_CALCULUS_DIFF,
+} from "./maths-gaps-2";
+import {
+  MATHS_CALCULUS_INT,
+  MATHS_KINEMATICS,
+  MATHS_PROOF,
+  MATHS_MATRICES_INTRO,
+} from "./maths-gaps-3";
+import { MATHS_SETS_VENN, MATHS_FINANCIAL_MATHS, MATHS_BOUNDS } from "./maths-gaps-4";
+import {
+  MATHS_LOCI_CONSTRUCTIONS,
+  MATHS_BEARINGS,
+  MATHS_PROPORTIONAL_GRAPHS,
+} from "./maths-gaps-5";
+import {
+  MATHS_QUADRATIC_GRAPHS,
+  MATHS_ALGEBRAIC_FRACTIONS,
+  MATHS_ITERATION,
+} from "./maths-gaps-6";
+import {
+  MATHS_CIRCLE_GEOMETRY_ADV,
+  MATHS_NUMBER_BASES,
+  MATHS_LOGIC_MATHS,
+} from "./maths-gaps-7";
 import { LESSON_TRANSLATIONS, TRANSLATED_LANGUAGES } from "./translations";
 
 // THE AUTHORED SET.
@@ -113,6 +170,19 @@ export const AUTHORED_LESSONS: readonly AuthoredLesson[] = [
   // reading skill before it is a calculation, so the lesson keeps the two
   // graphs' gradients and the velocity–time area separate.
   PHYSICS_MOTION,
+  PHYSICS_NEWTON_LAWS,
+  PHYSICS_MOMENTUM,
+  PHYSICS_WORK_POWER,
+  PHYSICS_LIGHT_OPTICS,
+  PHYSICS_SOUND_ACOUSTICS,
+  PHYSICS_MAGNETISM,
+  PHYSICS_EM_INDUCTION,
+  PHYSICS_THERMAL_PHYSICS,
+  PHYSICS_PRESSURE_FLUIDS,
+  PHYSICS_ATOMS_NUCLEUS,
+  PHYSICS_RADIOACTIVITY,
+  PHYSICS_GRAVITY_FIELDS,
+  PHYSICS_ASTROPHYSICS,
   // Batch 32 — the last critical stage-1 physics gap. The lesson makes the
   // oscillation and the travelling disturbance separate before it names
   // amplitude, wavelength, frequency or speed.
@@ -144,6 +214,12 @@ export const AUTHORED_LESSONS: readonly AuthoredLesson[] = [
   // the first test of whether the contract can teach algebra rather than
   // arithmetic.
   MATHS_QUADRATICS,
+  // Batch 53 — completing-square: the method the quadratics lesson names but does
+  // not teach. The plan's area model marks the 9 corner that closes x² + 6x, so the
+  // authored lesson derives the rule from that shape, then uses expansion and
+  // substitution as independent checks. It is the Higher-tier partner of
+  // quadratics, not another factorising routine.
+  MATHS_COMPLETING_SQUARE,
   // Batch 10 — one authored lesson in each remaining subject, chosen where the
   // existing plan was weakest: a labelled cell diagram, a forces topic that
   // usually stops at definitions, a periodic table taught as a chart, and a
@@ -405,6 +481,32 @@ export const AUTHORED_LESSONS: readonly AuthoredLesson[] = [
   // Predictions are interpolation only inside the observed range; an outlier is
   // checked before it is deleted; a slope is not a mechanism.
   MATHS_SCATTER_CORRELATION,
+  // The curriculum-gap batch: every remaining computing outline is now authored.
+  ...COMPUTING_GAP_LESSONS,
+  MATHS_POLYNOMIALS,
+  MATHS_BINOMIAL,
+  MATHS_TRIG_RULE,
+  MATHS_CIRCLE_AREA_ARC,
+  MATHS_MIXTURE_PROBLEMS,
+  MATHS_GROWTH_DECAY,
+  MATHS_LOGS,
+  MATHS_CALCULUS_DIFF,
+  MATHS_CALCULUS_INT,
+  MATHS_KINEMATICS,
+  MATHS_PROOF,
+  MATHS_MATRICES_INTRO,
+  MATHS_SETS_VENN,
+  MATHS_FINANCIAL_MATHS,
+  MATHS_BOUNDS,
+  MATHS_LOCI_CONSTRUCTIONS,
+  MATHS_BEARINGS,
+  MATHS_PROPORTIONAL_GRAPHS,
+  MATHS_QUADRATIC_GRAPHS,
+  MATHS_ALGEBRAIC_FRACTIONS,
+  MATHS_ITERATION,
+  MATHS_CIRCLE_GEOMETRY_ADV,
+  MATHS_NUMBER_BASES,
+  MATHS_LOGIC_MATHS,
 ];
 
 export const AUTHORED_BY_CONCEPT: Readonly<Record<string, AuthoredLesson>> = Object.fromEntries(

@@ -350,6 +350,19 @@ export const MATHS_STRAIGHT_LINES: AuthoredLesson = {
       ],
       check: { accepted: ["y = −2x + 3", "y=-2x+3", "y = -2x + 3"] },
     },
+    {
+      id: "a4",
+      kind: "constructed-response",
+      prompt:
+        "A graph shows the straight line y = 2x − 1. State its gradient and y-intercept, find its x-intercept, and explain what the gradient means for every 1-unit increase in x.",
+      modelAnswer:
+        "The equation is in y = mx + c form, so the gradient is 2 and the y-intercept is (0, −1). The x-intercept is where y = 0: 0 = 2x − 1 gives x = 0.5, so it crosses at (0.5, 0). A gradient of 2 means that for every 1 unit increase in x, y increases by 2 units; the line rises twice as fast as it moves right.",
+      marking: [
+        "Reads the gradient as 2 and the y-intercept as (0, −1).",
+        "Solves 2x − 1 = 0 to find the x-intercept 0.5.",
+        "Explains the gradient as a change of +2 in y for each +1 in x.",
+      ],
+    },
   ],
 
   transfer: [

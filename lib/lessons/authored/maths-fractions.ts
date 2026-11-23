@@ -9,7 +9,7 @@ import type { AuthoredLesson } from "../../lesson-contract";
 export const MATHS_FRACTIONS: AuthoredLesson = {
   contract: "openmind.lesson/1.0",
   conceptId: "fractions",
-  version: "1.0.0",
+  version: "1.1.0",
   subject: "maths",
   curriculum: {
     reference: "GCSE Mathematics, number: fractions",
@@ -292,6 +292,57 @@ export const MATHS_FRACTIONS: AuthoredLesson = {
         "States that fractions with the same denominator are added by adding the numerators only.",
         "Gives the correct answer of one whole.",
       ],
+    },
+    {
+      id: "a3",
+      kind: "diagram",
+      prompt:
+        "The bar is split into four equal parts and three of them are shaded. Match each description to the position on the drawing it describes.",
+      modelAnswer:
+        "Each of the four equal sections is one quarter. Three of them are shaded, so the shaded fraction is three quarters. The denominator is four because the whole was cut into four equal parts, while the numerator is three because three of those parts are shaded.",
+      marking: [
+        "Recognises one equal section as one quarter of the whole.",
+        "Recognises the unshaded section as the remaining quarter.",
+        "Connects three shaded quarters with the fraction three quarters.",
+        "Connects the denominator four with the number of equal parts in the whole.",
+      ],
+      diagram: {
+        width: 360,
+        height: 150,
+        caption:
+          "A rectangle divided into four equal vertical sections. The left three sections are shaded and the right section is unshaded. Numbered positions mark one shaded section, the unshaded section, the whole bar and the bar's lower edge.",
+        shapes: [
+          { kind: "rect", x: 20, y: 30, width: 80, height: 70, filled: true },
+          { kind: "rect", x: 100, y: 30, width: 80, height: 70, filled: true },
+          { kind: "rect", x: 180, y: 30, width: 80, height: 70, filled: true },
+          { kind: "rect", x: 260, y: 30, width: 80, height: 70 },
+        ],
+        targets: [
+          { id: "t1", x: 60, y: 65 },
+          { id: "t2", x: 300, y: 65 },
+          { id: "t3", x: 180, y: 125 },
+          { id: "t4", x: 60, y: 18 },
+        ],
+        labels: [
+          { id: "l1", text: "One equal part, which is one quarter of the bar", targetId: "t1" },
+          { id: "l2", text: "The part that is not shaded, also one quarter", targetId: "t2" },
+          { id: "l3", text: "The denominator: the whole cut into four equal parts", targetId: "t3" },
+          { id: "l4", text: "The numerator: the number of shaded quarters", targetId: "t4" },
+        ],
+      },
+    },
+    {
+      id: "a4",
+      kind: "short-answer",
+      prompt: "Work out one half plus one quarter. Give your answer as a fraction.",
+      modelAnswer: "Three quarters",
+      marking: [
+        "Uses a common denominator of four: one half is two quarters.",
+        "Adds two quarters and one quarter to get three quarters, without adding the denominators.",
+      ],
+      check: {
+        accepted: ["3/4", "three quarters", "three-quarters", "0.75"],
+      },
     },
   ],
 

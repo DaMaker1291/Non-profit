@@ -297,6 +297,13 @@ export const MATHS_FRACTION_OPS: AuthoredLesson = {
       answer: "1/2, because fifteen thirtieths simplifies to one half.",
       when: "week-later",
     },
+    {
+      id: "x3",
+      prompt: "Work out 5/6 − 1/3, and explain why sixths are a useful common denominator.",
+      answer:
+        "1/2. One third is two sixths, and five sixths minus two sixths is three sixths, which simplifies to one half. Sixths work because the existing denominator is already a multiple of three.",
+      when: "month-later",
+    },
   ],
 
   summary: [

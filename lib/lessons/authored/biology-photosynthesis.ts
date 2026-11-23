@@ -295,7 +295,7 @@ export const BIOLOGY_PHOTOSYNTHESIS: AuthoredLesson = {
     },
     {
       id: "a2",
-      kind: "short-answer",
+      kind: "constructed-response",
       prompt:
         "A student claims that a plant placed in a sealed lit container will eventually stop photosynthesising because it uses up all the carbon dioxide. Explain what will actually happen and why the claim is only partly right.",
       modelAnswer:
@@ -304,6 +304,80 @@ export const BIOLOGY_PHOTOSYNTHESIS: AuthoredLesson = {
         "Identifies carbon dioxide as the factor that becomes limiting.",
         "States that respiration continues and releases carbon dioxide.",
         "Concludes that the rate falls to a low value rather than stopping abruptly.",
+      ],
+    },
+    {
+      id: "a3",
+      kind: "gap-fill",
+      prompt:
+        "Complete the summary of photosynthesis. Each gap is marked as a whole answer, and the word bank contains more words than gaps.",
+      modelAnswer:
+        "Carbon dioxide enters through the stomata and water arrives through the xylem. In the chloroplast, chlorophyll absorbs light energy. The products are glucose, which the plant uses for respiration or stores as starch, and oxygen, which leaves the leaf by diffusion.",
+      marking: [
+        "Names carbon dioxide as the gas taken in.",
+        "Names water as the other reactant.",
+        "Names the chloroplast as the organelle.",
+        "Names glucose as the carbohydrate product.",
+        "Names oxygen as the gas released.",
+      ],
+      gaps: {
+        template:
+          "Photosynthesis takes in [[g1]] from the air and [[g2]] from the soil. It happens in the [[g3]], where chlorophyll absorbs light. The plant makes [[g4]] and releases [[g5]].",
+        wordBank: ["carbon dioxide", "water", "chloroplast", "glucose", "oxygen", "nitrogen", "mitochondrion"],
+        gaps: [
+          { id: "g1", label: "Gas taken in from the air", accepted: ["carbon dioxide", "CO2", "carbon dioxide gas"] },
+          { id: "g2", label: "Reactant taken in from the soil", accepted: ["water", "H2O"] },
+          { id: "g3", label: "Organelle where photosynthesis happens", accepted: ["chloroplast", "chloroplasts"] },
+          { id: "g4", label: "Carbohydrate product", accepted: ["glucose", "sugar", "starch"] },
+          { id: "g5", label: "Gas released", accepted: ["oxygen", "O2", "oxygen gas"] },
+        ],
+      },
+    },
+    {
+      id: "a4",
+      kind: "matching",
+      prompt:
+        "Match each structure or substance to the job it does in photosynthesis.",
+      modelAnswer:
+        "Chlorophyll absorbs light energy; stomata let carbon dioxide enter; the chloroplast is the organelle containing chlorophyll; xylem transports water to the leaf; and glucose is the carbohydrate product used for respiration or stored as starch.",
+      marking: [
+        "Matches chlorophyll with light absorption.",
+        "Matches stomata with gas exchange.",
+        "Matches the chloroplast with the site of photosynthesis.",
+        "Matches xylem with water transport.",
+        "Matches glucose with the carbohydrate product.",
+      ],
+      matching: {
+        leftHeading: "Structure or substance",
+        rightHeading: "Job in photosynthesis",
+        left: [
+          { id: "m1", text: "Chlorophyll" },
+          { id: "m2", text: "Stomata" },
+          { id: "m3", text: "Chloroplast" },
+          { id: "m4", text: "Xylem" },
+          { id: "m5", text: "Glucose" },
+        ],
+        right: [
+          { id: "r1", text: "Absorbs light energy" },
+          { id: "r2", text: "Lets carbon dioxide enter the leaf" },
+          { id: "r3", text: "The organelle where photosynthesis takes place" },
+          { id: "r4", text: "Transports water to the leaf" },
+          { id: "r5", text: "The carbohydrate product used for respiration or stored as starch" },
+        ],
+        pairs: { m1: "r1", m2: "r2", m3: "r3", m4: "r4", m5: "r5" },
+      },
+    },
+    {
+      id: "a5",
+      kind: "short-answer",
+      prompt:
+        "A rate-versus-light-intensity graph rises steeply at low light and then becomes flat at 12 mm³ of oxygen per minute above 20 arbitrary units of light. State which factor limits the rate above 20 units, and explain why adding more light does not increase it.",
+      modelAnswer:
+        "Above 20 units, light is no longer the limiting factor; the plateau is set by another factor such as carbon dioxide concentration or temperature. The light-dependent stage is already supplying as much as the next stage can use, so extra light cannot raise the overall rate. The graph is read by looking at the flat section: the variable on the horizontal axis has stopped being the bottleneck.",
+      marking: [
+        "Reads the plateau as light no longer limiting the rate.",
+        "Names another limiting factor, such as carbon dioxide concentration or temperature.",
+        "Explains that the other factor is saturated or in short supply, so more light cannot increase the rate.",
       ],
     },
   ],

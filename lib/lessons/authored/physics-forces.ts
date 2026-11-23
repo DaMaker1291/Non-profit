@@ -300,7 +300,7 @@ export const PHYSICS_FORCES: AuthoredLesson = {
     },
     {
       id: "a3",
-      kind: "short-answer",
+      kind: "constructed-response",
       prompt:
         "Explain why stating that a force is 12, without a unit, is not a complete answer.",
       modelAnswer:

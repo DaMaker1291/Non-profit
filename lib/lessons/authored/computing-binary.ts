@@ -319,6 +319,14 @@ print(format(value, "02X"))  # 9C`,
         "Maps the values 10 to 15 to A to F and always returns two digits, including a leading zero for 0A.",
         "States 9C for 156 and 0A for 10, and the tests cover at least one boundary value.",
       ],
+      code: {
+        starterCode:
+          "def to_hex_byte(value):\n    return format(value, \"X\")\n\nprint(to_hex_byte(156))\nprint(to_hex_byte(10))",
+        tests: [{
+          name: "the byte is always two upper-case hexadecimal digits",
+          expectedStdout: "9C\n0A",
+        }],
+      },
     },
     {
       id: "a2",
@@ -354,6 +362,19 @@ print(format(value, "02X"))  # 9C`,
         "Maps 1100 to C and 1010 to A, giving CA.",
       ],
       check: { accepted: ["CA", "ca", "0xCA", "0xca"] },
+    },
+    {
+      id: "a5",
+      kind: "short-answer",
+      prompt:
+        "A function returns hex(value)[2:].upper(). It gives F for 15 even though a byte must be written with exactly two hexadecimal digits. Identify the fault, explain why the leading zero is lost, and repair the formatting so 15 becomes 0F and 156 stays 9C.",
+      modelAnswer:
+        "hex(15) is '0xf', and slicing off '0x' leaves 'f'. The slice removes the prefix but does not pad the remaining digits, so a one-nibble value loses the leading zero that two-digit byte notation needs. Format with a width of two and zero padding: format(value, '02X'), or f'{value:02X}'. That gives 0F for 15 and 9C for 156 and keeps upper case.",
+      marking: [
+        "Identifies that hex() does not pad and the slice removes only the 0x prefix.",
+        "Explains that a one-nibble value therefore has only one digit.",
+        "Uses format(value, '02X') or an equivalent two-digit zero-padded format.",
+      ],
     },
   ],
 

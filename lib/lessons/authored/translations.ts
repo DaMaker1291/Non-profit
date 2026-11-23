@@ -293,6 +293,13 @@ const ES: AuthoredLesson = {
       answer: "4.006, con las columnas de las centenas y las decenas vacías.",
       when: "week-later",
     },
+    {
+      id: "x3",
+      prompt: "Escribe treinta mil cuatrocientos siete con cifras y di cuánto vale su 3.",
+      answer:
+        "30.407. El 3 ocupa la columna de las decenas de millar, así que vale treinta mil; el cero mantiene abierta la columna de los millares y el 4 son cuatro centenas.",
+      when: "month-later",
+    },
   ],
 
   summary: [
@@ -626,6 +633,13 @@ const FR: AuthoredLesson = {
       prompt: "Écris quatre mille six en chiffres.",
       answer: "4 006, avec les colonnes des centaines et des dizaines vides.",
       when: "week-later",
+    },
+    {
+      id: "x3",
+      prompt: "Écris trente mille quatre cent sept en chiffres et dis combien vaut son 3.",
+      answer:
+        "30 407. Le 3 occupe la colonne des dizaines de mille, donc il vaut trente mille ; le zéro maintient ouverte la colonne des mille et le 4 vaut quatre cents.",
+      when: "month-later",
     },
   ],
 

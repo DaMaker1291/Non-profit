@@ -281,6 +281,13 @@ export const MATHS_DECIMALS: AuthoredLesson = {
       answer: "0.2, because five times four is twenty and two decimal places gives twenty hundredths.",
       when: "week-later",
     },
+    {
+      id: "x3",
+      prompt: "Which is larger, 0.305 or 0.35? Explain by naming the column that decides.",
+      answer:
+        "0.35 is larger. Compare tenths first: both have three tenths, then 0.305 has no hundredths while 0.35 has five hundredths, so the hundredths column decides.",
+      when: "month-later",
+    },
   ],
 
   summary: [

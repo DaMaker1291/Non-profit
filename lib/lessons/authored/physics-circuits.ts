@@ -296,6 +296,123 @@ export const PHYSICS_CIRCUITS: AuthoredLesson = {
         "Uses V = I R on each resistor separately to get four volts and eight volts, and checks they add to the supply.",
       ],
     },
+    {
+      id: "a3",
+      kind: "structured",
+      prompt:
+        "A 12 V supply is connected across a 4 Ω resistor. Answer all three parts, showing the calculation for each.",
+      modelAnswer:
+        "Part (a): I = V ÷ R = 12 ÷ 4 = 3 A. Part (b): V = I R = 0.50 × 4 = 2 V. Part (c): Q = I t = 3 × 20 = 60 C.",
+      marking: [
+        "Uses current = voltage ÷ resistance for part (a).",
+        "Gives 3 A with the ampere unit for part (a).",
+        "Uses voltage = current × resistance for part (b).",
+        "Gives 2 V with the volt unit for part (b).",
+        "Uses charge = current × time for part (c).",
+        "Gives 60 C with the coulomb unit for part (c).",
+      ],
+      structured: {
+        parts: [
+          {
+            id: "a",
+            prompt: "Calculate the current through the resistor. Give your answer in A.",
+            marks: 2,
+            answer: 3,
+            unit: "A",
+            unitRequired: true,
+            accepted: ["3 A", "3A"],
+            method: {
+              id: "a:M1",
+              marks: 1,
+              prompt: "Show the calculation you used",
+              accept: ["12 / 4", "12 ÷ 4", "12/4", "12 ÷ 4 = 3"],
+              label: "voltage ÷ resistance",
+            },
+            explanation:
+              "Current is voltage divided by resistance, so 12 V ÷ 4 Ω = 3 A. The ampere unit belongs to the answer because current is the quantity being calculated, not the voltage or the resistance.",
+          },
+          {
+            id: "b",
+            prompt: "The current is changed to 0.50 A. Calculate the potential difference across the same resistor. Give your answer in V.",
+            marks: 2,
+            answer: 2,
+            unit: "V",
+            unitRequired: true,
+            accepted: ["2 V", "2V", "2.0 V"],
+            method: {
+              id: "b:M1",
+              marks: 1,
+              prompt: "Show the calculation you used",
+              accept: ["0.5 × 4", "0.50 × 4", "0.5*4", "0.50*4", "0.5 x 4", "0.50 x 4"],
+              label: "current × resistance",
+            },
+            explanation:
+              "Potential difference is current multiplied by resistance: 0.50 A × 4 Ω = 2 V. The smaller current gives a smaller potential difference across the same resistor, which is the proportional relationship the equation describes.",
+          },
+          {
+            id: "c",
+            prompt: "The 3 A current flows for 20 s. Calculate the charge transferred. Give your answer in C.",
+            marks: 2,
+            answer: 60,
+            unit: "C",
+            unitRequired: true,
+            accepted: ["60 C", "60C"],
+            method: {
+              id: "c:M1",
+              marks: 1,
+              prompt: "Show the calculation you used",
+              accept: ["3 × 20", "3*20", "3 x 20", "3 × 20 = 60"],
+              label: "current × time",
+            },
+            explanation:
+              "Charge is current multiplied by time: 3 A × 20 s = 60 C. Multiplying by time adds up the charge that passes each second, so the answer is a total charge rather than a rate.",
+          },
+        ],
+      },
+    },
+    {
+      id: "a4",
+      kind: "diagram",
+      prompt:
+        "Match each circuit component to its position in the drawing.",
+      modelAnswer:
+        "The battery is the pair of parallel lines on the left, the resistor is the rectangle on the top wire, the ammeter is the circle marked A on the right, and the connecting wire is the line joining the components.",
+      marking: [
+        "Recognises the battery symbol.",
+        "Recognises the resistor symbol.",
+        "Recognises the ammeter symbol.",
+        "Recognises a connecting wire.",
+      ],
+      diagram: {
+        width: 380,
+        height: 190,
+        caption:
+          "A rectangular circuit. A battery is drawn on the left wire, a resistor on the top wire, and an ammeter marked A on the right wire. Numbered positions mark the battery, resistor, ammeter and a connecting wire.",
+        shapes: [
+          { kind: "line", x1: 40, y1: 40, x2: 340, y2: 40 },
+          { kind: "line", x1: 340, y1: 40, x2: 340, y2: 140 },
+          { kind: "line", x1: 340, y1: 140, x2: 40, y2: 140 },
+          { kind: "line", x1: 40, y1: 140, x2: 40, y2: 40 },
+          { kind: "line", x1: 28, y1: 78, x2: 52, y2: 78 },
+          { kind: "line", x1: 32, y1: 92, x2: 48, y2: 92 },
+          { kind: "rect", x: 160, y: 31, width: 60, height: 18 },
+          { kind: "circle", cx: 340, cy: 90, r: 16 },
+          { kind: "text", x: 335, y: 96, text: "A", size: 15 },
+        ],
+        targets: [
+          { id: "battery", x: 16, y: 85 },
+          { id: "resistor", x: 190, y: 22 },
+          { id: "ammeter", x: 365, y: 120 },
+          { id: "wire", x: 100, y: 40 },
+        ],
+        labels: [
+          { id: "l1", text: "Battery: the component that provides the potential difference", targetId: "battery" },
+          { id: "l2", text: "Resistor: the component that opposes the current", targetId: "resistor" },
+          { id: "l3", text: "Ammeter: the meter that measures current", targetId: "ammeter" },
+          { id: "l4", text: "Connecting wire: the path that carries charge around the circuit", targetId: "wire" },
+        ],
+      },
+    },
   ],
 
   transfer: [

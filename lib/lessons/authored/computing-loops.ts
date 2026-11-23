@@ -283,6 +283,11 @@ export const COMPUTING_LOOPS: AuthoredLesson = {
         "Prints once after the loop rather than inside it.",
         "States the expected output as 30 and supports it with a trace or a check.",
       ],
+      code: {
+        starterCode:
+          "total = 0\nfor n in range(2, 12, 2):\n    total = total + n\nprint(total)",
+        tests: [{ name: "the range stops at 10", expectedStdout: "30" }],
+      },
     },
     {
       id: "a2",
@@ -308,6 +313,19 @@ export const COMPUTING_LOOPS: AuthoredLesson = {
         "Recognises that the loop stops when x reaches 3.",
       ],
       check: { accepted: ["3", "three"] },
+    },
+    {
+      id: "a4",
+      kind: "short-answer",
+      prompt:
+        "This loop prints 0 forever: count = 0, then while count < 5: print(count). Identify the missing statement, explain why the condition never becomes false, and write the repair.",
+      modelAnswer:
+        "The body never changes count, so count stays 0 and count < 5 remains true on every pass; the loop cannot reach its exit. Add count = count + 1 inside the loop, after print(count), so the values 0, 1, 2, 3 and 4 are printed and count becomes 5, which makes the condition false. The update must be in the loop body, not after it.",
+      marking: [
+        "Identifies that count is never updated inside the loop.",
+        "Explains that the condition therefore stays true and the loop does not terminate.",
+        "Places count = count + 1 inside the body and shows the expected output 0 to 4.",
+      ],
     },
   ],
 

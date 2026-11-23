@@ -285,6 +285,14 @@ export const MATHS_DIVISION: AuthoredLesson = {
       answer: "3.25, because the remainder of one is a quarter of the next whole.",
       when: "week-later",
     },
+    {
+      id: "x3",
+      prompt:
+        "257 books are packed into boxes of 6. Work out the number of full boxes and explain what the remainder means here.",
+      answer:
+        "42 full boxes with 5 books left over: 42 times 6 is 252. The remainder cannot make another full box, but it is still five real books that need somewhere to go.",
+      when: "month-later",
+    },
   ],
 
   summary: [

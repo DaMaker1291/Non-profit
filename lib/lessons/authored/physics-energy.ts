@@ -317,7 +317,7 @@ export const PHYSICS_ENERGY: AuthoredLesson = {
     },
     {
       id: "a3",
-      kind: "short-answer",
+      kind: "constructed-response",
       prompt:
         "A book is lifted onto a shelf and then left there. Explain whether it has energy while it is stationary, and name the store.",
       modelAnswer:

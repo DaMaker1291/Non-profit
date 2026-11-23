@@ -18,7 +18,7 @@ import type { AuthoredLesson } from "../../lesson-contract";
 export const CHEMISTRY_RATES_REACTION: AuthoredLesson = {
   contract: "openmind.lesson/1.0",
   conceptId: "rates-reaction",
-  version: "1.0.0",
+  version: "1.1.0",
   subject: "chemistry",
   curriculum: {
     reference:
@@ -372,6 +372,33 @@ export const CHEMISTRY_RATES_REACTION: AuthoredLesson = {
         "Explains that the catalyst lowers the activation energy by providing an alternative pathway.",
         "Links the lower barrier to a larger fraction of successful collisions and a higher rate.",
         "States that the catalyst does not change the amount or identity of the products and is not consumed.",
+      ],
+    },
+    {
+      id: "a4",
+      kind: "constructed-response",
+      prompt:
+        "A student plans an experiment to measure how halving the concentration of hydrochloric acid changes the rate of reaction with magnesium ribbon. Describe how the gas volume should be measured over time, state two variables that must be controlled, and explain how a mean rate is obtained from the graph.",
+      modelAnswer:
+        "Collect the hydrogen in a gas syringe connected to the reaction flask, or over water in an inverted measuring cylinder, and record the volume at regular time intervals. Use the same mass and surface area of magnesium ribbon, the same volume of acid and the same temperature in both experiments; change only the acid concentration. Plot gas volume against time. A mean rate over an interval is the change in volume divided by the time taken, while the initial rate is the gradient of the tangent at the start. Halving the concentration gives fewer acid particles per unit volume, so collisions with the magnesium are less frequent and the initial rate is lower; the final volume is unchanged if the same amount of magnesium is used.",
+      marking: [
+        "Chooses a method that measures gas volume at known times, such as a gas syringe or inverted measuring cylinder.",
+        "Controls the magnesium mass and surface area, the acid volume and the temperature, changing only the concentration.",
+        "Calculates a mean rate as change in gas volume divided by the time interval, or reads the initial rate from the tangent.",
+        "Explains the lower rate as fewer acid particles per unit volume and less frequent collisions, not as a lower activation energy.",
+      ],
+    },
+    {
+      id: "a5",
+      kind: "constructed-response",
+      prompt:
+        "A graph of gas volume against time rises from 0 to 40 cm³ in the first 20 s, reaches 72 cm³ at 60 s and levels at 80 cm³ after 90 s. Calculate the initial rate and the mean rate over 90 s, and explain why the graph flattens.",
+      modelAnswer:
+        "The initial rate is the gradient of the steepest part: 40 cm³ ÷ 20 s = 2 cm³/s. The mean rate over the whole reaction is 80 cm³ ÷ 90 s = 0.89 cm³/s (to two decimal places). The graph flattens because the reactant is being used up, so its concentration falls, collisions become less frequent and the rate decreases; at the plateau the limiting reactant has run out and no more gas is produced.",
+      marking: [
+        "Calculates the initial rate as 40 ÷ 20 = 2 cm³/s.",
+        "Calculates the mean rate as 80 ÷ 90 = 0.89 cm³/s, with the unit.",
+        "Explains the flattening as falling reactant concentration and fewer collisions, ending when the limiting reactant is used up.",
       ],
     },
   ],

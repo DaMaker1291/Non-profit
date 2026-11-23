@@ -12,7 +12,7 @@ import type { AuthoredLesson } from "../../lesson-contract";
 export const MATHS_DATA_CHARTS: AuthoredLesson = {
   contract: "openmind.lesson/1.0",
   conceptId: "data-charts",
-  version: "1.0.0",
+  version: "1.1.0",
   subject: "maths",
   curriculum: {
     reference:
@@ -354,6 +354,56 @@ export const MATHS_DATA_CHARTS: AuthoredLesson = {
         "Obtains 8, noting that the drawn heights are 16 and 8 if the baseline is 100.",
       ],
       check: { accepted: ["8"] },
+    },
+    {
+      id: "a4",
+      kind: "structured",
+      prompt:
+        "A survey of 40 learners records how they travel: 10 walk, 20 take the bus and 10 come by car. Complete the table of pie-chart angles.",
+      modelAnswer:
+        "Each count is divided by the total 40 before multiplying by 360°: walking 10/40 × 360° = 90°, bus 20/40 × 360° = 180° and car 10/40 × 360° = 90°. The three angles add to 360°, which checks that the whole circle has been used.",
+      marking: [
+        "Walking: 10/40 × 360° = 90°.",
+        "Bus: 20/40 × 360° = 180°.",
+        "Car: 10/40 × 360° = 90°.",
+        "States that the three angles must total 360°, the whole circle.",
+      ],
+      structured: {
+        parts: [
+          {
+            id: "a",
+            prompt: "Complete the angle for each category. Each cell is worth one mark.",
+            marks: 3,
+            answer: 0,
+            response: "table",
+            table: {
+              columns: ["Walk", "Bus", "Car"],
+              rows: [
+                { label: "Learners", cells: [{ given: "10" }, { given: "20" }, { given: "10" }] },
+                {
+                  label: "Angle (°)",
+                  cells: [
+                    { answer: 90, accepted: ["90", "90°"], tolerance: { abs: 0 } },
+                    { answer: 180, accepted: ["180", "180°"], tolerance: { abs: 0 } },
+                    { answer: 90, accepted: ["90", "90°"], tolerance: { abs: 0 } },
+                  ],
+                },
+              ],
+            },
+            explanation:
+              "A pie angle is the category's share of the total multiplied by 360°. Walking is 10 of 40, so 10/40 × 360° = 90°; the bus is 20 of 40, so it takes half the circle, 180°; the car is another 10 of 40, so 90°. The three angles add to 360°, which is the check that no learner has been counted twice or left out.",
+          },
+          {
+            id: "b",
+            prompt: "Add your three angles. What must the total be?",
+            marks: 1,
+            answer: 360,
+            accepted: ["360", "360°"],
+            explanation:
+              "The three categories account for every learner, so their sectors account for the whole circle. A whole turn is 360°, so 90° + 180° + 90° must equal 360°. If the total is not 360°, a learner has been omitted from the table, counted twice, or an angle has been calculated from the wrong total.",
+          },
+        ],
+      },
     },
   ],
 

@@ -298,7 +298,7 @@ export const CHEMISTRY_PERIODIC_TABLE: AuthoredLesson = {
     },
     {
       id: "a2",
-      kind: "short-answer",
+      kind: "constructed-response",
       prompt:
         "Calcium is in group 2 and chlorine is in group 7. Predict the formula of calcium chloride and explain your reasoning.",
       modelAnswer:

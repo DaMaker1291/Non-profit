@@ -12,7 +12,7 @@ import type { AuthoredLesson } from "../../lesson-contract";
 export const MATHS_SCATTER_CORRELATION: AuthoredLesson = {
   contract: "openmind.lesson/1.0",
   conceptId: "scatter-correlation",
-  version: "1.0.0",
+  version: "1.1.0",
   subject: "maths",
   curriculum: {
     reference:
@@ -164,8 +164,31 @@ export const MATHS_SCATTER_CORRELATION: AuthoredLesson = {
         "Each point pairs one individual's two measurements. The cloud's direction and tightness describe the correlation.",
       notation:
         "hours studied x: 1, 2, 3, 4, 5, 6, 7   ·   test score y: 52, 58, 61, 68, 72, 79, 83",
+      figure: {
+        spec: {
+          kind: "scatter",
+          xLabel: "Hours studied",
+          yLabel: "Test score",
+          xMin: 0,
+          xMax: 8,
+          yMin: 40,
+          yMax: 90,
+          points: [
+            { x: 1, y: 52 },
+            { x: 2, y: 58 },
+            { x: 3, y: 61 },
+            { x: 4, y: 68 },
+            { x: 5, y: 72 },
+            { x: 6, y: 79 },
+            { x: 7, y: 83 },
+          ],
+          line: { gradient: 5, intercept: 48 },
+        },
+        caption:
+          "Seven dots plot hours studied against test score. The cloud rises from left to right and lies fairly close to a straight pattern, so the correlation is strong and positive. The dashed line is the fitted line y = 5x + 48, passing through (2, 58) and (6, 78); it summarises the middle of the cloud rather than joining the points in order.",
+      },
       caption:
-        "The points rise from left to right and lie fairly close to a line, so this is strong positive correlation. No point is joined to the next; the order of the rows is not a time sequence.",
+        "The table above gives the seven paired measurements; the drawing plots each pair as one point without joining the points in row order.",
     },
     {
       id: "r2",
@@ -544,6 +567,115 @@ export const MATHS_SCATTER_CORRELATION: AuthoredLesson = {
       ],
       check: {
         accepted: ["strong negative correlation", "strong negative", "negative and strong"],
+      },
+    },
+    {
+      id: "a6",
+      kind: "structured",
+      prompt:
+        "A line of best fit has equation y = 4x + 12. Answer both parts. Each part is worth 2 marks: one for the method you show and one for the final answer.",
+      modelAnswer:
+        "At x = 3, substitute into the equation: y = 4 × 3 + 12 = 12 + 12 = 24. When the predicted value is 40, solve 40 = 4x + 12. Subtract 12 from both sides: 28 = 4x. Divide by 4: x = 7. The first answer is a prediction from the line; the second reverses the equation to find the input that would give a predicted value of 40.",
+      marking: [
+        "Part (a) method: substitutes x = 3 into y = 4x + 12, showing 4 × 3 + 12.",
+        "Part (a) answer: 24.",
+        "Part (b) method: rearranges 40 = 4x + 12 to 28 = 4x, or divides 28 by 4.",
+        "Part (b) answer: 7.",
+      ],
+      structured: {
+        parts: [
+          {
+            id: "a",
+            prompt: "Use the equation to predict y when x = 3.",
+            marks: 2,
+            answer: 24,
+            response: "number",
+            method: {
+              id: "a:M1",
+              marks: 1,
+              prompt: "Show the substitution into y = 4x + 12.",
+              accept: [
+                "4 × 3 + 12",
+                "4*3+12",
+                "4(3)+12",
+                "y = 4 × 3 + 12",
+                "y=4*3+12",
+                "y=4(3)+12",
+              ],
+              label: "substituting x = 3 into y = 4x + 12",
+            },
+            explanation:
+              "Substitute 3 for x: 4 × 3 = 12, then add the intercept 12, giving 24. The intercept is the value of y when x is zero, so the line rises from 12 to 24 over three steps of 4.",
+          },
+          {
+            id: "b",
+            prompt: "The line predicts y = 40. Work out the value of x that gives this prediction.",
+            marks: 2,
+            answer: 7,
+            response: "number",
+            method: {
+              id: "b:M1",
+              marks: 1,
+              prompt: "Show how you rearrange the equation.",
+              accept: [
+                "40 = 4x + 12",
+                "40=4x+12",
+                "40 - 12 = 4x",
+                "40-12=4x",
+                "(40 - 12) / 4",
+                "(40-12)/4",
+                "28 / 4",
+                "28/4",
+              ],
+              label: "rearranging 40 = 4x + 12 and dividing 28 by 4",
+            },
+            explanation:
+              "Set the predicted value equal to the expression: 40 = 4x + 12. Subtract the intercept 12 to leave 28 = 4x, then divide both sides by the gradient 4 to get x = 7. Check by substituting back: 4 × 7 + 12 = 40.",
+          },
+        ],
+      },
+    },
+    {
+      id: "a7",
+      kind: "structured",
+      prompt:
+        "A café models hot-drink sales against outdoor temperature. Its line of best fit is y = −3x + 40, where x is temperature in °C and y is sales in cups. Give the line on the grid, then read a prediction from the line you have drawn.",
+      modelAnswer:
+        "The line y = −3x + 40 passes through (0, 40) and (10, 10), so those two points define the required line. At x = 4, the line gives y = −3 × 4 + 40 = 28, so the predicted sales are about 28 cups. The reading is taken from the learner's own line: a consistent follow-through earns the read-off mark even when the plotted line is slightly wrong.",
+      marking: [
+        "Plots a line with the correct gradient −3, within the allowed tolerance.",
+        "Plots a line with the correct intercept 40, within the allowed tolerance.",
+        "Reads a value at x = 4 that is consistent with the learner's own line, within the stated tolerance.",
+      ],
+      structured: {
+        parts: [
+          {
+            id: "a",
+            prompt: "Give two points on the line y = −3x + 40.",
+            marks: 2,
+            response: "graph",
+            graph: {
+              xMin: 0,
+              xMax: 10,
+              yMin: 0,
+              yMax: 50,
+              m: -3,
+              c: 40,
+              tolerance: { m: 0.5, c: 2 },
+            },
+            explanation:
+              "Every point on the line satisfies y = −3x + 40. At x = 0 the value is 40, and at x = 10 the value is 10. Two points are enough because a straight line is fixed by two points; the marker compares the line they define with the required gradient and intercept rather than demanding one particular pair.",
+          },
+          {
+            id: "b",
+            prompt: "Use your line to predict sales when the temperature is 4 °C.",
+            marks: 1,
+            response: "readoff",
+            readOff: { from: "a", at: 4, tolerance: 1.5 },
+            explanation:
+              "At x = 4, the required line gives y = 28. The read-off is marked against the learner's own line, so a learner whose line is slightly high or low still earns the mark when their reading is consistent with the line they drew. This is follow-through, and it separates reading a graph from reproducing a remembered answer.",
+          },
+        ],
       },
     },
   ],

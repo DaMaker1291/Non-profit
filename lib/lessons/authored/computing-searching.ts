@@ -305,6 +305,14 @@ export const COMPUTING_SEARCHING: AuthoredLesson = {
         "Moves the correct bound past the middle so the range shrinks.",
         "Returns False after the loop and handles the empty list without an index error.",
       ],
+      code: {
+        starterCode:
+          "def contains(items, target):\n    low = 0\n    high = len(items) - 1\n    while low < high:\n        mid = (low + high) // 2\n        if items[mid] == target:\n            return True\n        if items[mid] < target:\n            low = mid + 1\n        else:\n            high = mid - 1\n    return False\n\nprint(contains([1, 3, 5, 7], 7))\nprint(contains([], 1))\nprint(contains([1, 3, 5, 7], 1))",
+        tests: [{
+          name: "finds both ends of a sorted list and refuses an empty list",
+          expectedStdout: "True\nFalse\nTrue",
+        }],
+      },
     },
     {
       id: "a2",
@@ -329,6 +337,19 @@ export const COMPUTING_SEARCHING: AuthoredLesson = {
       marking: [
         "States that the algorithm discards half the list at each step.",
         "Explains that the discard is only justified by the ordering.",
+      ],
+    },
+    {
+      id: "a4",
+      kind: "short-answer",
+      prompt:
+        "The debug block runs its loop while low < high, so a search for the last item of a list returns -1 even though the item is present. Identify the fault, explain why the final item is never compared, and give the corrected loop condition and high update.",
+      modelAnswer:
+        "The condition excludes the one-item range. When low equals high there is still one candidate, but the loop has already stopped, so that item is never compared and the function returns -1. Use while low <= high, and after a comparison that is too large set high = mid - 1; low is set to mid + 1 in the other branch. Both updates move past the middle, so the range shrinks and the final candidate is checked.",
+      marking: [
+        "Identifies that low < high excludes the case where low equals high and one item remains.",
+        "Explains that the final item is never compared, so a present target can be reported absent.",
+        "Gives while low <= high and high = mid - 1 as the repair, with the range still shrinking.",
       ],
     },
   ],

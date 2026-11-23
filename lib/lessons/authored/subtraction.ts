@@ -285,6 +285,13 @@ export const MATHS_SUBTRACTION: AuthoredLesson = {
       answer: "53, because 47 plus 53 is 100.",
       when: "week-later",
     },
+    {
+      id: "x3",
+      prompt: "Work out 500 minus 268, and describe the exchanges you needed.",
+      answer:
+        "232. Exchange one hundred for ten tens, then one ten for ten ones, so the ones column can subtract eight; the answer checks because 232 plus 268 is 500.",
+      when: "month-later",
+    },
   ],
 
   summary: [

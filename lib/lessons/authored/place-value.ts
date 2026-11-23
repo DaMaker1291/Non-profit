@@ -283,6 +283,13 @@ export const MATHS_PLACE_VALUE: AuthoredLesson = {
       answer: "4,006, with the hundreds and tens columns empty.",
       when: "week-later",
     },
+    {
+      id: "x3",
+      prompt: "Write thirty thousand four hundred and seven in digits, and state the value of its 3.",
+      answer:
+        "30,407. The 3 sits in the ten-thousands column, so it is worth thirty thousand; the zero holds the thousands column open and the 4 is four hundred.",
+      when: "month-later",
+    },
   ],
 
   summary: [

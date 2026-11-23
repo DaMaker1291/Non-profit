@@ -18,7 +18,7 @@ import type { AuthoredLesson } from "../../lesson-contract";
 export const CHEMISTRY_ENERGY_CHANGES: AuthoredLesson = {
   contract: "openmind.lesson/1.0",
   conceptId: "energy-changes",
-  version: "1.0.0",
+  version: "1.1.0",
   subject: "chemistry",
   curriculum: {
     reference:
@@ -351,6 +351,20 @@ export const CHEMISTRY_ENERGY_CHANGES: AuthoredLesson = {
         "Explains that a catalyst lowers the activation energy by providing an alternative route.",
         "Links the lower barrier to a larger fraction of successful collisions and therefore a faster rate.",
         "States that the reactant and product energy levels, and therefore ΔH, are unchanged.",
+      ],
+    },
+    {
+      id: "a4",
+      kind: "constructed-response",
+      prompt:
+        "A student plans a calorimetry experiment to measure the enthalpy change when zinc reacts with copper(II) sulfate solution. Describe the measurements needed, explain how the heat exchanged and the enthalpy change per mole are calculated, and state one change that would reduce heat loss.",
+      modelAnswer:
+        "Measure a known volume of copper(II) sulfate solution, assume its density is that of water to obtain its mass, and record the initial temperature. Add a known excess of zinc, stir, and record the highest temperature reached. Calculate the heat gained by the solution using q = m c ΔT, with c = 4.18 J/g °C. Find the moles of copper(II) sulfate that reacted from its concentration and volume, then divide q by those moles after converting to kilojoules. The reaction is exothermic, so the solution warms and ΔH is negative: ΔH = −q/n. Use an insulated cup or a lid to reduce heat loss to the surroundings, and add the zinc quickly so the maximum temperature is not missed.",
+      marking: [
+        "Measures the solution volume or mass, the initial temperature and the maximum temperature after adding zinc.",
+        "Uses q = m c ΔT with the solution's mass and temperature rise, and converts joules to kilojoules.",
+        "Divides q by the moles of copper(II) sulfate that reacted and gives ΔH a negative sign because the solution warmed.",
+        "Names a genuine improvement, such as an insulated vessel or lid, that reduces heat loss to the surroundings.",
       ],
     },
   ],

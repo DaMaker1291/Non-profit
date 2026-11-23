@@ -312,7 +312,7 @@ export const PHYSICS_WAVES: AuthoredLesson = {
     },
     {
       id: "a3",
-      kind: "short-answer",
+      kind: "constructed-response",
       prompt:
         "Explain why a sound wave cannot travel through a vacuum, while a light wave can.",
       modelAnswer:

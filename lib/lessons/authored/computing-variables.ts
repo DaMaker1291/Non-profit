@@ -286,6 +286,11 @@ export const COMPUTING_VARIABLES: AuthoredLesson = {
         "Doubles by reading the current value, not by adding a fixed 10 that would only work for this starting value.",
         "States the expected output as 10 and shows a trace or comment that supports it.",
       ],
+      code: {
+        starterCode:
+          "score = 0\nscore = score + 5\nscore = score + 10\nprint(score)",
+        tests: [{ name: "the score is doubled from its current value", expectedStdout: "10" }],
+      },
     },
     {
       id: "a2",
@@ -308,6 +313,19 @@ export const COMPUTING_VARIABLES: AuthoredLesson = {
         "Adds 3 to the length rather than converting the string to a number.",
       ],
       check: { accepted: ["5", "five"] },
+    },
+    {
+      id: "a4",
+      kind: "short-answer",
+      prompt:
+        "This program raises a TypeError when the learner enters 12: age = input('Age: ') then next_age = age + 1 then print(next_age). Identify the cause, state the type of age, and repair the first line.",
+      modelAnswer:
+        "input returns a string, so age holds the text '12', not the number 12. Adding 1 to a string raises TypeError because Python does not silently convert it. age is a str. Convert the input at the boundary: age = int(input('Age: ')), or float if decimals are allowed, so the addition is numeric.",
+      marking: [
+        "Identifies input as returning a string rather than a number.",
+        "Explains that adding an integer to a string raises TypeError.",
+        "Repairs the input with int() or float() before the addition.",
+      ],
     },
   ],
 

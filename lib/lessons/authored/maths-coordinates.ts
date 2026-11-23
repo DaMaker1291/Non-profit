@@ -347,6 +347,19 @@ export const MATHS_COORDINATES: AuthoredLesson = {
       ],
       check: { accepted: ["(-2, 0)", "(-2,0)", "-2, 0", "-2,0"] },
     },
+    {
+      id: "a4",
+      kind: "constructed-response",
+      prompt:
+        "A table gives y = 2x − 1 for x = −1, 0, 1 and 2. Complete the table, plot the points on a grid and join them, then read the value of y when x = 1.5. Explain why the point (2, 3) lies on the line.",
+      modelAnswer:
+        "The y-values are −3, −1, 1 and 3. Plotted and joined, they form a straight line, and at x = 1.5 the line is halfway between y = 1 and y = 3, so y = 2. The point (2, 3) lies on the line because substituting x = 2 gives 2 × 2 − 1 = 3, which matches its y-coordinate.",
+      marking: [
+        "Completes the table with −3, −1, 1 and 3.",
+        "Plots and joins the points, and reads y = 2 at x = 1.5.",
+        "Substitutes x = 2 into y = 2x − 1 and shows the result is 3, so (2, 3) belongs.",
+      ],
+    },
   ],
 
   transfer: [

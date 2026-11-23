@@ -360,6 +360,19 @@ export const MATHS_SIMULTANEOUS: AuthoredLesson = {
       ],
       check: { accepted: ["x = 3, y = 5", "x=3,y=5", "3,5"] },
     },
+    {
+      id: "a4",
+      kind: "constructed-response",
+      prompt:
+        "The graphs of y = x + 2 and y = 2x − 1 intersect at the point (3, 5). Explain what the intersection represents, verify that (3, 5) satisfies both equations, and explain why two straight lines that are not parallel have exactly one intersection.",
+      modelAnswer:
+        "The intersection is the pair of values that satisfies both equations at once: x = 3 and y = 5 solve the simultaneous pair. Checking: 3 + 2 = 5 in the first equation, and 2 × 3 − 1 = 5 in the second. The lines have different gradients, 1 and 2, so they are not parallel and must cross exactly once; after that crossing their separation grows and they never meet again.",
+      marking: [
+        "Explains the intersection as the simultaneous solution, not just a point on one line.",
+        "Substitutes (3, 5) into both equations and shows 5 = 5 in each.",
+        "Explains that different gradients mean non-parallel lines, which cross exactly once.",
+      ],
+    },
   ],
 
   transfer: [
