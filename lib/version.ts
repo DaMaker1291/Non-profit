@@ -19,7 +19,8 @@ export const APP_VERSION = "1.0.0";
  * The HOST's own commit stamp, when it declares one.
  *
  * Render sets `RENDER_GIT_COMMIT` ("the commit SHA for a service or deploy"),
- * GitHub Actions sets `GITHUB_SHA`. Both name the artefact being served, which
+ * Vercel sets `VERCEL_GIT_COMMIT_SHA` for the deployment being served, GitHub
+ * Actions sets `GITHUB_SHA`. Both name the artefact being served, which
  * is exactly the question this module exists to answer — and the reason to read
  * them is measured rather than imagined: a live deployment answered
  * `/api/health` with `deployment: "local-1.0.0"` while the host itself held the
@@ -28,7 +29,7 @@ export const APP_VERSION = "1.0.0";
  * able to ask. An operator's `OPENMIND_DEPLOYMENT_ID` still wins: it is the
  * release's own name, and a host-stamped SHA is only what the host knows.
  */
-const HOST_COMMIT_KEYS = ["RENDER_GIT_COMMIT", "GITHUB_SHA"] as const;
+const HOST_COMMIT_KEYS = ["RENDER_GIT_COMMIT", "VERCEL_GIT_COMMIT_SHA", "GITHUB_SHA"] as const;
 
 export function hostDeploymentId(env: Record<string, string | undefined> = {}): string {
   for (const key of HOST_COMMIT_KEYS) {

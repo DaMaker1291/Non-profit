@@ -70,7 +70,8 @@ const VENDOR_KEYS = ["GEMINI_API_KEY", "OPENAI_API_KEY", "GROQ_API_KEY", "OPENRO
  * Each variable below is documented by the platform that sets it as an
  * always-present runtime marker: Render's own docs say `RENDER` "is always
  * true", Heroku sets `DYNO`, Fly sets `FLY_APP_NAME`, Cloud Run sets
- * `K_SERVICE`, Azure App Service sets `WEBSITE_SITE_NAME`. Recognising the host
+ * `K_SERVICE`, Azure App Service sets `WEBSITE_SITE_NAME`, Vercel sets `VERCEL`
+ * on every build and invocation. Recognising the host
  * matters because a declaration like `OPENMIND_DATA_DIR=/data` reads identically
  * on a laptop and in a container — and means opposite things. On a laptop
  * `/data` is that machine's disk; in a container platform with no volume
@@ -88,6 +89,15 @@ const EPHEMERAL_HOSTS = [
   ["FLY_APP_NAME", "Fly.io"],
   ["K_SERVICE", "Cloud Run"],
   ["WEBSITE_SITE_NAME", "Azure App Service"],
+  // Serverless functions: the deployment's own files are read-only and the only
+  // writable place is each instance's /tmp, so the store is not merely replaced
+  // on a deploy — two requests can be served by two instances holding two
+  // different stores. Without this marker a `OPENMIND_DATA_DIR` declared on
+  // Vercel measured as "the host's own filesystem", reached no branch of the
+  // durability rule at all (the branch needs a recognised host), and answered
+  // `mode:"host-durable"`, `durability:"durable"` — a green tick over a store
+  // that vanishes between page loads.
+  ["VERCEL", "Vercel"],
 ] as const;
 
 /** The host that discards its filesystem, or "" when this is not such a host (a

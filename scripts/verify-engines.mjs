@@ -14637,6 +14637,26 @@ console.log("▸ The deployment reports its own configuration, and invents no re
     "and accepting an ephemeral store in so many words still runs a throwaway instance as a note");
   ok(envMod.ephemeralHost({}) === "" && envMod.ephemeralHost({ RENDER: "true" }) === "Render",
     "the host is named from markers the platforms document, not guessed");
+  // VERCEL is the marker a serverless deployment always carries, and it was the
+  // gap that let a declared data directory on it read as `host-durable`: the
+  // durability branch is gated on a RECOGNISED host, so an unrecognised one
+  // skipped the rule entirely and reported `durable` over a per-instance /tmp.
+  ok(envMod.ephemeralHost({ VERCEL: "1" }) === "Vercel",
+    "a Vercel deployment is recognised as a host that discards its filesystem, not as a laptop that keeps it");
+  const vercelDir = envMod.storeReadiness(
+    { NODE_ENV: "production", VERCEL: "1", OPENMIND_DATA_DIR: "/tmp/openmind" },
+    { dataDirDurability: "host-filesystem" },
+  );
+  ok(vercelDir.writesPermitted === false && vercelDir.blockedBy === "data_dir_not_durable"
+    && vercelDir.durability === "ephemeral",
+    "and a data directory declared on it is a MEASURED loss that refuses writes, rather than the host-durable green tick it used to answer");
+  const vercelAccepted = envMod.storeReadiness(
+    { NODE_ENV: "production", VERCEL: "1", OPENMIND_DATA_DIR: "/tmp/openmind", OPENMIND_ALLOW_EPHEMERAL_STORE: "1" },
+    { dataDirDurability: "host-filesystem" },
+  );
+  ok(vercelAccepted.writesPermitted === true && vercelAccepted.mode === "accepted-ephemeral"
+    && vercelAccepted.durability === "ephemeral",
+    "while the labelled demo still runs there — writes permitted, and the store still called ephemeral");
   ok(envMod.envReport({ RENDER: "true" }).problems.some((p) => p.code === "data_dir_undeclared"),
     "and an undeclared store on a recognised host is refused even when NODE_ENV says nothing (a Docker deploy need not set it)");
   // The fact itself, from the filesystem this suite is running on. The root is
@@ -14735,6 +14755,13 @@ console.log("▸ The deployment reports its own configuration, and invents no re
     "while an operator's own deployment id still outranks the host's stamp");
   ok(versionMod.deploymentId({ GITHUB_SHA: "abc123" }) === "abc123" && versionMod.deploymentId({}) === `local-${versionMod.APP_VERSION}`,
     "GitHub Actions' own stamp is read too, and nothing declares one on a laptop");
+  // Vercel was the same measured gap on the deployment this repository actually
+  // runs on: its production alias answered `deployment:"local-1.0.0"`,
+  // `deploymentDeclared:false` while `VERCEL_GIT_COMMIT_SHA` held the commit —
+  // so "did the redeploy land?" was unanswerable from outside the host.
+  ok(versionMod.deploymentId({ VERCEL_GIT_COMMIT_SHA: "4d1e0ff" }) === "4d1e0ff"
+    && versionMod.deploymentDeclared({ VERCEL_GIT_COMMIT_SHA: "4d1e0ff" }) === true,
+    "a Vercel deployment reports the commit it is serving, so a redeploy can be confirmed from /api/ready");
 }
 
 // ▸ A route module exports handlers, and nothing else
