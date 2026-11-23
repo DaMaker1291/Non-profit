@@ -63,7 +63,9 @@ const REFUSED_KEY = "openmind:sync-refused";
 // A school handset is shared. A queue keyed only by the device would let one
 // pupil's saved answers drain while another pupil is signed in — the wrong
 // learner's work, recorded under the wrong account. The active profile scopes
-// both keys; sign-out clears that profile's queue before the identity changes.
+// both keys. SIGN-OUT DOES NOT DELETE THIS QUEUE: it is the learner's only copy
+// of evidence the server never received, and the next person's scope cannot
+// reach it. Only a successful sync (or an explicit erase) retires it.
 // A null scope is the legacy/test shape and remains one queue, as it was.
 let scope: string | null = null;
 
@@ -80,8 +82,10 @@ export function setSyncScope(learnerId: string | null): void {
   scope = learnerId && /^[A-Za-z0-9_-]{4,96}$/.test(learnerId) ? learnerId : null;
 }
 
-/** Drop one learner's held answers and refusal record. Used at sign-out, when
- *  the next person on the device must not inherit the previous person's work. */
+/** Drop one learner's held answers and refusal record. NEVER called by
+ *  sign-out: a queued answer is unsynchronised evidence, not disposable local
+ *  state, and deleting it at hand-back is exactly the data loss this queue
+ *  exists to prevent. Used by an explicit erase/teardown in tests. */
 export function clearQueueFor(learnerId: string): void {
   // REMOVE, do not write []. An empty key still tells the next person on a
   // shared handset which learner was here, and makes a sign-out cleanup check

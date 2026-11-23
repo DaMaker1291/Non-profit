@@ -2,6 +2,8 @@
 // OpenMind — core domain types
 // ─────────────────────────────────────────────────────────────────────────────
 
+import type { ClassroomProfile } from "./classroom-context";
+
 /** Subject areas OpenMind supports. */
 export type SubjectId = "maths" | "physics" | "chemistry" | "biology" | "computing";
 
@@ -735,8 +737,24 @@ export interface Account {
   lastSeenAt: number;
   /** The learner profile this account owns (lib/types.ts ProfileState). */
   profileId: string;
-  /** Honest status: OpenMind ships no mail service, so an address cannot be proved. False means "nobody has verified this address" — the UI says so rather than implying a verification step that never ran. */
+  /** Honest status: TRUE only when a confirmation link was mailed to this address and came back through `/api/auth/verify`.
+   *  False means "nobody has verified this address" — which is also the permanent state of a deployment with no mail key
+   *  (`lib/server/mail.ts#mailConfigured`), where the UI says so rather than implying a verification step that never ran. */
   verified: boolean;
+  /**
+   * THE PENDING EMAIL PROOF, stored only as a scrypt hash plus its own salt —
+   * exactly as the recovery code is, and for the same reason: a verification link
+   * is a bearer credential, so a store holding it in the clear would make every
+   * backup a way to confirm somebody else's address.
+   *
+   * Absent on an account with no link outstanding, and cleared in the SAME write
+   * that sets `verified` (single use). The expiry rides with the hash, because a
+   * link that exists without an end date is a key that never stops working. See
+   * lib/server/verification.ts.
+   */
+  verifySalt?: string;
+  verifyHash?: string;
+  verifyExpiresAt?: number;
   /** Bumped on sign-out. Every session token records the epoch it was issued in, so bumping this invalidates every outstanding token for the account — which is what makes signing out a SERVER decision rather than a client courtesy. Without it, "sign out" only cleared the cookie: the token kept verifying until its 60-day expiry, so anyone who had a copy of it (a shared phone's history, a synced profile) stayed signed in. On a shared phone that is the behaviour a learner actually needs. */
   sessionEpoch?: number;
   /**
@@ -781,7 +799,8 @@ export interface PublicAccount {
   lastSeenAt: number;
   /** The learner profile this account owns. */
   profileId: string;
-  /** False = the address was never proved (OpenMind ships no mail service). */
+  /** True = a mailed link came back and proved the address. False = it was never proved
+   *  (a deployment with no mail key stays here, and the UI says which). */
   verified: boolean;
 }
 
@@ -1244,6 +1263,20 @@ export interface ClassRoster {
   assignments?: Assignment[];
   createdAt: number;
 
+  /** THE ROOM THIS CLASS IS TAUGHT IN, as its teacher declared it — class size,
+   *  devices, connectivity, power, materials, languages and access needs.
+   *
+   *  It lives on the class because it is true of the class: one teacher may
+   *  teach a 42-pupil room with no devices and a 12-pupil room with one each in
+   *  the same week. Absent means nothing has been declared, which is different
+   *  from "no devices": the plan then says what it assumed rather than printing
+   *  a fact nobody gave (lib/classroom-context.ts). */
+  classroom?: ClassroomProfile;
+  /** The lesson the teacher is preparing for this class. A teacher who leaves
+   *  the setup flow and comes back on another device lands on the lesson they
+   *  chose, not on an empty picker. */
+  focusConceptId?: string | null;
+
   /** The teacher's live view of each member, DERIVED SERVER-SIDE from that
    *  member's own evidence ledger (present on reads, never stored). The stored
    *  `students`/`misconceptions` fields are the member's last self-report and
@@ -1595,6 +1628,10 @@ export interface ClassMemberEvidence {
      *  did not watch it happen, and the teacher is told rather than shown an
      *  unverifiable answer as an observed one. */
     offline: boolean;
+    /** Marked on paper and entered by a teacher; `observed` says whether that
+     *  teacher saw the individual doing the work. */
+    teacherEntered: boolean;
+    observed: boolean | null;
   }>;
   /** Misconception patterns the record holds, with how many wrong answers
    *  support each and the concepts it was seen on. A HYPOTHESIS, and each one

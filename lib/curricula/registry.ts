@@ -627,6 +627,33 @@ export function pathwayChoices(code: string | undefined | null): CurriculumPathw
     ...shared.filter((p) => p.pathwayType === "independent")];
 }
 
+/** WHICH PATHWAY OFFERS THIS QUALIFICATION — the one owner of "does this course
+ *  have Years 10–13, or Forms 1–4, or Foundations / Core / Advanced?".
+ *
+ *  A qualification belongs to exactly one pathway (IGCSE and the IB to the
+ *  international programme, Matric to Pakistan's national route, the skills
+ *  award to the independent pathway), and that pathway's `schoolYears` are the
+ *  years a learner on it can declare. Surfaces resolved their year list from the
+ *  pathway IN FORCE instead — the country's own, or the independent pathway when
+ *  the country has no mapped route — while the learner was choosing a
+ *  qualification from a different one. Measured on a scratch store: country
+ *  "Other country / not listed" + Cambridge IGCSE offered **Foundations / Core /
+ *  Advanced** as YEAR GROUPS, beside a tier select whose own options are Core
+ *  and Extended. "Core" meant two different things four lines apart, and the
+ *  record that got saved carried the skills pathway's band as a school year.
+ *
+ *  Scoped by `pathwayChoices`, so a stale qualification left in a profile by a
+ *  country the learner has since left cannot pull that country's years into this
+ *  one. Null means "no pathway here offers it" — the caller keeps its own
+ *  fallback rather than guessing a system. */
+export function pathwayForSpec(
+  code: string | undefined | null,
+  specId: string | undefined | null,
+): CurriculumPathway | null {
+  if (!specId) return null;
+  return pathwayChoices(code).find((p) => p.specificationIds.includes(specId)) ?? null;
+}
+
 /** The pathway a learner is placed on WITHOUT choosing one. Null means the
  *  choice is real and must be made: two national systems, or a country with no
  *  national route and no default to pretend to. */

@@ -301,6 +301,8 @@ export async function memberEvidence(cls: ClassRoster, handle: string, state: Pr
       // ledger records them — a right answer cannot confirm a misconception.
       hypothesisIds: e.correct ? [] : [...(e.tags ?? [])],
       offline: isDeviceReported(e),
+      teacherEntered: Boolean(e.teacherEntry),
+      observed: e.teacherEntry ? e.teacherEntry.observed : null,
     };
   });
 

@@ -97,7 +97,7 @@ const MATHS: SubjectFramework = {
     "transfer",
     "retrieval",
   ],
-  assessmentKinds: ["short-answer", "constructed-response"],
+  assessmentKinds: ["short-answer", "constructed-response", "structured", "gap-fill", "matching", "ordering", "diagram"],
   rules: [
     {
       id: "maths.steps-show-working",
@@ -154,7 +154,7 @@ const PHYSICS: SubjectFramework = {
     "transfer",
     "retrieval",
   ],
-  assessmentKinds: ["short-answer", "constructed-response"],
+  assessmentKinds: ["short-answer", "constructed-response", "structured", "gap-fill", "matching", "ordering", "diagram"],
   rules: [
     {
       id: "physics.quantities-have-units",
@@ -202,7 +202,7 @@ const CHEMISTRY: SubjectFramework = {
     "transfer",
     "retrieval",
   ],
-  assessmentKinds: ["short-answer", "constructed-response"],
+  assessmentKinds: ["short-answer", "constructed-response", "structured", "gap-fill", "matching", "ordering", "diagram"],
   rules: [
     {
       id: "chemistry.equation-has-arrow",
@@ -232,9 +232,15 @@ const CHEMISTRY: SubjectFramework = {
         // trigger the rule, including a mass asked for without a per-time unit.
         const asksAmount = l.assessment.some((item) => {
           const rateQuestion = /\b(rate|per second|per minute|per hour|g\/s|cm³\/s|cm3\/s)\b/i.test(item.prompt);
+          // A RATE IS NOT AN AMOUNT, INCLUDING WHEN CONCENTRATION IS THE
+          // VARIABLE. A planning item that asks how concentration changes the
+          // rate names concentration as the thing being varied; it does not ask
+          // for a concentration or a number of moles, so a mole-ratio worked
+          // example is not owed. Mass was already exempted for the same reason.
+          if (rateQuestion) return false;
           return (
             /\b(mol|moles|mole|concentration|yield)\b/i.test(item.prompt) ||
-            (/\bmass\b/i.test(item.prompt) && !rateQuestion)
+            /\bmass\b/i.test(item.prompt)
           );
         });
         if (!asksAmount) return [];
@@ -269,7 +275,7 @@ const BIOLOGY: SubjectFramework = {
     "transfer",
     "retrieval",
   ],
-  assessmentKinds: ["short-answer", "constructed-response"],
+  assessmentKinds: ["short-answer", "constructed-response", "structured", "gap-fill", "matching", "ordering", "diagram"],
   rules: [
     {
       id: "biology.structure-meets-function",
@@ -319,7 +325,7 @@ const COMPUTING: SubjectFramework = {
     "transfer",
     "retrieval",
   ],
-  assessmentKinds: ["short-answer", "code"],
+  assessmentKinds: ["short-answer", "code", "structured", "gap-fill", "matching", "ordering", "diagram"],
   rules: [
     {
       id: "computing.code-executable",

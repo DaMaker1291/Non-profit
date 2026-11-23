@@ -28,7 +28,7 @@ import type { BoardId, Concept, StageId, SubjectCourse, SubjectId } from "./type
 import { CONCEPTS, bySubject } from "./genome";
 import { SUBJECT_IDS } from "./subjects";
 import { INDEPENDENT_ROUTE, curriculumFor, routeForPathwayId } from "./curriculum";
-import { nationalRouteCodes, pathwayChoiceRequired, pathwayForCountry } from "./curricula/registry";
+import { nationalRouteCodes, pathwayChoiceRequired, pathwayForCountry, pathwayForSpec } from "./curricula/registry";
 
 /** Generic tier name keys (lvl.*), translated in every dictionary. The
  *  country-specific name ("Form 4", "Class 10") is data, not translation. */
@@ -52,6 +52,28 @@ export interface SpecLevel {
   difficulty: number;
   /** Per-subject narrowing (or widening) where a tier is not uniform. */
   narrow?: Partial<Record<SubjectId, StageWindow>>;
+  /** WHICH SCHOOL YEARS SIT THIS TIER — declared, never inferred from a name.
+   *
+   *  This is the one link between the two things a course has: the YEAR a learner
+   *  is in (a label their own system uses: "Form 4", "Class 10", "Year 11") and
+   *  the TIER they are examined at (Core/Extended, Foundation/Higher, SL/HL).
+   *  Before this field the link was a SUBSTRING MATCH on the level's own name
+   *  (`levelForGrade`), so a learner who declared the year "Core" on the skills
+   *  pathway was read as sitting Cambridge IGCSE's Core TIER, and KCSE's level
+   *  named "Form 4 (KCSE)" was matched by the year "Form 4" — a coincidence of
+   *  spelling presented as an answer.
+   *
+   *  Declared years are also what makes the relationship honest where it is real:
+   *  a KCSE Form 4 candidate genuinely does sit the Form 4 examination, and CBSE
+   *  Class 10 genuinely sits the Class 10 course. Where two tiers share the same
+   *  years (GCSE Foundation and Higher both span Years 10–11) the mapping is
+   *  AMBIGUOUS by construction, and `tierForYear` returns null so the tier is
+   *  asked for rather than guessed.
+   *
+   *  Absent means "this qualification's tiers are not tied to school years" — the
+   *  learner's year then says nothing about their tier, which is the state most
+   *  international qualifications are in. */
+  schoolYears?: string[];
   /** Named topics this tier examines beyond its stage window. */
   include?: string[];
   /** Concepts inside the stage window that this tier does not examine. */
@@ -81,6 +103,19 @@ export interface Specification {
    *  not part of this specification, but remain reachable through the genome. */
   coverage: Partial<Record<SubjectId, StageWindow>>;
   levels: SpecLevel[];
+  /** WHICH TIERS THIS QUALIFICATION ACTUALLY OFFERS PER SUBJECT.
+   *
+   *  A tier list belongs to the qualification, but not every subject inside it is
+   *  tiered. GCSE Computer Science is a single-tier qualification (grades 9–1)
+   *  while GCSE Mathematics runs Foundation and Higher; offering the science
+   *  tiers to a computing learner asks a question their exam does not, and
+   *  answering it would put a tier on the record that no paper examines.
+   *
+   *  Absent (the common case) means every level applies to every covered subject.
+   *  A listed subject gets exactly the named levels; an EMPTY list means the
+   *  subject is untiered — the course needs no tier and the picker shows none,
+   *  which is a fact about the qualification rather than a hidden control. */
+  subjectTiers?: Partial<Record<SubjectId, string[]>>;
 }
 
 // ── The specifications ──────────────────────────────────────────────────────
@@ -96,17 +131,19 @@ const UK: Specification = {
     // in Foundation Paper 1 before this list existed, and a Foundation candidate
     // cannot be examined on a line-curve intersection just because it is one
     // stage below the top of the genome.
-    { id: "foundation", tier: "foundation", name: "Foundation tier", stages: [0, 3], difficulty: 0.45, exclude: ["completing-square", "polynomials", "binomial", "logs", "sim-equations-quad", "surds", "circle-theorems", "trig-rule", "functions", "algebraic-fractions", "bounds"] },
-    { id: "higher", tier: "higher", name: "Higher tier", stages: [0, 4], difficulty: 0.65, exclude: ["logs", "calculus-diff", "calculus-int", "matrices-intro"] },
+    { id: "foundation", tier: "foundation", name: "Foundation tier", stages: [0, 3], difficulty: 0.45, schoolYears: ["Year 10", "Year 11"], exclude: ["completing-square", "polynomials", "binomial", "logs", "sim-equations-quad", "surds", "circle-theorems", "trig-rule", "functions", "algebraic-fractions", "bounds"] },
+    { id: "higher", tier: "higher", name: "Higher tier", stages: [0, 4], difficulty: 0.65, schoolYears: ["Year 10", "Year 11"], exclude: ["logs", "calculus-diff", "calculus-int", "matrices-intro"] },
   ],
+  // GCSE Computer Science is not tiered (J277/8525 are single-tier, grades 9–1).
+  subjectTiers: { computing: [] },
 };
 
 const UK_ALEVEL: Specification = {
   id: "uk-alevel", country: "GB", board: "aqa", name: "A-Level",
   coverage: { maths: [2, 5], physics: [2, 3], chemistry: [2, 4], biology: [1, 3], computing: [1, 3] },
   levels: [
-    { id: "as", tier: "advanced", name: "AS", stages: [2, 4], difficulty: 0.75 },
-    { id: "a2", tier: "degree", name: "A2", stages: [2, 5], difficulty: 0.9 },
+    { id: "as", tier: "advanced", name: "AS", stages: [2, 4], difficulty: 0.75, schoolYears: ["Year 12"] },
+    { id: "a2", tier: "degree", name: "A2", stages: [2, 5], difficulty: 0.9, schoolYears: ["Year 13"] },
   ],
 };
 
@@ -121,8 +158,8 @@ const IGCSE: Specification = {
   syllabi: { chemistry: "2026–2028" },
   coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 3] },
   levels: [
-    { id: "core", tier: "foundation", name: "Core", stages: [0, 2], difficulty: 0.4 },
-    { id: "extended", tier: "higher", name: "Extended", stages: [0, 4], difficulty: 0.65, exclude: ["logs", "calculus-diff", "calculus-int"] },
+    { id: "core", tier: "foundation", name: "Core", stages: [0, 2], difficulty: 0.4, schoolYears: ["Year 10", "Year 11"] },
+    { id: "extended", tier: "higher", name: "Extended", stages: [0, 4], difficulty: 0.65, schoolYears: ["Year 10", "Year 11"], exclude: ["logs", "calculus-diff", "calculus-int"] },
   ],
 };
 
@@ -130,9 +167,9 @@ const IB: Specification = {
   id: "int-ib", country: "INT", board: "ib", name: "International Baccalaureate",
   coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 4], biology: [0, 3], computing: [0, 3] },
   levels: [
-    { id: "myp", tier: "junior", name: "MYP", stages: [0, 2], difficulty: 0.45 },
-    { id: "sl", tier: "advanced", name: "Diploma SL", stages: [0, 4], difficulty: 0.7 },
-    { id: "hl", tier: "degree", name: "Diploma HL", stages: [0, 5], difficulty: 0.9 },
+    { id: "myp", tier: "junior", name: "MYP", stages: [0, 2], difficulty: 0.45, schoolYears: ["Year 10", "Year 11"] },
+    { id: "sl", tier: "advanced", name: "Diploma SL", stages: [0, 4], difficulty: 0.7, schoolYears: ["Year 12", "Year 13"] },
+    { id: "hl", tier: "degree", name: "Diploma HL", stages: [0, 5], difficulty: 0.9, schoolYears: ["Year 12", "Year 13"] },
   ],
 };
 
@@ -203,11 +240,11 @@ const IN_CBSE: Specification = {
   id: "in-cbse", country: "IN", board: "cbse", name: "CBSE",
   coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 4], biology: [0, 3], computing: [0, 3] },
   levels: [
-    { id: "class8-9", tier: "junior", name: "Class 8–9", stages: [0, 2], difficulty: 0.4 },
+    { id: "class8-9", tier: "junior", name: "Class 8–9", stages: [0, 2], difficulty: 0.4, schoolYears: ["Class 8", "Class 9"] },
     // CBSE Class 10 trigonometry is ratios and identities; the sine and cosine
     // rules arrive at Class 11.
-    { id: "class10", tier: "foundation", name: "Class 10", stages: [0, 3], difficulty: 0.55, exclude: ["trig-rule"] },
-    { id: "class11-12", tier: "advanced", name: "Class 11–12", stages: [0, 5], difficulty: 0.85 },
+    { id: "class10", tier: "foundation", name: "Class 10", stages: [0, 3], difficulty: 0.55, schoolYears: ["Class 10"], exclude: ["trig-rule"] },
+    { id: "class11-12", tier: "advanced", name: "Class 11–12", stages: [0, 5], difficulty: 0.85, schoolYears: ["Class 11", "Class 12"] },
   ],
 };
 
@@ -245,9 +282,9 @@ const KE: Specification = {
   id: "ke-kcse", country: "KE", board: "kenyan", name: "KCSE (Kenya)",
   coverage: { maths: [0, 4], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 3] },
   levels: [
-    { id: "junior", tier: "junior", name: "Grade 7–9", stages: [0, 2], difficulty: 0.4 },
-    { id: "form3", tier: "foundation", name: "Form 3", stages: [0, 3], difficulty: 0.55 },
-    { id: "form4", tier: "higher", name: "Form 4 (KCSE)", stages: [0, 4], difficulty: 0.7, include: ["trig-rule", "completing-square", "surds"] },
+    { id: "junior", tier: "junior", name: "Grade 7–9", stages: [0, 2], difficulty: 0.4, schoolYears: ["Form 1", "Form 2"] },
+    { id: "form3", tier: "foundation", name: "Form 3", stages: [0, 3], difficulty: 0.55, schoolYears: ["Form 3"] },
+    { id: "form4", tier: "higher", name: "Form 4 (KCSE)", stages: [0, 4], difficulty: 0.7, schoolYears: ["Form 4"], include: ["trig-rule", "completing-square", "surds"] },
   ],
 };
 
@@ -345,8 +382,8 @@ const CM_GCE_O: Specification = {
   id: "cm-gce-o", country: "CM", board: "gce", name: "GCE Ordinary Level",
   coverage: { maths: [0, 3], physics: [1, 3], chemistry: [0, 3], biology: [0, 3], computing: [0, 2] },
   levels: [
-    { id: "form4", tier: "junior", name: "Form 4", stages: [0, 2], difficulty: 0.45 },
-    { id: "form5", tier: "foundation", name: "Form 5 · GCE O Level", stages: [0, 3], difficulty: 0.6 },
+    { id: "form4", tier: "junior", name: "Form 4", stages: [0, 2], difficulty: 0.45, schoolYears: ["Form 4"] },
+    { id: "form5", tier: "foundation", name: "Form 5 · GCE O Level", stages: [0, 3], difficulty: 0.6, schoolYears: ["Form 5"] },
   ],
 };
 
@@ -354,8 +391,8 @@ const CM_GCE_A: Specification = {
   id: "cm-gce-a", country: "CM", board: "gce", name: "GCE Advanced Level",
   coverage: { maths: [2, 5], physics: [2, 3], chemistry: [2, 4], biology: [1, 3], computing: [1, 3] },
   levels: [
-    { id: "lower6", tier: "advanced", name: "Lower Sixth", stages: [2, 4], difficulty: 0.78 },
-    { id: "upper6", tier: "degree", name: "Upper Sixth · GCE A Level", stages: [2, 5], difficulty: 0.9 },
+    { id: "lower6", tier: "advanced", name: "Lower Sixth", stages: [2, 4], difficulty: 0.78, schoolYears: ["Lower Sixth"] },
+    { id: "upper6", tier: "degree", name: "Upper Sixth · GCE A Level", stages: [2, 5], difficulty: 0.9, schoolYears: ["Upper Sixth"] },
   ],
 };
 
@@ -524,9 +561,9 @@ const INDEPENDENT: Specification = {
   id: "any-independent", country: "XX", board: "state", name: "Independent · skills pathway",
   coverage: { maths: [0, 5], physics: [1, 3], chemistry: [0, 4], biology: [0, 3], computing: [0, 3] },
   levels: [
-    { id: "foundations", tier: "primary", name: "Foundations", stages: [0, 1], difficulty: 0.35 },
-    { id: "core", tier: "foundation", name: "Core", stages: [0, 3], difficulty: 0.55 },
-    { id: "advanced", tier: "advanced", name: "Advanced", stages: [0, 5], difficulty: 0.8 },
+    { id: "foundations", tier: "primary", name: "Foundations", stages: [0, 1], difficulty: 0.35, schoolYears: ["Foundations"] },
+    { id: "core", tier: "foundation", name: "Core", stages: [0, 3], difficulty: 0.55, schoolYears: ["Core"] },
+    { id: "advanced", tier: "advanced", name: "Advanced", stages: [0, 5], difficulty: 0.8, schoolYears: ["Advanced"] },
   ],
 };
 
@@ -731,11 +768,63 @@ export function levelOf(spec: Specification, levelId: string | undefined): SpecL
   return spec.levels.find((l) => l.id === levelId) ?? null;
 }
 
-/** Match a stored grade ("Form 4", "Class 10") to the level that teaches it. */
-export function levelForGrade(spec: Specification, grade: string | undefined): SpecLevel | null {
-  if (!grade) return null;
-  const g = grade.toLowerCase();
-  return spec.levels.find((l) => l.name.toLowerCase().includes(g) || g.includes(l.name.toLowerCase())) ?? null;
+/** THE TIERS A QUALIFICATION ACTUALLY OFFERS FOR ONE SUBJECT.
+ *
+ *  `subjectTiers` is a restriction list, not an addition: absent means every
+ *  level applies (the common case), a named list narrows it, and an EMPTY list
+ *  means the subject is untiered — the course needs no tier because the
+ *  qualification has none for it. Deriving the list here rather than at each
+ *  call site is what stops a picker from asking a computing learner to choose
+ *  between Foundation and Higher on an untiered GCSE. */
+export function tiersForSubject(spec: Specification, subject?: SubjectId): SpecLevel[] {
+  const allowed = subject ? spec.subjectTiers?.[subject] : undefined;
+  if (!allowed) return spec.levels;
+  return spec.levels.filter((l) => allowed.includes(l.id));
+}
+
+/** WHICH TIER A SCHOOL YEAR SITS — the ONE place the two concepts are joined.
+ *
+ *  Declared data first (`SpecLevel.schoolYears`): a KCSE Form 4 candidate sits
+ *  the Form 4 examination, and CBSE Class 10 sits the Class 10 course, because
+ *  the qualification says so. When two tiers declare the same year the answer is
+ *  genuinely ambiguous (GCSE Foundation and Higher both span Years 10–11) and
+ *  this returns null — the tier is a real choice and must be asked for.
+ *
+ *  THERE IS NO SECOND BRANCH. The old implementation was
+ *  `name.includes(grade) || grade.includes(name)`, a substring test that read the
+ *  year "Core" as Cambridge IGCSE's Core tier and "Class 1" as "Class 10": a
+ *  coincidence of spelling presented to the learner as their examination tier.
+ *  It was replaced for one release by an exact-name match, which fixed the
+ *  substring errors but still joined the two concepts by how a level happened to
+ *  be spelled; that is gone too. A qualification that has not declared the link
+ *  in `schoolYears` has not stated it, so the answer is null and the learner is
+ *  asked once. Backward compatibility is not lost: a stored `specLevel` is still
+ *  the learner's answer (`resolveCourse` reads it first), and every course whose
+ *  data does tie year to tier now says so in data — see the `schoolYears` on
+ *  GCSE, A-Level, IGCSE, IB, CBSE, KCSE, the independent bands and the Cameroon
+ *  GCE forms. */
+export function tierForYear(
+  spec: Specification,
+  year: string | undefined,
+  subject?: SubjectId,
+): SpecLevel | null {
+  if (!year) return null;
+  const tiers = tiersForSubject(spec, subject);
+  const declared = tiers.filter((l) => l.schoolYears?.includes(year));
+  if (declared.length === 1) return declared[0];
+  // More than one tier for this year is a CHOICE, and no tier for it means the
+  // qualification does not tie this year to one — both answer null. There is
+  // deliberately no name-matching fallback: a qualification that has not declared
+  // the relationship has not stated it, and the learner is asked once instead of
+  // being placed by a coincidence of spelling.
+  return null;
+}
+
+/** Match a stored school year to the tier that examines it, if the qualification
+ *  declares one. Kept as the public name every existing caller uses; the rule
+ *  itself lives in `tierForYear`, which cannot invent a tier from a substring. */
+export function levelForGrade(spec: Specification, grade: string | undefined, subject?: SubjectId): SpecLevel | null {
+  return tierForYear(spec, grade, subject);
 }
 
 export interface ActiveSpec { spec: Specification; level: SpecLevel }
@@ -874,7 +963,16 @@ export function specForProfile(profile: CourseFields, subject?: SubjectId): Acti
   // one selection quietly becomes a curriculum for every subject — biology work
   // would then be planned against a coverage set with no biology in it.
   if (explicit && (!subject || coversSubject(explicit, subject))) {
-    const lvl = levelOf(explicit, p.specLevel) ?? levelForGrade(explicit, p.grade) ?? explicit.levels[0];
+    // THE TIER IS READ THROUGH THIS SUBJECT'S TIER LIST. A level the
+    // qualification has but does not offer for this subject is not this
+    // course's tier, and the year answers it only where the qualification
+    // declares that it does (`tierForYear`).
+    const offered = tiersForSubject(explicit, subject);
+    const lvl =
+      offered.find((l) => l.id === p.specLevel) ??
+      tierForYear(explicit, p.grade, subject) ??
+      offered[0] ??
+      explicit.levels[0];
     return { spec: explicit, level: lvl };
   }
   // With a subject in hand, only qualifications that teach it are candidates —
@@ -896,7 +994,7 @@ export function specForProfile(profile: CourseFields, subject?: SubjectId): Acti
     ? pool.filter((s) => s.board === p.board || s.id.includes(p.exam!.toLowerCase()))
     : [];
   const spec = byBoard[0] ?? byExam[0] ?? pool[0] ?? INDEPENDENT;
-  const level = levelForGrade(spec, p.grade) ?? spec.levels[0];
+  const level = tierForYear(spec, p.grade, subject) ?? tiersForSubject(spec, subject)[0] ?? spec.levels[0];
   return { spec, level };
 }
 
@@ -924,12 +1022,25 @@ export interface CourseSummary {
   levelId: string;
   /** Practice difficulty the tier targets (0–1). */
   difficulty: number;
+  /** The school year the learner declared, in their own system's words ("" when
+   *  they have not answered it). Separate from `tier` on purpose: a year is not
+   *  an examination tier and this value never stands in for one. */
+  year: string;
+  /** False when `tier` is a serving fallback for an ANSWERED-NOWHERE choice.
+   *  A surface that states the learner's course must not present an unconfirmed
+   *  tier as theirs. */
+  tierConfirmed: boolean;
   /** Canonical → local vocabulary this board substitutes. */
   terms: Array<{ from: string; to: string }>;
 }
 
 export function courseSummaryFor(profile: CourseFields, subject?: SubjectId): CourseSummary {
   const active = specForProfile(profile, subject);
+  // ONE RESOLUTION, so the summary cannot state a tier the course gate calls
+  // unanswered. `subject` is optional on this function because some readers have
+  // exactly one course; the resolution needs one, so the single-course answer is
+  // used in that case (the same rule `courseForSubject` applies).
+  const resolved = subject ? resolveCourse(profile, subject) : null;
   return {
     specificationId: active.spec.id,
     country: active.spec.country,
@@ -939,6 +1050,8 @@ export function courseSummaryFor(profile: CourseFields, subject?: SubjectId): Co
     tierKey: active.level.tier,
     levelId: active.level.id,
     difficulty: active.level.difficulty,
+    year: resolved?.year ?? profile.grade ?? "",
+    tierConfirmed: resolved ? resolved.source !== "fallback" : true,
     terms: termsFor(active.spec.board),
   };
 }
@@ -961,7 +1074,48 @@ export type CourseField = "country" | "pathway" | "grade" | "spec" | "specLevel"
  * to, and refusing it is the point: a recommendation must never rest on a
  * course the learner did not choose.
  */
-export function courseGaps(profile: CourseFields, subject: SubjectId): CourseField[] {
+/** A COURSE, RESOLVED INTO ITS SEPARATE PARTS — the one owner of the question
+ *  "what has this learner actually told us about their course?".
+ *
+ *  The three things a course is made of are modelled separately and can no
+ *  longer be mistaken for each other:
+ *
+ *    YEAR      `year` — the label the learner's own system uses ("Year 11",
+ *              "Form 4", "Class 10"). Valid values come from the qualification's
+ *              PATHWAY, not from the qualification's tier list.
+ *    TIER      `tier` — the examination tier the record ANSWERS (Core/Extended,
+ *              Foundation/Higher, SL/HL). Null when nothing answers it.
+ *    SERVING   `effective` — the tier practice is pitched at, with `source`
+ *              saying why: `chosen` (the record), `year` (the qualification
+ *              declares that this year sits that tier), `single` (the
+ *              qualification offers one tier for this subject, so there is
+ *              nothing to answer) or `fallback` (a real choice is unanswered —
+ *              which is REPORTED as a gap, never presented as the learner's
+ *              course).
+ *
+ *  `complete` is false while a real choice is unanswered, so an incomplete
+ *  selection cannot be read downstream as a confirmed curriculum.
+ */
+export interface CourseResolution {
+  /** The qualification the record names, when it names one that teaches this
+   *  subject. Null otherwise — and null is never replaced by a plausible one. */
+  spec: Specification | null;
+  /** The declared school year, verbatim from the record ("" when unanswered). */
+  year: string;
+  /** The years this course's system offers. */
+  years: string[];
+  /** The tiers this qualification offers FOR THIS SUBJECT (empty = untiered). */
+  tiers: SpecLevel[];
+  /** The tier the record answers, or null. */
+  tier: SpecLevel | null;
+  /** The tier serving uses, and why — see the doc comment above. */
+  effective: SpecLevel;
+  source: "chosen" | "year" | "single" | "fallback";
+  gaps: CourseField[];
+  complete: boolean;
+}
+
+export function resolveCourse(profile: CourseFields, subject: SubjectId): CourseResolution {
   const c = courseForSubject(profile, subject);
   // EVERY country that names somewhere has a route, because an unnamed one is
   // not the learner's fault and must not be a wall. This read `?? (c.country
@@ -984,8 +1138,22 @@ export function courseGaps(profile: CourseFields, subject: SubjectId): CourseFie
   // real tiers, so the learner still has to choose a qualification and a level.
   // Falling back here does not weaken the requirement; it removes a demand the
   // product cannot honour.
+  // WHICH SYSTEM'S YEARS THIS COURSE ACTUALLY HAS. The qualification's own
+  // pathway answers it, because a qualification is offered by exactly one
+  // pathway and that pathway's years are the years its learner declares. Falling
+  // back to the country/pathway record is right only while no qualification has
+  // been chosen — which is the state the course step starts in.
+  //
+  // Without this the two halves disagreed: /curriculum offered a qualification's
+  // own years (Years 10–13 for Cambridge IGCSE) while this gate measured the
+  // year group against the pathway in force (the independent pathway's
+  // Foundations / Core / Advanced, for a country with no mapped route), so
+  // choosing "Year 10" and pressing Save produced a course this function called
+  // incomplete for ever. The screen's own comment forbids exactly that loop.
   const route = c.country
-    ? routeForPathwayId(c.country, c.pathway) ?? curriculumFor(c.country) ?? INDEPENDENT_ROUTE
+    ? routeForPathwayId(c.country, pathwayForSpec(c.country, c.spec)?.id) ??
+      routeForPathwayId(c.country, c.pathway) ??
+      curriculumFor(c.country) ?? INDEPENDENT_ROUTE
     : null;
   const out: CourseField[] = [];
   if (!route) out.push("country");
@@ -1002,15 +1170,46 @@ export function courseGaps(profile: CourseFields, subject: SubjectId): CourseFie
   // registry exists to remove, so the gap is named and the step asks.
   if (pathwayChoiceRequired(c.country) && !pathwayForCountry(c.country, c.pathway)) out.push("pathway");
   if (route && !route.grades.includes(c.grade ?? "")) out.push("grade");
-  const spec = specById(c.spec);
-  if (!spec) out.push("spec");
-  else {
-    // A qualification that does not contain the subject is not this subject's
-    // course, whatever else it gets right.
-    if (!spec.coverage[subject]) out.push("spec");
-    if (!spec.levels.some((l) => l.id === c.specLevel)) out.push("specLevel");
-  }
-  return out;
+  // A qualification that does not contain the subject is not this subject's
+  // course, whatever else it gets right.
+  const spec = specById(c.spec) ?? null;
+  const covered = spec ? coversSubject(spec, subject) : false;
+  if (!covered) out.push("spec");
+  // THE TIER LIST COMES FROM THE QUALIFICATION AND THE SUBJECT — not from the
+  // country's route, and not from every level the qualification has.
+  const tiers = covered && spec ? tiersForSubject(spec, subject) : [];
+  // A tier is ANSWERED only when the record names one this subject offers. A
+  // stored tier from another course (a GCSE "higher" left on a record now
+  // pointing at IGCSE) is not an answer to this course's question.
+  const stored = c.specLevel ? tiers.find((l) => l.id === c.specLevel) ?? null : null;
+  const byYear = covered && spec ? tierForYear(spec, c.grade, subject) : null;
+  const answered = stored ?? byYear;
+  // A REAL CHOICE THAT HAS NOT BEEN MADE IS A GAP, not a default. One tier means
+  // there is nothing to choose; an empty list means the qualification is untiered
+  // for this subject and asking would be asking a question the exam does not put.
+  if (tiers.length > 1 && !answered) out.push("specLevel");
+  const effective = answered ?? tiers[0] ?? spec?.levels[0] ?? INDEPENDENT.levels[0];
+  const source: CourseResolution["source"] = stored
+    ? "chosen"
+    : byYear ? "year" : "single";
+  return {
+    spec,
+    year: c.grade ?? "",
+    years: route?.grades ?? [],
+    tiers,
+    tier: stored,
+    effective,
+    source: tiers.length > 1 && !answered ? "fallback" : source,
+    gaps: out,
+    complete: out.length === 0,
+  };
+}
+
+/** What one subject's course still has NOT decided. Delegates to
+ *  `resolveCourse`, so the gate the screens read and the gate the API enforces
+ *  cannot drift apart. */
+export function courseGaps(profile: CourseFields, subject: SubjectId): CourseField[] {
+  return resolveCourse(profile, subject).gaps;
 }
 
 /** Every DECLARED subject whose course is not yet complete, with the fields

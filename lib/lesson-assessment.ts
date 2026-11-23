@@ -1,4 +1,5 @@
 import type { AssessmentItem } from "./lesson-contract";
+import { gradeStructuredParts, type StructuredGrade } from "./structured-items";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GRADING A LESSON'S OWN ASSESSMENT.
@@ -49,9 +50,26 @@ export function gradeAuthoredAssessment(item: AssessmentItem, raw: string): bool
   return item.check.accepted.some((accepted) => normaliseAnswer(accepted) === given);
 }
 
+/** Mark a multi-mark authored item through the SAME pure engine the
+ *  assessment app uses. Each part is awarded independently, so a correct method
+ *  with a wrong final answer keeps its method mark.
+ *
+ *  The item's total is the sum of its parts; there is no second marks field to
+ *  drift away from the scheme. */
+export function gradeStructuredAssessment(
+  item: AssessmentItem,
+  answers: readonly string[],
+  working: readonly string[] = [],
+): StructuredGrade | null {
+  if (item.scored === false) return null;
+  if (!item.structured || item.structured.parts.length === 0) return null;
+  return gradeStructuredParts([...item.structured.parts], [...answers], [...working]);
+}
+
 /** Whether this assessment can be graded by the server at all. The page uses it
  *  to decide between an answer box and the self-marking criteria. */
 export function isGradable(item: AssessmentItem): boolean {
   if (item.scored === false) return false;
+  if (item.structured) return item.structured.parts.length > 0;
   return Array.isArray(item.check?.accepted) && item.check!.accepted.length > 0;
 }

@@ -6,6 +6,8 @@
 // learner's packs, drafts and queued answers; if sign-out is missed, a different
 // profile still cannot address the previous profile's keys.
 import type { FigureSpec, Question, SubjectId } from "./types";
+import type { AssessmentItem } from "./lesson-contract";
+import type { StructuredGrade } from "./structured-items";
 
 export interface OfflinePlan {
   objective: string;
@@ -38,11 +40,26 @@ export interface OfflinePack {
   issuedAt: number;
   plan: OfflinePlan;
   questions: Question[];
+  /** The authored items whose marking is deterministic. Prose, code and any
+   *  item without a key stay out; this is the offline equivalent of the lesson
+   *  page's marked assessment. The authored key travels with the learner-scoped
+   *  pack, because a device with no connection cannot ask the server to mark. */
+  assessments?: AssessmentItem[];
 }
 
 export interface OfflineAnswer {
   questionId: string;
-  choiceIndex: number;
+  /** Present for generated multiple-choice practice. */
+  choiceIndex?: number;
+  /** Present for an authored assessment item. */
+  assessment?: boolean;
+  itemId?: string;
+  response?: string[];
+  working?: string[];
+  awarded?: number | null;
+  marks?: number | null;
+  /** Per-criterion traceability, when the format returns it. */
+  parts?: StructuredGrade["parts"] | null;
   correct: boolean;
   at: number;
   submissionId: string;
@@ -130,8 +147,11 @@ export function saveOfflineDraft(learnerId: string, draft: OfflineDraft): void {
   catch { /* storage full: the answer remains in this page's state */ }
 }
 
-/** Remove every local trace this learner left on this device. Called on
- *  sign-out, which is the handover point on a shared school computer. */
+/** Remove this learner's packs and drafts from the device. Called on sign-out,
+ *  the handover point on a shared school computer. It deliberately does NOT
+ *  touch the sync queue (`lib/sync-queue.ts`): unsynchronised evidence survives
+ *  a hand-back under the learner's own scope and is never drained by the next
+ *  person. */
 export function clearOfflineLearner(learnerId: string | null): void {
   const s = storage();
   if (!s || !learnerId) return;

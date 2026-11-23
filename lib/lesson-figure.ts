@@ -7,7 +7,7 @@
 // overlap counted once, or the second branch change because the first counter
 // was not replaced, was being asked to build the drawing in their head.
 //
-// These two kinds are deliberately SEPARATE from lib/types.ts#FigureSpec. A
+// These kinds are deliberately SEPARATE from lib/types.ts#FigureSpec. A
 // question figure must never give away its answer (`question-figure` is
 // aria-hidden and captioned from the spec); a lesson figure is teaching, so its
 // caption is authored prose and it may state the counts. Sharing a union would
@@ -18,7 +18,7 @@
 // SVG; it does not decide where a region goes or what a path is worth.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const LESSON_FIGURE_KINDS = ["venn", "tree", "bar"] as const;
+export const LESSON_FIGURE_KINDS = ["venn", "tree", "bar", "scatter"] as const;
 export type LessonFigureKind = (typeof LESSON_FIGURE_KINDS)[number];
 
 export type LessonFigureSpec =
@@ -66,6 +66,23 @@ export type LessonFigureSpec =
       }[];
       /** What the whole bar is, e.g. `5 equal parts` or `£84`. */
       readonly totalLabel?: string;
+    }
+  | {
+      /** A CLOUD OF PAIRED MEASUREMENTS. One point is one individual or trial,
+       *  with a value on each axis. The domain is explicit because the axes are
+       *  a teaching claim: a learner must see the observed range, and a line
+       *  drawn outside the points is extrapolation the picture has to support.
+       *  The optional line is a model fitted to the cloud, not a join-the-dots
+       *  path; geometry clips it to the declared plot. */
+      kind: "scatter";
+      readonly xLabel: string;
+      readonly yLabel: string;
+      readonly xMin: number;
+      readonly xMax: number;
+      readonly yMin: number;
+      readonly yMax: number;
+      readonly points: readonly { readonly x: number; readonly y: number }[];
+      readonly line?: { readonly gradient: number; readonly intercept: number };
     };
 
 // ── Venn ────────────────────────────────────────────────────────────────────
@@ -311,5 +328,152 @@ export function barLayout(spec: Extract<LessonFigureSpec, { kind: "bar" }>): Bar
     parts: placed,
     ticks,
     totalLabel: spec.totalLabel?.trim() || `${total} equal parts`,
+  };
+}
+
+// ── scatter ─────────────────────────────────────────────────────────────────
+//
+// A scatter graph is not a bar chart with dots. The axes are continuous, so a
+// point's position is a pair of measurements and the cloud's shape is the
+// teaching. The domain is explicit so the picture cannot silently rescale an
+// outlier away, and the fitted line is clipped to the plot so a model outside
+// the observed range is not drawn as though it had been observed.
+
+export const SCATTER_W = 360;
+export const SCATTER_H = 250;
+const SCATTER_LEFT = 50;
+const SCATTER_RIGHT = 12;
+const SCATTER_TOP = 18;
+const SCATTER_BOTTOM = 52;
+
+export interface ScatterTick {
+  value: number;
+  /** Pixel position on the axis the tick belongs to. */
+  position: number;
+}
+
+export interface ScatterPlottedPoint {
+  x: number;
+  y: number;
+  /** Pixel centre, already mapped through the axis scales. */
+  cx: number;
+  cy: number;
+}
+
+export interface ScatterPlottedLine {
+  gradient: number;
+  intercept: number;
+  start: ScatterPlottedPoint;
+  end: ScatterPlottedPoint;
+}
+
+export interface ScatterLayout {
+  width: number;
+  height: number;
+  plot: { x: number; y: number; w: number; h: number };
+  xMin: number;
+  xMax: number;
+  yMin: number;
+  yMax: number;
+  xTicks: ScatterTick[];
+  yTicks: ScatterTick[];
+  points: ScatterPlottedPoint[];
+  line: ScatterPlottedLine | null;
+}
+
+function axisTicks(min: number, max: number, target: number): number[] {
+  const span = max - min;
+  const rough = span / Math.max(1, target);
+  const power = 10 ** Math.floor(Math.log10(rough));
+  const normal = rough / power;
+  const step = (normal <= 1 ? 1 : normal <= 2 ? 2 : normal <= 5 ? 5 : 10) * power;
+  const first = Math.ceil(min / step - 1e-9) * step;
+  const ticks: number[] = [];
+  for (let value = first; value <= max + 1e-9; value += step) {
+    ticks.push(Math.abs(value) < step * 1e-9 ? 0 : Number(value.toFixed(10)));
+  }
+  return ticks;
+}
+
+const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
+
+export function scatterLayout(spec: Extract<LessonFigureSpec, { kind: "scatter" }>): ScatterLayout {
+  const { xMin, xMax, yMin, yMax } = spec;
+  if (![xMin, xMax, yMin, yMax].every(Number.isFinite) || xMax <= xMin || yMax <= yMin) {
+    throw new Error("scatter figure needs a finite, increasing domain on both axes");
+  }
+  if (!Array.isArray(spec.points) || spec.points.length === 0) {
+    throw new Error("scatter figure needs at least one plotted point");
+  }
+
+  const plot = {
+    x: SCATTER_LEFT,
+    y: SCATTER_TOP,
+    w: SCATTER_W - SCATTER_LEFT - SCATTER_RIGHT,
+    h: SCATTER_H - SCATTER_TOP - SCATTER_BOTTOM,
+  };
+  const xToPixel = (x: number): number => plot.x + ((x - xMin) / (xMax - xMin)) * plot.w;
+  const yToPixel = (y: number): number => plot.y + (1 - (y - yMin) / (yMax - yMin)) * plot.h;
+
+  const points = spec.points.map((point, index) => {
+    if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) {
+      throw new Error(`scatter point ${index} is not a finite pair`);
+    }
+    if (point.x < xMin || point.x > xMax || point.y < yMin || point.y > yMax) {
+      throw new Error(`scatter point ${index} (${point.x}, ${point.y}) lies outside the declared domain`);
+    }
+    return { x: point.x, y: point.y, cx: xToPixel(point.x), cy: yToPixel(point.y) };
+  });
+
+  let line: ScatterPlottedLine | null = null;
+  if (spec.line) {
+    const gradient = Number(spec.line.gradient);
+    const intercept = Number(spec.line.intercept);
+    if (!Number.isFinite(gradient) || !Number.isFinite(intercept)) {
+      throw new Error("scatter line needs a finite gradient and intercept");
+    }
+    const xEps = (xMax - xMin) * 1e-9;
+    const yEps = (yMax - yMin) * 1e-9;
+    const candidates: ScatterPlottedPoint[] = [];
+    const add = (x: number, y: number): void => {
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+      if (x < xMin - xEps || x > xMax + xEps || y < yMin - yEps || y > yMax + yEps) return;
+      const boundedX = clamp(x, xMin, xMax);
+      const boundedY = clamp(y, yMin, yMax);
+      if (candidates.some((point) => Math.abs(point.x - boundedX) < xEps && Math.abs(point.y - boundedY) < yEps)) return;
+      candidates.push({ x: boundedX, y: boundedY, cx: xToPixel(boundedX), cy: yToPixel(boundedY) });
+    };
+
+    // The line meets a rectangle at up to two edges. Checking all four edge
+    // intersections and keeping those inside the plot also handles a horizontal
+    // line and a line that enters through a corner.
+    add(xMin, gradient * xMin + intercept);
+    add(xMax, gradient * xMax + intercept);
+    if (Math.abs(gradient) > 1e-12) {
+      add((yMin - intercept) / gradient, yMin);
+      add((yMax - intercept) / gradient, yMax);
+    }
+    if (candidates.length >= 2) {
+      candidates.sort((a, b) => a.x - b.x || a.y - b.y);
+      const start = candidates[0];
+      const end = candidates[candidates.length - 1];
+      if (Math.hypot(end.cx - start.cx, end.cy - start.cy) > 0.5) {
+        line = { gradient, intercept, start, end };
+      }
+    }
+  }
+
+  return {
+    width: SCATTER_W,
+    height: SCATTER_H,
+    plot,
+    xMin,
+    xMax,
+    yMin,
+    yMax,
+    xTicks: axisTicks(xMin, xMax, 8).map((value) => ({ value, position: xToPixel(value) })),
+    yTicks: axisTicks(yMin, yMax, 6).map((value) => ({ value, position: yToPixel(value) })),
+    points,
+    line,
   };
 }

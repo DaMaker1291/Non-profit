@@ -64,6 +64,9 @@ export function foldEvent(state: ProfileState, e: EvidenceEvent): void {
   switch (e.type) {
     case "answer_submitted": {
       if (!e.conceptId) break;
+      // Same exclusion as projectLearner: unobserved group/paper work is not an
+      // individual mastery claim, so a replay must not fold it either.
+      if (e.teacherEntry && !e.teacherEntry.observed) break;
       // A diagnostic sitting folds as a whole, through its own
       // diagnostic_completed event. Folding its per-answer detail too would
       // count every diagnostic answer twice. See the header.

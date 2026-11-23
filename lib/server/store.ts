@@ -1100,6 +1100,58 @@ export async function setResetGrant(
 }
 
 /**
+ * Store (or clear) a pending email-verification token, as a hash + salt + expiry.
+ *
+ * One write, like `setResetGrant`, and for the same reason: an expiry written
+ * afterwards is a window in which a token exists with no end date. `null` clears
+ * the three fields — that is the single-use step in `markEmailVerified`.
+ */
+export async function setEmailVerification(
+  accountId: string,
+  token: { salt: string; hash: string; expiresAt: number } | null,
+): Promise<Account | null> {
+  return withLock("accounts.json", async () => {
+    const all = await readJson<Record<string, Account>>("accounts.json", {});
+    const a = all[accountId];
+    if (!a) return null;
+    if (token) {
+      a.verifySalt = token.salt;
+      a.verifyHash = token.hash;
+      a.verifyExpiresAt = token.expiresAt;
+    } else {
+      delete a.verifySalt;
+      delete a.verifyHash;
+      delete a.verifyExpiresAt;
+    }
+    await writeJson("accounts.json", all, "identity");
+    return a;
+  });
+}
+
+/**
+ * Mark an address proved AND clear the token, in one write.
+ *
+ * Two writes here would be the bug this exists to prevent: a crash between them
+ * leaves a link that still works on an account already marked verified, so a
+ * forwarded message would keep confirming an address the learner has since lost
+ * control of.
+ */
+export async function markEmailVerified(accountId: string): Promise<Account | null> {
+  return withLock("accounts.json", async () => {
+    const all = await readJson<Record<string, Account>>("accounts.json", {});
+    const a = all[accountId];
+    if (!a) return null;
+    a.verified = true;
+    delete a.verifySalt;
+    delete a.verifyHash;
+    delete a.verifyExpiresAt;
+    a.lastSeenAt = a.lastSeenAt ?? Date.now();
+    await writeJson("accounts.json", all, "identity");
+    return a;
+  });
+}
+
+/**
  * The account a teacher-issued grant belongs to, from its LOOKUP KEY.
  *
  * The key is the first eight hex characters of the account id (see

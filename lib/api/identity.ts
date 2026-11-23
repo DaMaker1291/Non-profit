@@ -27,6 +27,13 @@ import type { RosterLearner } from "../device-roster";
 
 export const PROFILE_ID_KEY = "openmind:profileId";
 export const PROFILE_SECRET_KEY = "openmind:profileSecret";
+/** Set when the learner signs out. It survives the sign-out and suppresses a
+ *  session restore from the server's still-valid cookie, which is the only way
+ *  an OFFLINE hand-back can be honoured: the logout call could not reach the
+ *  server, so the cookie is still there, but this device must not adopt it
+ *  again as the next person's identity. Cleared only by a successful sign-in,
+ *  sign-up, recovery or kiosk login. */
+export const SIGNED_OUT_KEY = "openmind:signedOut";
 
 /** localStorage, or null when there is no window (server render, tests) or when
  *  storage is blocked (private mode). Every accessor below tolerates both. */
@@ -95,6 +102,29 @@ function writeIdentity(id: string, secret: string): void {
 
 export function loadProfileId(): string | null {
   return storage()?.getItem(PROFILE_ID_KEY) ?? null;
+}
+
+/** True when this device was signed out and has not signed anyone in since. */
+export function isSignedOut(): boolean {
+  return storage()?.getItem(SIGNED_OUT_KEY) === "1";
+}
+
+/** Remember a hand-back. Deliberately does NOT announce: `clearSession` has
+ *  already announced the identity change, and a second event would make the
+ *  shell probe the server again immediately. */
+export function markSignedOut(): void {
+  const store = storage();
+  if (!store) return;
+  try { store.setItem(SIGNED_OUT_KEY, "1"); } catch { /* storage blocked */ }
+}
+
+/** A real sign-in ends the hand-back state. Called by `adoptSession` before it
+ *  writes the identity, so the shell's probe cannot read the old marker and
+ *  overwrite the session that just arrived. */
+export function clearSignedOut(): void {
+  const store = storage();
+  if (!store) return;
+  try { store.removeItem(SIGNED_OUT_KEY); } catch { /* storage blocked */ }
 }
 
 export function writeProfileId(id: string): void {

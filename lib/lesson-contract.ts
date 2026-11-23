@@ -1,4 +1,5 @@
 import type { LessonFigureSpec } from "./lesson-figure";
+import type { StructuredPart } from "./structured-items";
 import type { SubjectId } from "./types";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -190,8 +191,78 @@ export interface GuidedPractice {
 export type AssessmentKind =
   | "short-answer"
   | "constructed-response"
+  | "structured"
   | "code"
+  | "gap-fill"
+  | "matching"
+  | "ordering"
   | "diagram";
+
+/** One blank in an authored gap-fill sentence. `accepted` lists equivalent
+ *  spellings/forms, not alternative facts: the marker compares the whole gap,
+ *  so containing a keyword is never enough. */
+export interface GapFillGap {
+  readonly id: string;
+  readonly accepted: readonly string[];
+  readonly label: string;
+  readonly size?: number;
+  readonly numeric?: boolean;
+  readonly unit?: string;
+  readonly feedback?: string;
+}
+
+export interface GapFillAssessment {
+  /** The prompt, with each gap written as `[[gap-id]]`. */
+  readonly template: string;
+  readonly gaps: readonly GapFillGap[];
+  /** Optional words offered beside the gaps. They are a support, never a key. */
+  readonly wordBank?: readonly string[];
+}
+
+export interface MatchingAssessment {
+  readonly left: readonly { readonly id: string; readonly text: string }[];
+  readonly right: readonly { readonly id: string; readonly text: string }[];
+  /** The correct right-hand id for each left-hand id. */
+  readonly pairs: Readonly<Record<string, string>>;
+  readonly leftHeading?: string;
+  readonly rightHeading?: string;
+}
+
+export interface OrderingAssessment {
+  /** Items in the order the page presents them, which is deliberately not the
+   *  answer order. The learner moves them; no drag is required. */
+  readonly items: readonly { readonly id: string; readonly text: string }[];
+  readonly correctOrder: readonly string[];
+}
+
+export type LessonDiagramShape =
+  | { readonly kind: "rect"; readonly x: number; readonly y: number; readonly width: number; readonly height: number; readonly rx?: number; readonly filled?: boolean }
+  | { readonly kind: "circle"; readonly cx: number; readonly cy: number; readonly r: number; readonly filled?: boolean }
+  | { readonly kind: "line"; readonly x1: number; readonly y1: number; readonly x2: number; readonly y2: number; readonly dash?: string }
+  | { readonly kind: "text"; readonly x: number; readonly y: number; readonly text: string; readonly size?: number };
+
+export interface DiagramAssessment {
+  readonly width: number;
+  readonly height: number;
+  readonly shapes: readonly LessonDiagramShape[];
+  /** Numbered positions on the drawing. The learner assigns a label to each. */
+  readonly targets: readonly { readonly id: string; readonly x: number; readonly y: number }[];
+  readonly labels: readonly { readonly id: string; readonly text: string; readonly targetId: string }[];
+  readonly caption: string;
+}
+
+/** The structured-response types the authored-lesson renderer can actually
+ *  collect. The renderer uses the same graph, plot, read-off and table surfaces
+ *  as the assessment app; an authored lesson must not claim a format it cannot
+ *  render, so lib/lesson-verify.ts still refuses anything outside this set. */
+export type AuthoredStructuredPart = StructuredPart & {
+  readonly response?: "number" | "short" | "algebra" | "table" | "graph" | "plot" | "readoff";
+};
+
+export interface AuthoredStructuredAssessment {
+  /** Every part is marked independently; the item's marks are the sum. */
+  readonly parts: readonly AuthoredStructuredPart[];
+}
 
 export interface CodeExercise {
   /** A complete starting program, not a fragment. The learner edits this in
@@ -232,6 +303,18 @@ export interface AssessmentItem {
    *  browser-side practice evidence, not a hidden server test; the marking
    *  criteria remain the record of what the learner can explain. */
   readonly code?: CodeExercise;
+  /** A multi-mark response with independent parts and partial credit. The
+   *  parts are the same StructuredPart scheme the assessment app uses, so the
+   *  authored lesson does not get a second marking engine. */
+  readonly structured?: AuthoredStructuredAssessment;
+  /** A sentence with one or more independently marked blanks. */
+  readonly gaps?: GapFillAssessment;
+  /** Terms matched to meanings; every pair is marked independently. */
+  readonly matching?: MatchingAssessment;
+  /** A process reordered into its correct sequence. */
+  readonly ordering?: OrderingAssessment;
+  /** A drawing whose numbered positions are labelled by the learner. */
+  readonly diagram?: DiagramAssessment;
 }
 
 export interface TransferChallenge {

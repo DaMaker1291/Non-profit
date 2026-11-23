@@ -116,8 +116,11 @@ export interface CertaintyTally {
  *              watch it happen and CANNOT verify it. Such events are kept (the
  *              work was real) but never silently promoted to the same standing,
  *              and the impact report discloses the unverifiable share.
+ *   "teacher" — a teacher marked paper work and entered the result. The server
+ *              watched the entry, not the pupil's writing; `teacherEntry`
+ *              carries the rubric, version, observer and evidence quality.
  */
-export type Provenance = "server" | "device";
+export type Provenance = "server" | "device" | "teacher";
 
 /**
  * Was this answer taken where the server could not see it?
@@ -132,6 +135,26 @@ export type Provenance = "server" | "device";
 export function isDeviceReported(e: EvidenceEvent): boolean {
   if (e.provenance === "device") return true;
   return e.type === "answer_submitted" && e.deviceAt !== null;
+}
+
+/** A paper result a teacher entered. Distinct from both server-observed digital
+ *  work and a device's own claim. */
+export function isTeacherReported(e: EvidenceEvent): boolean {
+  return e.provenance === "teacher";
+}
+
+/** What a teacher's paper entry must disclose. `observed` false means the work
+ *  was group or unobserved: it is kept as context but excluded from individual
+ *  mastery by the projection. */
+export interface TeacherEntry {
+  assessmentVersion: string;
+  rubric: string;
+  teacherAccountId: string;
+  teacherName: string;
+  enteredAt: number;
+  observed: boolean;
+  evidenceQuality: "high" | "medium" | "low";
+  groupId: string | null;
 }
 
 interface Base {
@@ -182,6 +205,8 @@ export interface AnswerSubmitted extends Base {
   /** The learner's own statement about their knowing, made before the verdict.
    *  See Certainty. Null when they were not asked. */
   certainty: Certainty | null;
+  /** Present only when a teacher entered this mark from paper. */
+  teacherEntry?: TeacherEntry;
 }
 
 /** Build a server-observed answer event. The ONE constructor the live routes
@@ -241,6 +266,64 @@ export function answerEvidence(input: {
     tags: input.tags ?? [],
     deviceAt: input.deviceAt ?? null,
     certainty: input.certainty ?? null,
+  };
+}
+
+/** A paper mark entered by a teacher. This is the ONLY constructor that mints
+ *  `provenance: "teacher"`; the device ingestion door's validator cannot. */
+export function teacherAnswerEvidence(input: {
+  learnerId: string;
+  at: number;
+  subject: SubjectId | null;
+  conceptId: string | null;
+  specificationId: string | null;
+  questionId: string;
+  awarded: number;
+  max: number;
+  tags?: string[];
+  assessmentVersion: string;
+  rubric: string;
+  teacherAccountId: string;
+  teacherName: string;
+  observed: boolean;
+  evidenceQuality: "high" | "medium" | "low";
+  groupId?: string | null;
+}): AnswerSubmitted {
+  return {
+    type: "answer_submitted",
+    id: newEvidenceId(),
+    schemaVersion: EVIDENCE_SCHEMA_VERSION,
+    learnerId: input.learnerId,
+    provenance: "teacher",
+    at: input.at,
+    source: "assessment",
+    subject: input.subject,
+    conceptId: input.conceptId,
+    specificationId: input.specificationId,
+    questionId: input.questionId,
+    // A partial mark is not a mastery success, but it is not a failure either.
+    // The score carries how much was earned; `correct` stays the all-marks
+    // claim, exactly as it does for a server-marked structured item.
+    correct: input.awarded >= input.max,
+    chosen: -1,
+    givenValue: null,
+    mode: input.observed ? "independent" : "guided",
+    hints: 0,
+    score: { awarded: Math.max(0, input.awarded), max: input.max },
+    ms: null,
+    tags: input.tags ?? [],
+    deviceAt: null,
+    certainty: null,
+    teacherEntry: {
+      assessmentVersion: input.assessmentVersion,
+      rubric: input.rubric,
+      teacherAccountId: input.teacherAccountId,
+      teacherName: input.teacherName,
+      enteredAt: input.at,
+      observed: input.observed,
+      evidenceQuality: input.evidenceQuality,
+      groupId: input.groupId ?? null,
+    },
   };
 }
 
@@ -692,6 +775,11 @@ export function projectLearner(events: readonly EvidenceEvent[]): LearnerProject
   for (const e of ordered) {
     switch (e.type) {
       case "answer_submitted": {
+        // GROUP OR UNOBSERVED PAPER WORK IS NOT ONE PUPIL'S MASTERY. It stays in
+        // the ledger with its teacher metadata, but it is deliberately invisible
+        // to the learner model: an entire group's correct answer cannot prove
+        // any individual could do it.
+        if (e.teacherEntry && !e.teacherEntry.observed) break;
         totals.answers += 1;
         if (e.correct) totals.correct += 1;
         // RETENTION, decided from the ledger alone. A retrieval proves durable
@@ -879,7 +967,11 @@ export interface ImpactSnapshot {
 export function impactSnapshot(events: readonly EvidenceEvent[]): ImpactSnapshot {
   const ordered = orderEvents(events);
   const p = projectLearner(ordered);
-  const answers = ordered.filter((e): e is AnswerSubmitted => e.type === "answer_submitted");
+  // Group/unobserved paper work is excluded here for exactly the reason the
+  // projection excludes it: it is not one learner's measurement. The ledger
+  // keeps it; the impact report must not count it as an individual outcome.
+  const answers = ordered.filter((e): e is AnswerSubmitted =>
+    e.type === "answer_submitted" && !(e.teacherEntry && !e.teacherEntry.observed));
 
   const measuredAnswers = answers.filter((e) => e.source === "diagnostic" || e.source === "past_paper" || e.source === "assessment");
   const rate = (list: AnswerSubmitted[]): Rate | null => (list.length ? { asked: list.length, correct: list.filter((a) => a.correct).length } : null);
@@ -915,6 +1007,8 @@ export function impactSnapshot(events: readonly EvidenceEvent[]): ImpactSnapshot
   // offline queue: the marking is observed, the answering was not.
   const device = ordered.filter(isDeviceReported).length;
   if (device) unmeasured.push(`${device} of ${ordered.length} events were answered or reported on a device, not observed by the server as they happened`);
+  const teacherEntered = answers.filter((a) => a.teacherEntry).length;
+  if (teacherEntered) unmeasured.push(`${teacherEntered} answer(s) were marked on paper and entered by a teacher; the entry is observed, the pupil's writing was not`);
 
   return {
     learnerId: p.learnerId,

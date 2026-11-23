@@ -92,6 +92,10 @@ export interface AccountSession {
    *  because the store keeps only its hash. Absent on every other response: a
    *  session that could re-read it would be a session that could copy it. */
   recoveryCode?: string;
+  /** Whether a confirmation link was mailed at sign-up, and if not, why. The
+   *  sign-up screen says which: "check your inbox" and "this deployment cannot
+   *  send mail" are different sentences and a learner acts differently on each. */
+  verification?: { sent: boolean; reason?: string };
 }
 
 export const EMPTY_SESSION: AccountSession = { account: null, profile: null, secret: null };
@@ -142,6 +146,38 @@ export function signUp(input: SignUpInput): Promise<AccountSession> {
 
 export function signIn(email: string, password: string): Promise<AccountSession> {
   return send<AccountSession>("/api/auth/login", { method: "POST", body: { email, password } });
+}
+
+/**
+ * Consume an emailed confirmation token.
+ *
+ * The PAGE posts it; the emailed link only opens the page. That split is what
+ * stops a mail scanner or proxy previewing the URL from confirming an address on
+ * the learner's behalf — see app/api/auth/verify/route.ts.
+ *
+ * Tolerated 400: a dead link is an ABSENCE the page must render as its own
+ * sentence, not an exception that reads like a broken server.
+ */
+export function verifyEmail(token: string): Promise<{ verified: boolean }> {
+  return send<{ verified: boolean }>("/api/auth/verify", {
+    method: "POST",
+    body: { token },
+    tolerate: [400],
+  });
+}
+
+/**
+ * Ask for the confirmation link again (signed in). `sent: false` carries the
+ * reason the deployment could not send — `unconfigured` is the one a learner can
+ * act on by ignoring it, because their account works without a proof.
+ */
+export interface ResendVerificationResult {
+  sent: boolean;
+  reason?: "unconfigured" | "no_public_url" | "provider_error" | "already_verified" | "unavailable";
+}
+
+export function resendVerification(): Promise<ResendVerificationResult> {
+  return send<ResendVerificationResult>("/api/auth/resend-verification", { method: "POST", body: {} });
 }
 
 /** Sign out. The server revokes every session in this account's epoch, so this
@@ -465,17 +501,43 @@ export type AnswerOutcome =
  *  The server decides whether the item is gradable at all: an item without a
  *  deterministic key answers 400 "not gradable" and the page shows the marking
  *  criteria instead of inventing a verdict. */
+export interface LessonCheckCriterion {
+  id: string;
+  kind?: "method" | "accuracy" | "evidence";
+  label: string;
+  awarded: number;
+  marks: number;
+  met: boolean;
+  why: string;
+}
+
+export interface LessonCheckPart {
+  partId: string;
+  awarded: number;
+  marks: number;
+  correct: boolean;
+  criteria: LessonCheckCriterion[];
+}
+
 export interface LessonCheckResult {
   correct: boolean;
   modelAnswer: string;
   marking: string[];
+  /** Present for a structured item: the total and the independently marked
+   *  parts. A partial result is still `correct: false`, but the score says how
+   *  much was earned and is what the evidence ledger records. */
+  awarded?: number;
+  marks?: number;
+  parts?: LessonCheckPart[];
 }
 
 export function lessonCheck(input: {
   id: string;
   conceptId: string;
   itemId: string;
-  answer: string;
+  answer?: string;
+  answers?: readonly string[];
+  working?: readonly string[];
   secret?: string | null;
 }): Promise<LessonCheckResult> {
   return send<LessonCheckResult>("/api/progress", {
@@ -486,6 +548,8 @@ export function lessonCheck(input: {
       conceptId: input.conceptId,
       itemId: input.itemId,
       answer: input.answer,
+      answers: input.answers,
+      working: input.working,
       secret: input.secret ?? undefined,
     },
   });
@@ -1013,6 +1077,49 @@ export function concepts(query: { concept?: string; subject?: string }): Promise
  *  shown a join code or a classmate's evidence to begin with. */
 export function classes(me: string): Promise<{ classes: ClassRoster[]; teaching: boolean }> {
   return send("/api/classes", { query: { me } });
+}
+
+// ── PAPER ASSESSMENT ────────────────────────────────────────────────────────
+// The printable lesson and its key are content; the mark is a write about a
+// learner. All three therefore go through the same operation seam as the rest
+// of the product, so the form cannot invent a route of its own.
+export interface AuthoredLessonIndexItem {
+  conceptId: string;
+  title: string;
+  subject: string;
+  version: string;
+  review: string;
+}
+
+export interface AuthoredLessonPaperItems {
+  conceptId: string;
+  title: string;
+  subject: string;
+  version: string;
+  review: string;
+  items: { id: string; prompt: string; kind: string; max: number; section: string }[];
+}
+
+export function authoredLessons(): Promise<{ lessons: AuthoredLessonIndexItem[] }> {
+  return send("/api/authored-lessons");
+}
+
+export function authoredLessonPaperItems(conceptId: string): Promise<AuthoredLessonPaperItems> {
+  return send("/api/authored-lessons", { query: { concept: conceptId } });
+}
+
+export function recordPaperMarks(input: {
+  clsId: string;
+  learnerId: string;
+  conceptId: string;
+  assessmentVersion: string;
+  rubric: string;
+  observed: boolean;
+  evidenceQuality: "high" | "medium" | "low";
+  groupId?: string | null;
+  items: { questionId: string; awarded: number; max: number }[];
+}): Promise<{ accepted: number; duplicates: number; provenance: string; observed: boolean; countsTowardsMastery: boolean; note: string }> {
+  return send("/api/teacher/paper", { method: "POST", body: { ...input } });
 }
 
 export function classById(id: string, me: string): Promise<{ cls: ClassRoster }> {

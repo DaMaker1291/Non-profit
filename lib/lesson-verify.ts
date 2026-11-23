@@ -241,6 +241,190 @@ export function auditLesson(lesson: AuthoredLesson): LessonProblem[] {
     // learner has to mark their own work against.
     if (wordCount(a.modelAnswer) < (a.check ? 1 : 6)) add(`assessment ${a.id}: model answer is missing or too thin`);
     if (a.marking.length < 2) add(`assessment ${a.id}: fewer than two marking criteria`);
+
+    // A STRUCTURED ITEM is only structured if every part can actually be
+    // collected and marked. The renderer supports number, short and algebra
+    // parts; a graph or table part authored here would be a key the learner
+    // could never answer, so it is refused rather than rendered as an empty box.
+    if (a.structured || a.kind === "structured") {
+      if (a.kind !== "structured") add(`assessment ${a.id}: structured parts on a ${a.kind} item`);
+      if (!a.structured || a.structured.parts.length < 2) {
+        add(`assessment ${a.id}: structured item needs at least two independently marked parts`);
+      } else {
+        if (a.check) add(`assessment ${a.id}: structured item also carries a single-answer key`);
+        const ids = new Set<string>();
+        let total = 0;
+        for (const part of a.structured.parts) {
+          if (ids.has(part.id)) add(`assessment ${a.id}: duplicate structured part id ${part.id}`);
+          ids.add(part.id);
+          if (!Number.isInteger(part.marks) || part.marks < 1) {
+            add(`assessment ${a.id} part ${part.id}: marks must be a positive whole number`);
+          } else {
+            total += part.marks;
+          }
+          const response = part.response ?? "number";
+          // The authored renderer now covers every format the paper sheet can
+          // carry: typed number/short/algebra, two points for a line, a plotted
+          // grid, a follow-through read-off and a table with blank cells. A
+          // format outside this set is still refused rather than rendered as a
+          // box that cannot be answered.
+          const renderable = ["number", "short", "algebra", "graph", "plot", "readoff", "table"];
+          if (!renderable.includes(response)) {
+            add(`assessment ${a.id} part ${part.id}: ${response} is not renderable in an authored lesson`);
+          }
+          if (response === "number" && !Number.isFinite(part.answer)) {
+            add(`assessment ${a.id} part ${part.id}: numeric part has no answer`);
+          }
+          if (response === "short" && !(part.short?.length)) {
+            add(`assessment ${a.id} part ${part.id}: short part has no criteria`);
+          }
+          if (response === "algebra" && !(part.algebra?.accepted.length)) {
+            add(`assessment ${a.id} part ${part.id}: algebra part has no accepted form`);
+          }
+          if (response === "graph") {
+            if (!part.graph) add(`assessment ${a.id} part ${part.id}: graph part has no line`);
+            else {
+              if (part.marks !== 2) add(`assessment ${a.id} part ${part.id}: a graph part is gradient + intercept, so 2 marks`);
+              if (!(part.graph.xMin < part.graph.xMax && part.graph.yMin < part.graph.yMax)) {
+                add(`assessment ${a.id} part ${part.id}: the graph bounds are not a range`);
+              }
+              if (!Number.isFinite(part.graph.m) || !Number.isFinite(part.graph.c)) {
+                add(`assessment ${a.id} part ${part.id}: the graph line is not finite`);
+              }
+            }
+            if (part.method) add(`assessment ${a.id} part ${part.id}: a graph part has no typed method`);
+          }
+          if (response === "plot") {
+            if (!part.plot) add(`assessment ${a.id} part ${part.id}: plot part has no points`);
+            else {
+              if (part.marks !== 2) add(`assessment ${a.id} part ${part.id}: a plot part is the two-rung B2/B1 scheme, so 2 marks`);
+              if (!(part.plot.xMin < part.plot.xMax && part.plot.yMin < part.plot.yMax)) {
+                add(`assessment ${a.id} part ${part.id}: the plot bounds are not a range`);
+              }
+              if (part.plot.points.length < 2) add(`assessment ${a.id} part ${part.id}: a line needs at least two required points`);
+              if (part.plot.points.some((p) => p.x < part.plot!.xMin || p.x > part.plot!.xMax || p.y < part.plot!.yMin || p.y > part.plot!.yMax)) {
+                add(`assessment ${a.id} part ${part.id}: a required point is outside the grid`);
+              }
+            }
+            if (part.method) add(`assessment ${a.id} part ${part.id}: a plot part has no typed method`);
+          }
+          if (response === "readoff") {
+            if (!part.readOff) add(`assessment ${a.id} part ${part.id}: read-off part names no line`);
+            else {
+              if (part.marks !== 1) add(`assessment ${a.id} part ${part.id}: a read-off part is 1 mark`);
+              if (!(part.readOff.tolerance > 0)) add(`assessment ${a.id} part ${part.id}: a read-off needs a positive tolerance`);
+            }
+          }
+          if (response === "table") {
+            if (!part.table) add(`assessment ${a.id} part ${part.id}: table part has no table`);
+            else {
+              const blanks = part.table.rows.reduce(
+                (n, row) => n + row.cells.filter((cell) => cell.answer !== undefined).length,
+                0,
+              );
+              if (blanks !== part.marks) {
+                add(`assessment ${a.id} part ${part.id}: ${blanks} blank cells but ${part.marks} marks`);
+              }
+              for (const row of part.table.rows) {
+                if (row.cells.length !== part.table.columns.length) {
+                  add(`assessment ${a.id} part ${part.id}: a table row does not match its columns`);
+                }
+              }
+            }
+          }
+          if (part.method) {
+            if (part.method.marks < 1 || part.method.marks >= part.marks) {
+              add(`assessment ${a.id} part ${part.id}: method marks must leave an answer mark`);
+            }
+            if (part.method.accept.length === 0) add(`assessment ${a.id} part ${part.id}: method has no accepted working`);
+          }
+          if (wordCount(part.explanation) < 6) add(`assessment ${a.id} part ${part.id}: explanation is too thin`);
+        }
+        // A read-off must name an EARLIER part: following through from a line
+        // the learner has not drawn yet is not follow-through.
+        for (let i = 0; i < a.structured.parts.length; i++) {
+          const part = a.structured.parts[i];
+          if (part.response === "readoff" && part.readOff && !a.structured.parts.slice(0, i).some((p) => p.id === part.readOff!.from)) {
+            add(`assessment ${a.id} part ${part.id}: read-off names part ${part.readOff.from}, which is not an earlier part`);
+          }
+        }
+        if (total < 2) add(`assessment ${a.id}: structured item is worth fewer than two marks`);
+        // One marking sentence per mark is the readable form of "independently
+        // marked points": a four-mark question may not hide two marks behind
+        // one criterion.
+        if (a.marking.length < total) {
+          add(`assessment ${a.id}: ${total} structured marks but only ${a.marking.length} marking criteria`);
+        }
+      }
+    }
+
+    // ── The interaction formats ─────────────────────────────────────────────
+    // Each one is a set of independently marked authored points. A malformed
+    // control is refused here rather than rendered as a box that cannot be
+    // answered: a gap with no key and a diagram with no target are both broken
+    // questions, not cosmetic defects.
+    const formats = [a.gaps, a.matching, a.ordering, a.diagram].filter(Boolean).length;
+    if (formats > 1) add(`assessment ${a.id}: more than one interaction format on one item`);
+    if (a.gaps) {
+      const gaps = a.gaps.gaps;
+      if (gaps.length < 2) add(`assessment ${a.id}: gap-fill needs at least two gaps`);
+      const ids = new Set<string>();
+      for (const gap of gaps) {
+        if (ids.has(gap.id)) add(`assessment ${a.id}: duplicate gap id ${gap.id}`);
+        ids.add(gap.id);
+        if (gap.accepted.length === 0 || gap.accepted.some((answer) => !answer.trim())) {
+          add(`assessment ${a.id} gap ${gap.id}: no accepted answer`);
+        }
+        if (!gap.label.trim()) add(`assessment ${a.id} gap ${gap.id}: no accessible label`);
+        if (!a.gaps.template.includes(`[[${gap.id}]]`)) {
+          add(`assessment ${a.id} gap ${gap.id}: template has no placeholder`);
+        }
+      }
+      const placeholders = [...a.gaps.template.matchAll(/\[\[([a-z0-9-]+)\]\]/gi)].map((m) => m[1]);
+      if (placeholders.length !== ids.size || placeholders.some((id) => !ids.has(id))) {
+        add(`assessment ${a.id}: template placeholders do not match the authored gaps`);
+      }
+    }
+    if (a.matching) {
+      const left = a.matching.left;
+      const right = a.matching.right;
+      if (left.length < 2 || right.length < 2) add(`assessment ${a.id}: matching needs at least two pairs`);
+      const leftIds = new Set(left.map((entry) => entry.id));
+      const rightIds = new Set(right.map((entry) => entry.id));
+      if (leftIds.size !== left.length) add(`assessment ${a.id}: duplicate matching left id`);
+      if (rightIds.size !== right.length) add(`assessment ${a.id}: duplicate matching right id`);
+      for (const entry of left) {
+        const target = a.matching.pairs[entry.id];
+        if (!target || !rightIds.has(target)) add(`assessment ${a.id} match ${entry.id}: no valid pair`);
+      }
+    }
+    if (a.ordering) {
+      const items = a.ordering.items;
+      const order = a.ordering.correctOrder;
+      if (items.length < 3) add(`assessment ${a.id}: ordering needs at least three items`);
+      if (items.length !== order.length) add(`assessment ${a.id}: ordering answer and item count differ`);
+      if (new Set(items.map((entry) => entry.id)).size !== items.length) add(`assessment ${a.id}: duplicate ordering id`);
+      if (new Set(order).size !== order.length || order.some((id) => !items.some((entry) => entry.id === id))) {
+        add(`assessment ${a.id}: ordering correctOrder is not a permutation of its items`);
+      }
+    }
+    if (a.diagram) {
+      const diagram = a.diagram;
+      if (diagram.targets.length < 2 || diagram.labels.length < 2) {
+        add(`assessment ${a.id}: diagram needs at least two labelled targets`);
+      }
+      if (diagram.shapes.length === 0) add(`assessment ${a.id}: diagram has no drawing`);
+      if (!(diagram.width > 0) || !(diagram.height > 0)) add(`assessment ${a.id}: diagram has no usable size`);
+      const targetIds = new Set(diagram.targets.map((target) => target.id));
+      if (targetIds.size !== diagram.targets.length) add(`assessment ${a.id}: duplicate diagram target id`);
+      if (new Set(diagram.labels.map((label) => label.id)).size !== diagram.labels.length) {
+        add(`assessment ${a.id}: duplicate diagram label id`);
+      }
+      for (const label of diagram.labels) {
+        if (!targetIds.has(label.targetId)) add(`assessment ${a.id} label ${label.id}: unknown target`);
+      }
+      if (!diagram.caption.trim()) add(`assessment ${a.id}: diagram has no accessible caption`);
+    }
   }
 
   if (lesson.transfer.length < 1) add("no transfer challenge");

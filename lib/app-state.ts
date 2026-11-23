@@ -358,6 +358,14 @@ const ACCESS: Record<string, AccessRequirement> = {
   "/rooms": "public",
   "/hub": "public",
   "/teacher": "public",
+  // Printable lessons are public CONTENT: a worksheet carries no learner record
+  // and must open on a school computer before anyone has signed in. The answer
+  // key under the same prefix checks a teaching account itself.
+  "/print": "public",
+  // The presenter contains teacher answers and gates itself on a teaching
+  // account; the route contract stays public so a signed-out teacher reaches
+  // that explanation rather than a learner redirect.
+  "/teach": "public",
   // An invitation link opens before the learner has a profile; the page then
   // sends them through onboarding and returns here. It exposes no class record
   // until the join succeeds, so it must be reachable without a learner.
@@ -377,6 +385,10 @@ const ACCESS: Record<string, AccessRequirement> = {
   // Onboarding is where signed-out and un-enrolled learners are SENT, so it
   // can never require anything — otherwise every redirect would loop.
   "/onboarding": "public",
+  // The page an emailed confirmation link opens. It must render with no learner
+  // at all: the message is often opened on a different device from the one that
+  // signed up, which is exactly the case a proof of address exists for.
+  "/verify": "public",
   // THE CLASSROOM DOOR. A handset that has been handed back is nobody's device:
   // it must open to a screen that ASKS for a class code and a PIN, so it has to
   // work with no learner at all. Gating it behind a learner would make the

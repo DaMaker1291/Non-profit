@@ -286,6 +286,14 @@ export interface Storage {
   /** The account a teacher-issued grant names, from its PUBLIC lookup key. The
    *  key shortlists one account; the secret half still has to verify. */
   findAccountByResetKey(key: string): Promise<Account | null>;
+  /** Store a pending email-verification token (hash + salt + expiry in ONE
+   *  write), or clear it (`null`). See lib/server/verification.ts. */
+  setEmailVerification(
+    accountId: string,
+    token: { salt: string; hash: string; expiresAt: number } | null,
+  ): Promise<Account | null>;
+  /** Mark an address proved AND drop the token in one write — single use. */
+  markEmailVerified(accountId: string): Promise<Account | null>;
 
   // ── The ledger: read AND write, and every method ASYNC ───────────────────
   //
@@ -428,6 +436,8 @@ export const STORAGE_METHODS: readonly (keyof Storage)[] = [
   "setRecoveryCode",
   "setResetGrant",
   "findAccountByResetKey",
+  "setEmailVerification",
+  "markEmailVerified",
   "readEvents",
   "appendEvents",
   "learnersWithEvents",

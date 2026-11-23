@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { ProfileState, SubjectCourse, SubjectId } from "./types";
-import { clearIdentity, deviceLearners, ensureSecret, forgetDeviceLearner, loadProfileId, loadSecret, onIdentityChange, rememberOnDevice, switchToDeviceLearner, writeProfileId, writeSecret } from "./api/identity";
+import { clearIdentity, clearSignedOut, deviceLearners, ensureSecret, forgetDeviceLearner, isSignedOut, loadProfileId, loadSecret, markSignedOut, onIdentityChange, rememberOnDevice, switchToDeviceLearner, writeProfileId, writeSecret } from "./api/identity";
 import * as api from "./api/client";
 import { ApiError } from "./api/client";
 import {
@@ -14,7 +14,6 @@ import {
 import { LANGS, isRtl, langMeta, translator } from "./i18n";
 import { clearKioskSession } from "./kiosk-session";
 import { clearOfflineLearner } from "./offline-pack";
-import { clearQueueFor } from "./sync-queue";
 
 // ── Identity on this device ─────────────────────────────────────────────────
 // One event, one meaning: "the learner identity stored on this device changed".
@@ -84,6 +83,19 @@ export function adoptSession(s: AccountSession): void {
   // the identity in storage, and pressing it would clear the account's identity
   // instead of the lesson's.
   clearKioskSession();
+  // ADOPTING AN IDENTITY ENDS A HAND-BACK. This is before the writes on
+  // purpose: `writeProfileId` announces, the shell re-probes, and a marker
+  // still set at that moment would make the probe answer "signed out" and
+  // discard the session that has just arrived.
+  clearSignedOut();
+  // A DIFFERENT LEARNER MUST NOT INHERIT THE PREVIOUS LEARNER'S LOCAL WORK.
+  // Sign-out normally clears packs and drafts, but a page that was still open
+  // can finish a write after that clear; clearing again at adoption closes the
+  // gap. The queue is deliberately untouched (`clearOfflineLearner` owns packs
+  // and drafts only), so A's unsynchronised evidence survives under A's key.
+  const previous = loadProfileId();
+  const nextId = s.profile?.profile.id ?? null;
+  if (previous && nextId && previous !== nextId) clearOfflineLearner(previous);
   if (s.profile) writeProfileId(s.profile.profile.id);
   if (s.secret) writeSecret(s.secret);
   // Signing in on a shared handset must leave that learner SELECTABLE
@@ -133,15 +145,16 @@ function reasonOf(e: unknown, fallback: string): string {
 
 export function clearSession(): void {
   if (typeof window === "undefined") return;
-  // THE HANDOVER POINT. Before the identity is forgotten, remove the work that
-  // belonged to it: saved offline packs/drafts and any answers still waiting to
-  // be sent. Leaving them would let the next child on a shared handset see the
-  // previous child's work, or drain it under the next account.
+  // THE HANDOVER POINT. Remove the work a screen could show the next person:
+  // saved offline packs and drafts. The QUEUE IS NOT REMOVED. It is the
+  // learner's only copy of evidence that never reached the server, and a
+  // shared handset is exactly where a sign-out happens before connectivity
+  // returns. It stays under that learner's scoped key, so this device cannot
+  // drain it under the next account: the next learner's queue scope is their
+  // own id, and a signed-out device has no scope at all. When the first learner
+  // signs back in, their queue drains once.
   const previous = loadLocalProfileId();
-  if (previous) {
-    clearOfflineLearner(previous);
-    clearQueueFor(previous);
-  }
+  if (previous) clearOfflineLearner(previous);
   clearIdentity();
 }
 
@@ -157,6 +170,7 @@ export function clearSession(): void {
 export async function kioskLogin(input: { classId?: string; joinCode?: string; handle: string; pin: string }): Promise<api.KioskSession> {
   const data = await api.kioskLogin(input);
   if (data.profile?.profile?.id && data.secret) {
+    clearSignedOut();
     writeProfileId(data.profile.profile.id);
     writeSecret(data.secret);
   }
@@ -217,6 +231,26 @@ export async function signUp(input: SignUpInput): Promise<AccountSession> {
   }
 }
 
+/** Consume an emailed confirmation token. The page posts it; the link only
+ *  opens the page (app/verify/page.tsx). */
+export async function verifyEmail(token: string): Promise<{ verified: boolean }> {
+  try {
+    return await api.verifyEmail(token);
+  } catch {
+    return { verified: false };
+  }
+}
+
+/** Ask for another confirmation link. Never throws: the account page must be
+ *  able to say "we could not send it" rather than show a failure. */
+export async function resendVerification(): Promise<api.ResendVerificationResult> {
+  try {
+    return await api.resendVerification();
+  } catch {
+    return { sent: false, reason: "provider_error" };
+  }
+}
+
 export async function signIn(email: string, password: string): Promise<AccountSession> {
   try {
     const data = await api.signIn(email, password);
@@ -228,7 +262,14 @@ export async function signIn(email: string, password: string): Promise<AccountSe
 }
 
 export async function signOut(): Promise<void> {
-  await api.signOut();
+  // A HAND-BACK MUST WORK WITH NO NETWORK. The logout call is best-effort:
+  // the local identity, packs and drafts are forgotten even when the server
+  // cannot be reached. `markSignedOut` is what stops the still-valid server
+  // cookie being adopted as the next person's identity on the following load.
+  try { await api.signOut(); } catch { /* offline or refused: local hand-back still wins */ }
+  // MARK FIRST: `clearSession` announces the identity change synchronously, and
+  // a probe started by that event must already see the hand-back.
+  markSignedOut();
   clearSession();
 }
 
@@ -277,6 +318,10 @@ export function teacherResetGrant(
 
 /** Who is signed in on this device, and which learner profile that is. */
 export async function fetchSession(): Promise<AccountSession> {
+  // A DEVICE THAT WAS HANDED BACK IS SIGNED OUT, even if the server's cookie
+  // is still valid because the logout could not reach it. Without this the
+  // offline sign-out is undone by the next load's session probe.
+  if (isSignedOut()) return EMPTY_SESSION;
   const data = await api.session();
   if (data.profile) adoptSession(data);
   return data;

@@ -89,6 +89,10 @@ export interface Citation {
   score: { awarded: number; max: number } | null;
   /** Disclosed, never hidden: this answer was recorded offline. */
   offline: boolean;
+  /** Marked on paper and entered by a teacher. `observed` says whether the
+   *  teacher saw the individual doing the work. */
+  teacherEntered: boolean;
+  observed: boolean | null;
 }
 
 export function citationsFor(
@@ -120,6 +124,8 @@ export function citationsFor(
       // authored on a device AND one the server graded only after it arrived
       // from a device's offline queue both say "recorded offline".
       offline: isDeviceReported(e),
+      teacherEntered: Boolean(e.teacherEntry),
+      observed: e.teacherEntry ? e.teacherEntry.observed : null,
     });
   }
   return out;
