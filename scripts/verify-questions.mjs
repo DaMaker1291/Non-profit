@@ -42,7 +42,45 @@ const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "om-questions-"));
 //   ERR_MODULE_NOT_FOUND from /tmp and reported ZERO questions checked — the
 //   exact failure this comment block predicted, found by the audit rather than
 //   by a reader. Every file `i18n.ts` imports must be here.
-for (const file of ["types.ts", "i18n.ts", "i18n-verify.ts", "i18n-recovery.ts", "i18n-learning.ts", "i18n-lessons.ts", "i18n-atlas.ts", "i18n-atlas-extra.ts", "i18n-theory.ts", "i18n-curriculum.ts", "world-countries.ts", "i18n-device.ts", "i18n-kiosk.ts", "genome.ts", "subjects.ts", "curricula/registry.ts", "curriculum.ts", "specifications.ts", "qterms.ts", "skills.ts", "questions-deep.ts", "questions-computing.ts", "questions-chemistry.ts", "questions-physics.ts", "questions-biology.ts", "questions-mid-maths.ts", "questions-mid-computing.ts", "questions-mid-physics.ts", "questions-mid-chemistry.ts", "questions-mid-biology.ts", "questions-senior.ts", "numeric-items.ts", "numeric-items-core.ts", "answer.ts", "questions.ts"]) {
+// ── THE CLOSURE IS DERIVED, NOT LISTED ────────────────────────────────────
+//
+// This was a hand-kept array, and it rotted exactly as such a list does:
+// `lib/i18n.ts` gained `import ... from "./i18n-verify"`, the array never did,
+// and the harness died with ERR_MODULE_NOT_FOUND from /tmp — reporting ZERO
+// questions checked while exiting non-zero for a reason that read like a broken
+// question bank. A module's transitive imports are a fact its own source holds,
+// so they are walked here. Nothing needs adding to a list when a new import
+// appears, which is the only version of this fix that stays fixed.
+const RESOLVE_EXT = [".ts", "/index.ts"];
+function resolveSpec(fromFile, spec) {
+  const base = path.resolve(path.dirname(path.join(LIB, fromFile)), spec);
+  for (const ext of RESOLVE_EXT) {
+    const candidate = `${base}${ext}`;
+    if (fs.existsSync(candidate)) return path.relative(LIB, candidate);
+  }
+  return null;
+}
+function closureOf(entry) {
+  const seen = new Set();
+  const queue = [entry];
+  while (queue.length) {
+    const file = queue.shift();
+    if (seen.has(file)) continue;
+    seen.add(file);
+    const src = fs.readFileSync(path.join(LIB, file), "utf8");
+    for (const m of src.matchAll(/from\s+"(\.\/[^"]+)"/g)) {
+      const dep = resolveSpec(file, m[1]);
+      if (!dep) {
+        console.error(`✗ the question harness cannot resolve ${m[1]} from ${file} — the import closure is broken`);
+        process.exit(1);
+      }
+      if (!seen.has(dep)) queue.push(dep);
+    }
+  }
+  return [...seen];
+}
+
+for (const file of closureOf("questions.ts")) {
   const src = fs.readFileSync(path.join(LIB, file), "utf8");
   const js = ts.transpileModule(src, {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
@@ -58,6 +96,28 @@ for (const file of ["types.ts", "i18n.ts", "i18n-verify.ts", "i18n-recovery.ts",
   fs.mkdirSync(path.dirname(dest), { recursive: true });
   fs.writeFileSync(dest, linked);
 }
+// ── THE REGRESSION TEST FOR THE FAILURE THAT PROMPTED THIS ────────────────
+//
+// The named module, because this is the exact file whose absence killed the
+// harness: `lib/i18n.ts` imports it, so a closure that misses it is a closure
+// that is not being walked. The generic check below does the same for every
+// relative import in the mirror, so the next one cannot repeat it.
+if (!fs.existsSync(path.join(TMP, "i18n-verify.mjs"))) {
+  console.error("✗ the mirror is missing i18n-verify.mjs — lib/i18n.ts imports it, so the closure walker is broken");
+  process.exit(1);
+}
+for (const entry of fs.readdirSync(TMP, { recursive: true })) {
+  if (!String(entry).endsWith(".mjs")) continue;
+  const js = fs.readFileSync(path.join(TMP, String(entry)), "utf8");
+  for (const m of js.matchAll(/from\s+"(\.\/[^"]+\.mjs)"/g)) {
+    const target = path.resolve(path.dirname(path.join(TMP, String(entry))), m[1]);
+    if (!fs.existsSync(target)) {
+      console.error(`✗ ${entry} imports ${m[1]}, which the mirror does not hold — the harness would die at import`);
+      process.exit(1);
+    }
+  }
+}
+
 const { generateQuestion, GENERATED_CONCEPT_IDS } = await import(
   pathToFileURL(path.join(TMP, "questions.mjs")).href,
 );

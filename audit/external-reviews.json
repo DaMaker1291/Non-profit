@@ -1,0 +1,24 @@
+{
+  "_schema": {
+    "why": "The single register of reviews performed by PEOPLE — a teacher, a subject specialist, a curriculum officer — and of classroom trials. scripts/validation-status.mjs reads it and refuses a claim in OPENMIND_SCOPE.json that is larger than this file. Nothing here may be written by a model or by an author about their own work: an entry is evidence only with a name, a role and a date, and the reviewer must be able to refuse to be listed.",
+    "kinds": {
+      "items": "an item-level review; the per-concept record lives in audit/item-reviews.json and is cross-checked there",
+      "lesson": "a qualified person reviewed one lesson's teaching sequence and materials",
+      "curriculum": "a qualified person reviewed a sequence of lessons against a named curriculum",
+      "classroom": "a real class was taught and assessed; recorded separately because it is not a document review"
+    },
+    "fields": {
+      "kind": "items | lesson | curriculum | classroom",
+      "targetId": "concept id, pathway id, or trial id — never a free-text description",
+      "reviewer": "the person's name; an organisation is not a person",
+      "role": "what qualifies them to judge this (subject teacher, head of department, curriculum officer)",
+      "organisation": "school, ministry or body, optional",
+      "date": "YYYY-MM-DD, the day the review was completed",
+      "verdict": "accepted | changes-required | rejected",
+      "notes": "what they said, in their words or a faithful summary they have seen",
+      "artifact": "path to the review form they completed, or null when the note is the record"
+    },
+    "rule": "An entry with no reviewer name, no date, or no role is NOT a review and scripts/validation-status.mjs fails on it."
+  },
+  "reviews": []
+}
