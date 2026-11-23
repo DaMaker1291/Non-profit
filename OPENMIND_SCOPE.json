@@ -1,0 +1,34 @@
+{
+  "schema": "openmind.scope/1",
+  "status": "frozen",
+  "decidedAt": "2026-11-22",
+  "why": "Breadth was growing faster than evidence. No lesson has been reviewed by an educator, no curriculum has been reviewed by a local educator, and there is no foundational literacy content. Until one programme has been taught in one context and assessed with real pupils, adding countries, qualifications, concepts, subjects or languages makes the product look more capable without making it more useful.",
+  "programme": {
+    "context": null,
+    "learners": null,
+    "priority": null,
+    "language": null,
+    "outcome": null,
+    "partners": []
+  },
+  "frozen": {
+    "concepts": 135,
+    "subjects": 5,
+    "specifications": 91,
+    "pathways": 73,
+    "interfaceLanguages": 15,
+    "authoredLessons": 135
+  },
+  "claims": {
+    "educatorReviewedLessons": 0,
+    "learnerTestedLessons": 0,
+    "publishedLessons": 0,
+    "educatorReviewedCurricula": 0
+  },
+  "unfreezeRequires": [
+    "A named context: one jurisdiction, named partner schools, and a local education lead.",
+    "One stated pupil-level outcome, assessed with a task marked outside the platform.",
+    "A curriculum sequence that a local educator has reviewed, with their name and date recorded.",
+    "A decision recorded in this file, so the diff is reviewable."
+  ]
+}

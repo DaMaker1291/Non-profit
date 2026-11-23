@@ -1,0 +1,2311 @@
+{
+  "version": 1,
+  "generatedAt": "2026-11-13",
+  "registry": {
+    "nationalRoutes": 70,
+    "specifications": 91,
+    "worldCountriesAndTerritories": 251
+  },
+  "reviewLadder": [
+    "NOT_RESEARCHED",
+    "INITIAL_RESEARCH",
+    "SOURCES_COLLECTED",
+    "STRUCTURAL_REVIEWED",
+    "CURRICULUM_MAPPED",
+    "SUBJECT_EXPERT_REVIEW_REQUIRED",
+    "HUMAN_REVIEWED",
+    "IMPLEMENTED",
+    "BROWSER_VERIFIED",
+    "SCHOOL_VALIDATED"
+  ],
+  "worldBankIncomeReference": {
+    "fiscalYear": 2027,
+    "gniYear": 2025,
+    "source": "https://datahelpdesk.worldbank.org/knowledgebase/articles/906519-world-bank-country-and-lending-groups",
+    "note": "Income group is one research dimension, never a description of an individual child or school. Unchecked routes are 'unknown', not guessed."
+  },
+  "counts": {
+    "NOT_RESEARCHED": 57,
+    "INITIAL_RESEARCH": 13,
+    "SOURCES_COLLECTED": 0,
+    "STRUCTURAL_REVIEWED": 0,
+    "CURRICULUM_MAPPED": 0,
+    "SUBJECT_EXPERT_REVIEW_REQUIRED": 0,
+    "HUMAN_REVIEWED": 0,
+    "IMPLEMENTED": 0,
+    "BROWSER_VERIFIED": 0,
+    "SCHOOL_VALIDATED": 0
+  },
+  "countries": [
+    {
+      "code": "AF",
+      "name": "Afghanistan",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "AF.md",
+      "routeCount": 1,
+      "years": [
+        "Grade 7",
+        "Grade 8",
+        "Grade 9",
+        "Grade 10",
+        "Grade 11",
+        "Grade 12"
+      ],
+      "qualifications": [
+        "Baccalaureate"
+      ],
+      "specs": [
+        "af-baccalaureate"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://moe.gov.af/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "AR",
+      "name": "Argentina",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "AR.md",
+      "routeCount": 1,
+      "years": [
+        "1º año",
+        "2º año",
+        "3º año",
+        "4º año",
+        "5º año",
+        "6º año"
+      ],
+      "qualifications": [
+        "Título de Bachiller"
+      ],
+      "specs": [
+        "ar-secundaria"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.argentina.gob.ar/educacion"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "AU",
+      "name": "Australia",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "AU.md",
+      "routeCount": 1,
+      "years": [
+        "Year 7",
+        "Year 8",
+        "Year 9",
+        "Year 10",
+        "Year 11",
+        "Year 12"
+      ],
+      "qualifications": [],
+      "specs": [
+        "au-acara"
+      ],
+      "registryRecordReview": [
+        "mapped"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "BD",
+      "name": "Bangladesh",
+      "status": "INITIAL_RESEARCH",
+      "incomeGroup": "lower-middle",
+      "profile": "BD.md",
+      "routeCount": 1,
+      "years": [
+        "Class 6",
+        "Class 7",
+        "Class 8",
+        "Class 9",
+        "Class 10"
+      ],
+      "qualifications": [],
+      "specs": [
+        "bd-ssc"
+      ],
+      "registryRecordReview": [
+        "mapped"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://documents1.worldbank.org/curated/en/099090524113159222/pdf/P17920914f1c370071b32417af49f33a784.pdf",
+        "https://research.acer.edu.au/cgi/viewcontent.cgi?article=1075&context=ar_misc",
+        "https://www.unicef.org/bangladesh/en/data-situation-children-bangladesh",
+        "https://api.ipemis.dpe.gov.bd/api/storage/download-file?absoluteFilePath=%2F2024-06-03%2Fcitizen-service%2Fdocument%2F1_1717357816431.pdf&downloadFromTemp=false",
+        "https://www.unicef.org/innocenti/media/9341/file/UNICEF-Innocenti-Child-labour-schooling-report-2024.pdf",
+        "https://publications.aston.ac.uk/id/eprint/47404/1/Copland_Garton_2024_English_as_a_subject_primary_school.pdf",
+        "https://objectstorage.ap-dcc-gazipur-1.oraclecloud15.com/n/axvjbnqprylg/b/V2Ministry/o/office-banbeis/2026/8/3ad8a7f7-d233-4753-b8cc-7a6f69f4e80e.pdf",
+        "https://nsa.ipemis.dpe.gov.bd/?lang=en_EN",
+        "https://documents1.worldbank.org/curated/en/720311583471084983/pdf/The-Landscape-of-Early-Childhood-Education-in-Bangladesh.pdf",
+        "https://datahelpdesk.worldbank.org/knowledgebase/articles/906519-world-bank-country-and-lending-groups"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "BF",
+      "name": "Burkina Faso",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "BF.md",
+      "routeCount": 1,
+      "years": [
+        "6e",
+        "5e",
+        "4e",
+        "3e",
+        "2nde",
+        "1re",
+        "Terminale"
+      ],
+      "qualifications": [
+        "BEPC",
+        "Baccalauréat burkinabè"
+      ],
+      "specs": [
+        "bf-bac"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.meb.gov.bf/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "BO",
+      "name": "Bolivia",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "BO.md",
+      "routeCount": 1,
+      "years": [
+        "1º de secundaria",
+        "2º de secundaria",
+        "3º de secundaria",
+        "4º de secundaria",
+        "5º de secundaria",
+        "6º de secundaria"
+      ],
+      "qualifications": [
+        "Bachillerato"
+      ],
+      "specs": [
+        "bo-bachillerato"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.minedu.gob.bo/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "BR",
+      "name": "Brazil",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "BR.md",
+      "routeCount": 1,
+      "years": [
+        "6º ano",
+        "7º ano",
+        "8º ano",
+        "9º ano",
+        "1º médio",
+        "2º médio",
+        "3º médio"
+      ],
+      "qualifications": [],
+      "specs": [
+        "br-enem"
+      ],
+      "registryRecordReview": [
+        "mapped"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "CA",
+      "name": "Canada",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "CA.md",
+      "routeCount": 1,
+      "years": [
+        "Grade 7",
+        "Grade 8",
+        "Grade 9",
+        "Grade 10",
+        "Grade 11",
+        "Grade 12"
+      ],
+      "qualifications": [],
+      "specs": [
+        "ca-provincial"
+      ],
+      "registryRecordReview": [
+        "mapped"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "CI",
+      "name": "Côte d'Ivoire",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "CI.md",
+      "routeCount": 1,
+      "years": [
+        "6e",
+        "5e",
+        "4e",
+        "3e",
+        "2nde",
+        "1re",
+        "Terminale"
+      ],
+      "qualifications": [
+        "BEPC",
+        "Baccalauréat ivoirien"
+      ],
+      "specs": [
+        "ci-bac"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.men-deco.org/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "CM",
+      "name": "Cameroon",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "CM.md",
+      "routeCount": 2,
+      "years": [
+        "Form 1",
+        "Form 2",
+        "Form 3",
+        "Form 4",
+        "Form 5",
+        "Lower Sixth",
+        "Upper Sixth",
+        "6e",
+        "5e",
+        "4e",
+        "3e",
+        "2nde",
+        "1re",
+        "Terminale"
+      ],
+      "qualifications": [
+        "GCE Ordinary Level",
+        "GCE Advanced Level",
+        "BEPC",
+        "Probatoire",
+        "Baccalauréat"
+      ],
+      "specs": [
+        "cm-gce-o",
+        "cm-gce-a",
+        "cm-bepc",
+        "cm-probatoire",
+        "cm-bac"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.minesec.gov.cm/web/index.php/en/systeme-educatif-en/offre-de-formation-en/sous-systeme-anglophone-en",
+        "https://www.minesec.gov.cm/web/index.php/fr/systeme-educatif/offre-de-formation/sous-systeme-francophone"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "CN",
+      "name": "China",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "CN.md",
+      "routeCount": 1,
+      "years": [
+        "Grade 7",
+        "Grade 8",
+        "Grade 9",
+        "Grade 10",
+        "Grade 11",
+        "Grade 12"
+      ],
+      "qualifications": [
+        "Zhongkao",
+        "Gaokao"
+      ],
+      "specs": [
+        "cn-gaokao"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://en.moe.gov.cn/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "CO",
+      "name": "Colombia",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "CO.md",
+      "routeCount": 1,
+      "years": [
+        "Grade 6",
+        "Grade 7",
+        "Grade 8",
+        "Grade 9",
+        "Grade 10",
+        "Grade 11"
+      ],
+      "qualifications": [
+        "Saber 11"
+      ],
+      "specs": [
+        "co-saber-11"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.mineducacion.gov.co/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "DE",
+      "name": "Germany",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "DE.md",
+      "routeCount": 1,
+      "years": [
+        "Klasse 5",
+        "Klasse 6",
+        "Klasse 7",
+        "Klasse 8",
+        "Klasse 9",
+        "Klasse 10",
+        "Klasse 11",
+        "Klasse 12"
+      ],
+      "qualifications": [
+        "Mittlerer Schulabschluss",
+        "Abitur"
+      ],
+      "specs": [
+        "de-msa",
+        "de-abi"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.kmk.org/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "DO",
+      "name": "Dominican Republic",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "DO.md",
+      "routeCount": 1,
+      "years": [
+        "1º de secundaria",
+        "2º de secundaria",
+        "3º de secundaria",
+        "4º de secundaria",
+        "5º de secundaria",
+        "6º de secundaria"
+      ],
+      "qualifications": [
+        "Bachillerato"
+      ],
+      "specs": [
+        "do-bachillerato"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.ministeriodeeducacion.gob.do/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "EC",
+      "name": "Ecuador",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "EC.md",
+      "routeCount": 1,
+      "years": [
+        "8º EGB",
+        "9º EGB",
+        "10º EGB",
+        "1º bachillerato",
+        "2º bachillerato",
+        "3º bachillerato"
+      ],
+      "qualifications": [
+        "Bachillerato"
+      ],
+      "specs": [
+        "ec-bachillerato"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://educacion.gob.ec/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "EG",
+      "name": "Egypt",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "EG.md",
+      "routeCount": 1,
+      "years": [
+        "Grade 9",
+        "Grade 10",
+        "Grade 11",
+        "Grade 12"
+      ],
+      "qualifications": [
+        "Thanaweya Amma (General Secondary Certificate)"
+      ],
+      "specs": [
+        "eg-thanaweya"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://moe.gov.eg/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "ES",
+      "name": "Spain",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "ES.md",
+      "routeCount": 1,
+      "years": [
+        "1º ESO",
+        "2º ESO",
+        "3º ESO",
+        "4º ESO",
+        "1º Bachillerato",
+        "2º Bachillerato"
+      ],
+      "qualifications": [
+        "Educación Secundaria Obligatoria (ESO)",
+        "Bachillerato (EBAU)"
+      ],
+      "specs": [
+        "es-eso",
+        "es-bachillerato"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.educacionyfp.gob.es/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "ET",
+      "name": "Ethiopia",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "ET.md",
+      "routeCount": 1,
+      "years": [
+        "Grade 9",
+        "Grade 10",
+        "Grade 11",
+        "Grade 12"
+      ],
+      "qualifications": [
+        "Ethiopian School Leaving Certificate (ESSLCE)"
+      ],
+      "specs": [
+        "et-esslce"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.moe.gov.et/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "FR",
+      "name": "France",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "FR.md",
+      "routeCount": 1,
+      "years": [
+        "6e",
+        "5e",
+        "4e",
+        "3e",
+        "2nde",
+        "1re",
+        "Terminale"
+      ],
+      "qualifications": [
+        "Diplôme national du brevet",
+        "Baccalauréat"
+      ],
+      "specs": [
+        "fr-college",
+        "fr-bac"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.education.gouv.fr/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "GB",
+      "name": "United Kingdom",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "GB.md",
+      "routeCount": 1,
+      "years": [
+        "Year 7",
+        "Year 8",
+        "Year 9",
+        "Year 10",
+        "Year 11",
+        "Year 12",
+        "Year 13"
+      ],
+      "qualifications": [
+        "GCSE",
+        "A-Level"
+      ],
+      "specs": [
+        "uk-gcse",
+        "uk-alevel"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.gov.uk/government/publications/gcse-mathematics-subject-content-and-assessment-objectives"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "GH",
+      "name": "Ghana",
+      "status": "INITIAL_RESEARCH",
+      "incomeGroup": "lower-middle",
+      "profile": "GH.md",
+      "routeCount": 1,
+      "years": [
+        "JHS 1",
+        "JHS 2",
+        "JHS 3",
+        "SHS 1",
+        "SHS 2",
+        "SHS 3"
+      ],
+      "qualifications": [],
+      "specs": [
+        "gh-wassce"
+      ],
+      "registryRecordReview": [
+        "mapped"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.unicef.org/ghana/media/8671/file/EDUCATION%20BUDGET%20BRIEF%202025..pdf",
+        "https://www.unicef.org/innocenti/media/13181/file/UNICEF-Innocenti-T4A-Ghana-Report-2026.pdf.pdf",
+        "https://www.unicef.org/innocenti/stories/learning-locked-away",
+        "https://datahelpdesk.worldbank.org/knowledgebase/articles/906519-world-bank-country-and-lending-groups"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "GT",
+      "name": "Guatemala",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "GT.md",
+      "routeCount": 1,
+      "years": [
+        "1º básico",
+        "2º básico",
+        "3º básico",
+        "4º diversificado",
+        "5º diversificado"
+      ],
+      "qualifications": [
+        "Evaluación Graduandos — Matemática"
+      ],
+      "specs": [
+        "gt-diversificado"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.mineduc.gob.gt/",
+        "https://digeduca.wordpress.com/sobre-la-evaluacion-graduandos/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "HN",
+      "name": "Honduras",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "HN.md",
+      "routeCount": 1,
+      "years": [
+        "7º grado",
+        "8º grado",
+        "9º grado",
+        "10º grado",
+        "11º grado"
+      ],
+      "qualifications": [
+        "Bachillerato"
+      ],
+      "specs": [
+        "hn-bachillerato"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://se.gob.hn/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "HT",
+      "name": "Haiti",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "HT.md",
+      "routeCount": 1,
+      "years": [
+        "7e AF",
+        "6e AF",
+        "5e AF",
+        "4e AF",
+        "3e AF",
+        "Seconde",
+        "Rhéto",
+        "Philo"
+      ],
+      "qualifications": [
+        "Baccalauréat (Haïti)"
+      ],
+      "specs": [
+        "ht-bac"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.menfp.gouv.ht/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "ID",
+      "name": "Indonesia",
+      "status": "INITIAL_RESEARCH",
+      "incomeGroup": "upper-middle",
+      "profile": "ID.md",
+      "routeCount": 1,
+      "years": [
+        "SMP 7",
+        "SMP 8",
+        "SMP 9",
+        "SMA 10",
+        "SMA 11",
+        "SMA 12"
+      ],
+      "qualifications": [],
+      "specs": [
+        "id-merdeka"
+      ],
+      "registryRecordReview": [
+        "mapped"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.oecd.org/content/dam/oecd/en/publications/reports/2026/09/pisa-2025-results-volume-i-country-notes_88d1164e/indonesia_20c83120/9c880f8a-en.pdf",
+        "https://datahelpdesk.worldbank.org/knowledgebase/articles/906519-world-bank-country-and-lending-groups"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "IE",
+      "name": "Ireland",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "IE.md",
+      "routeCount": 1,
+      "years": [
+        "1st Year",
+        "2nd Year",
+        "3rd Year",
+        "4th Year",
+        "5th Year",
+        "6th Year"
+      ],
+      "qualifications": [],
+      "specs": [
+        "ie-junior"
+      ],
+      "registryRecordReview": [
+        "mapped"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "IN",
+      "name": "India",
+      "status": "INITIAL_RESEARCH",
+      "incomeGroup": "lower-middle",
+      "profile": "IN.md",
+      "routeCount": 1,
+      "years": [
+        "Class 8",
+        "Class 9",
+        "Class 10",
+        "Class 11",
+        "Class 12"
+      ],
+      "qualifications": [
+        "CBSE Class X (AISSE)",
+        "ICSE Class 10 (CISCE)"
+      ],
+      "specs": [
+        "in-cbse",
+        "in-icse"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://asercentre.org/wp-content/uploads/2022/12/ASER-2024-National-findings.pdf",
+        "https://asercentre.org/wp-content/uploads/2022/12/ASER-2024-Final-Report_13_2_24.pdf",
+        "https://wagtail.ruralindiaonline.org/en/library/resource/annual-status-of-education-report-rural-2024/",
+        "https://cbseacademic.nic.in/web_material/CurriculumMain26/Sec/Maths_Sec_2025-26.pdf",
+        "https://datahelpdesk.worldbank.org/knowledgebase/articles/906519-world-bank-country-and-lending-groups"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "IQ",
+      "name": "Iraq",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "IQ.md",
+      "routeCount": 1,
+      "years": [
+        "Grade 7",
+        "Grade 8",
+        "Grade 9",
+        "Grade 10",
+        "Grade 11",
+        "Grade 12"
+      ],
+      "qualifications": [
+        "Sixth Preparatory Certificate"
+      ],
+      "specs": [
+        "iq-preparatory"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://moe.gov.iq/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "IR",
+      "name": "Iran",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "IR.md",
+      "routeCount": 1,
+      "years": [
+        "Grade 7",
+        "Grade 8",
+        "Grade 9",
+        "Grade 10",
+        "Grade 11",
+        "Grade 12"
+      ],
+      "qualifications": [
+        "Konkur"
+      ],
+      "specs": [
+        "ir-konkur"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.medu.ir/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "IT",
+      "name": "Italy",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "IT.md",
+      "routeCount": 1,
+      "years": [
+        "1ª media",
+        "2ª media",
+        "3ª media",
+        "1ª superiore",
+        "2ª superiore",
+        "3ª superiore",
+        "4ª superiore",
+        "5ª superiore"
+      ],
+      "qualifications": [
+        "Licenza media",
+        "Esame di Stato (Maturità)"
+      ],
+      "specs": [
+        "it-media",
+        "it-maturita"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.mim.gov.it/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "JO",
+      "name": "Jordan",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "JO.md",
+      "routeCount": 1,
+      "years": [
+        "Grade 7",
+        "Grade 8",
+        "Grade 9",
+        "Grade 10",
+        "Grade 11",
+        "Grade 12"
+      ],
+      "qualifications": [
+        "Tawjihi"
+      ],
+      "specs": [
+        "jo-tawjihi"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://moe.gov.jo/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "JP",
+      "name": "Japan",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "JP.md",
+      "routeCount": 1,
+      "years": [
+        "Junior High 1",
+        "Junior High 2",
+        "Junior High 3",
+        "High School 1",
+        "High School 2",
+        "High School 3"
+      ],
+      "qualifications": [
+        "Daigaku Nyushi"
+      ],
+      "specs": [
+        "jp-nyushi"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.mext.go.jp/en/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "KE",
+      "name": "Kenya",
+      "status": "INITIAL_RESEARCH",
+      "incomeGroup": "lower-middle",
+      "profile": "KE.md",
+      "routeCount": 1,
+      "years": [
+        "Form 1",
+        "Form 2",
+        "Form 3",
+        "Form 4"
+      ],
+      "qualifications": [],
+      "specs": [
+        "ke-kcse"
+      ],
+      "registryRecordReview": [
+        "mapped"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://documents1.worldbank.org/curated/en/099062624142031212/pdf/P179209-3009ffa4-8e8c-4f7f-ac89-97ddf60aebe9.pdf",
+        "https://datahelpdesk.worldbank.org/knowledgebase/articles/906519-world-bank-country-and-lending-groups"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "KH",
+      "name": "Cambodia",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "KH.md",
+      "routeCount": 1,
+      "years": [
+        "Grade 7",
+        "Grade 8",
+        "Grade 9",
+        "Grade 10",
+        "Grade 11",
+        "Grade 12"
+      ],
+      "qualifications": [
+        "Baccalauréat"
+      ],
+      "specs": [
+        "kh-baccalaureate"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.moeys.gov.kh/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "KR",
+      "name": "South Korea",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "KR.md",
+      "routeCount": 1,
+      "years": [
+        "Middle 1",
+        "Middle 2",
+        "Middle 3",
+        "High 1",
+        "High 2",
+        "High 3"
+      ],
+      "qualifications": [
+        "Suneung (CSAT)"
+      ],
+      "specs": [
+        "kr-csat"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.moe.go.kr/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "KZ",
+      "name": "Kazakhstan",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "KZ.md",
+      "routeCount": 1,
+      "years": [
+        "Grade 7",
+        "Grade 8",
+        "Grade 9",
+        "Grade 10",
+        "Grade 11"
+      ],
+      "qualifications": [
+        "ҰБТ (Unified National Testing)"
+      ],
+      "specs": [
+        "kz-unt"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.gov.kz/memleket/entities/edu"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "LA",
+      "name": "Laos",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "LA.md",
+      "routeCount": 1,
+      "years": [
+        "Grade 6",
+        "Grade 7",
+        "Grade 8",
+        "Grade 9",
+        "Grade 10",
+        "Grade 11",
+        "Grade 12"
+      ],
+      "qualifications": [
+        "Upper Secondary Completion"
+      ],
+      "specs": [
+        "la-upper-secondary"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.moes.gov.la/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "LB",
+      "name": "Lebanon",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "LB.md",
+      "routeCount": 1,
+      "years": [
+        "Grade 7",
+        "Grade 8",
+        "Grade 9",
+        "Grade 10",
+        "Grade 11",
+        "Grade 12"
+      ],
+      "qualifications": [
+        "Lebanese Baccalaureate"
+      ],
+      "specs": [
+        "lb-baccalaureate"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.mehe.gov.lb/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "LK",
+      "name": "Sri Lanka",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "LK.md",
+      "routeCount": 1,
+      "years": [
+        "Grade 6",
+        "Grade 7",
+        "Grade 8",
+        "Grade 9",
+        "Grade 10",
+        "Grade 11",
+        "Grade 12",
+        "Grade 13"
+      ],
+      "qualifications": [
+        "GCE Ordinary Level",
+        "GCE Advanced Level"
+      ],
+      "specs": [
+        "lk-o-level",
+        "lk-a-level"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://moe.gov.lk/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "MA",
+      "name": "Morocco",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "MA.md",
+      "routeCount": 1,
+      "years": [
+        "1AC",
+        "2AC",
+        "3AC",
+        "Tronc commun",
+        "1re année Bac",
+        "2e année Bac"
+      ],
+      "qualifications": [
+        "Brevet (3e année collège)",
+        "Baccalauréat marocain"
+      ],
+      "specs": [
+        "ma-college",
+        "ma-bac"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.men.gov.ma/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "ML",
+      "name": "Mali",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "ML.md",
+      "routeCount": 1,
+      "years": [
+        "6e",
+        "5e",
+        "4e",
+        "3e",
+        "2nde",
+        "1re",
+        "Terminale"
+      ],
+      "qualifications": [
+        "Diplôme d'Études Fondamentales (DEF)",
+        "Baccalauréat malien"
+      ],
+      "specs": [
+        "ml-bac"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.education.gouv.ml/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "MM",
+      "name": "Myanmar",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "MM.md",
+      "routeCount": 1,
+      "years": [
+        "Grade 9",
+        "Grade 10",
+        "Grade 11",
+        "Grade 12"
+      ],
+      "qualifications": [
+        "Matriculation Examination"
+      ],
+      "specs": [
+        "mm-matriculation"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.moe.gov.mm/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "MN",
+      "name": "Mongolia",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "MN.md",
+      "routeCount": 1,
+      "years": [
+        "Grade 6",
+        "Grade 7",
+        "Grade 8",
+        "Grade 9",
+        "Grade 10",
+        "Grade 11",
+        "Grade 12"
+      ],
+      "qualifications": [
+        "ЭЕШ (University Entrance Examination)"
+      ],
+      "specs": [
+        "mn-eesh"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://meds.gov.mn/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "MW",
+      "name": "Malawi",
+      "status": "INITIAL_RESEARCH",
+      "incomeGroup": "low",
+      "profile": "MW.md",
+      "routeCount": 1,
+      "years": [
+        "Form 1",
+        "Form 2",
+        "Form 3",
+        "Form 4"
+      ],
+      "qualifications": [
+        "Malawi School Certificate of Education (MSCE)"
+      ],
+      "specs": [
+        "mw-msce"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.unicef.org/malawi/media/11756/file/2024-25%20Education_Brief_Final.pdf.pdf",
+        "https://publications.aston.ac.uk/id/eprint/47404/1/Copland_Garton_2024_English_as_a_subject_primary_school.pdf",
+        "https://www.globalpartnership.org/node/document/download?file=document%2Ffile%2F2024-10-malawi-partnership-compact.pdf",
+        "https://datahelpdesk.worldbank.org/knowledgebase/articles/906519-world-bank-country-and-lending-groups"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "MX",
+      "name": "Mexico",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "MX.md",
+      "routeCount": 1,
+      "years": [
+        "1º",
+        "2º",
+        "3º"
+      ],
+      "qualifications": [],
+      "specs": [
+        "mx-sep"
+      ],
+      "registryRecordReview": [
+        "mapped"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "NE",
+      "name": "Niger",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "NE.md",
+      "routeCount": 1,
+      "years": [
+        "6e",
+        "5e",
+        "4e",
+        "3e",
+        "2nde",
+        "1re",
+        "Terminale"
+      ],
+      "qualifications": [
+        "BEPC",
+        "Baccalauréat nigérien"
+      ],
+      "specs": [
+        "ne-bac"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.education.gouv.ne/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "NG",
+      "name": "Nigeria",
+      "status": "INITIAL_RESEARCH",
+      "incomeGroup": "lower-middle",
+      "profile": "NG.md",
+      "routeCount": 1,
+      "years": [
+        "JSS 1",
+        "JSS 2",
+        "JSS 3",
+        "SSS 1",
+        "SSS 2",
+        "SSS 3"
+      ],
+      "qualifications": [],
+      "specs": [
+        "ng-waec"
+      ],
+      "registryRecordReview": [
+        "mapped"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.unicef.org/nigeria/media/14381/file/Nigeria%20SitAn%202024%20Report_pdf.pdf.pdf",
+        "https://www.unicef.org/nigeria/media/10591/file/State-of-Nigerias-Children_Summary-of-the-2024-Updated-SitAn.pdf",
+        "https://datahelpdesk.worldbank.org/knowledgebase/articles/906519-world-bank-country-and-lending-groups"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "NI",
+      "name": "Nicaragua",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "NI.md",
+      "routeCount": 1,
+      "years": [
+        "7º grado",
+        "8º grado",
+        "9º grado",
+        "10º grado",
+        "11º grado"
+      ],
+      "qualifications": [
+        "Bachillerato"
+      ],
+      "specs": [
+        "ni-bachillerato"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.mined.gob.ni/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "NP",
+      "name": "Nepal",
+      "status": "INITIAL_RESEARCH",
+      "incomeGroup": "lower-middle",
+      "profile": "NP.md",
+      "routeCount": 1,
+      "years": [
+        "Grade 8",
+        "Grade 9",
+        "Grade 10",
+        "Grade 11",
+        "Grade 12"
+      ],
+      "qualifications": [
+        "Secondary Education Examination (SEE)",
+        "NEB Grade 12"
+      ],
+      "specs": [
+        "np-see",
+        "np-neb"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://giwmscdnone.gov.np/media/pdf_upload/NASA%20Grade%205%20report%20final%20with%20attached%20cover_gn5yh7u.pdf",
+        "https://open.unicef.org/download-pdf?country-name=Nepal&year=2024",
+        "https://www.unicef.org/nepal/media/21421/file/20240416Understanding%20the%20Impact%20of%20Languages%20and%20Language%20Policies%20on%20Children's%20Learning%20Outcomes%20in%20Nepal%20English%20version%20Final_PDF%20Print.pdf.pdf",
+        "https://datahelpdesk.worldbank.org/knowledgebase/articles/906519-world-bank-country-and-lending-groups"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "PE",
+      "name": "Peru",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "PE.md",
+      "routeCount": 1,
+      "years": [
+        "1º secundaria",
+        "2º secundaria",
+        "3º secundaria",
+        "4º secundaria",
+        "5º secundaria"
+      ],
+      "qualifications": [
+        "Certificado de Educación Secundaria"
+      ],
+      "specs": [
+        "pe-secundaria"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.gob.pe/minedu"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "PH",
+      "name": "Philippines",
+      "status": "INITIAL_RESEARCH",
+      "incomeGroup": "lower-middle",
+      "profile": "PH.md",
+      "routeCount": 1,
+      "years": [
+        "Grade 7",
+        "Grade 8",
+        "Grade 9",
+        "Grade 10",
+        "Grade 11",
+        "Grade 12"
+      ],
+      "qualifications": [],
+      "specs": [
+        "ph-deped"
+      ],
+      "registryRecordReview": [
+        "mapped"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://documents1.worldbank.org/curated/en/099110424010085064/pdf/P50399112f46b90218eff15af37de4ba38.pdf",
+        "https://www.worldbank.org/en/news/press-release/2026/04/03/world-bank-backs-better-learning-for-21-million-filipino-students",
+        "https://www.deped.gov.ph/wp-content/uploads/DO_s2025_020r_8.pdf",
+        "https://datahelpdesk.worldbank.org/knowledgebase/articles/906519-world-bank-country-and-lending-groups"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "PK",
+      "name": "Pakistan",
+      "status": "INITIAL_RESEARCH",
+      "incomeGroup": "lower-middle",
+      "profile": "PK.md",
+      "routeCount": 1,
+      "years": [
+        "Class 6",
+        "Class 7",
+        "Class 8",
+        "Class 9",
+        "Class 10"
+      ],
+      "qualifications": [],
+      "specs": [
+        "pk-matric"
+      ],
+      "registryRecordReview": [
+        "mapped"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://pie.gov.pk/SiteImage/Publication/PES%202024.pdf",
+        "https://aserpakistan.org/document/2025/aser_national_2025.pdf",
+        "https://www.unicef.org/pakistan/education",
+        "https://datahelpdesk.worldbank.org/knowledgebase/articles/906519-world-bank-country-and-lending-groups"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "PL",
+      "name": "Poland",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "PL.md",
+      "routeCount": 1,
+      "years": [
+        "Klasa 7",
+        "Klasa 8",
+        "Liceum 1",
+        "Liceum 2",
+        "Liceum 3",
+        "Liceum 4"
+      ],
+      "qualifications": [
+        "Egzamin ósmoklasisty",
+        "Matura"
+      ],
+      "specs": [
+        "pl-osmoklasisty",
+        "pl-matura"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.gov.pl/web/edukacja"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "RW",
+      "name": "Rwanda",
+      "status": "INITIAL_RESEARCH",
+      "incomeGroup": "low",
+      "profile": "RW.md",
+      "routeCount": 1,
+      "years": [
+        "S1",
+        "S2",
+        "S3",
+        "S4",
+        "S5",
+        "S6"
+      ],
+      "qualifications": [
+        "Ordinary Level",
+        "Advanced Level"
+      ],
+      "specs": [
+        "rw-o-level",
+        "rw-a-level"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.mineduc.gov.rw/fileadmin/user_upload/Mineduc/Publications/PLANS/Education_Sector_Strategic_Plan/The_Education_Sector_Strategic_Plan__ESSP__2024-2029.pdf",
+        "https://www.mineduc.gov.rw/fileadmin/user_upload/Mineduc/Publications/EDUCATION_POLICIES/Updated_Version_of_Foundational_Learning_Strategy_August_2024_Final.pdf",
+        "https://www.unicef.org/rwanda/media/5346/file/UNICEF%20Rwanda.pdf",
+        "https://datahelpdesk.worldbank.org/knowledgebase/articles/906519-world-bank-country-and-lending-groups"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "SD",
+      "name": "Sudan",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "SD.md",
+      "routeCount": 1,
+      "years": [
+        "Secondary 1",
+        "Secondary 2",
+        "Secondary 3"
+      ],
+      "qualifications": [
+        "Sudan School Certificate"
+      ],
+      "specs": [
+        "sd-school-certificate"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://moe.gov.sd/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "SN",
+      "name": "Senegal",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "SN.md",
+      "routeCount": 1,
+      "years": [
+        "6e",
+        "5e",
+        "4e",
+        "3e",
+        "2nde",
+        "1re",
+        "Terminale"
+      ],
+      "qualifications": [
+        "Brevet de Fin d'Études Moyennes (BFEM)",
+        "Baccalauréat sénégalais"
+      ],
+      "specs": [
+        "sn-bac"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.education.gouv.sn/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "SO",
+      "name": "Somalia",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "SO.md",
+      "routeCount": 1,
+      "years": [
+        "Form 1",
+        "Form 2",
+        "Form 3",
+        "Form 4"
+      ],
+      "qualifications": [
+        "Form 4 National Examination"
+      ],
+      "specs": [
+        "so-form-4"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://moe.gov.so/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "SV",
+      "name": "El Salvador",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "SV.md",
+      "routeCount": 1,
+      "years": [
+        "7º grado",
+        "8º grado",
+        "9º grado",
+        "10º grado",
+        "11º grado"
+      ],
+      "qualifications": [
+        "Bachillerato"
+      ],
+      "specs": [
+        "sv-bachillerato"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.mined.gob.sv/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "SY",
+      "name": "Syria",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "SY.md",
+      "routeCount": 1,
+      "years": [
+        "Grade 7",
+        "Grade 8",
+        "Grade 9",
+        "Grade 10",
+        "Grade 11",
+        "Grade 12"
+      ],
+      "qualifications": [
+        "Al-Shahada Al-Thanawiyya"
+      ],
+      "specs": [
+        "sy-baccalaureate"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://moe.gov.sy/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "TR",
+      "name": "Turkey",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "TR.md",
+      "routeCount": 1,
+      "years": [
+        "Grade 5",
+        "Grade 6",
+        "Grade 7",
+        "Grade 8",
+        "Grade 9",
+        "Grade 10",
+        "Grade 11",
+        "Grade 12"
+      ],
+      "qualifications": [
+        "LGS (Liseye Geçiş Sınavı)",
+        "YKS (TYT / AYT)"
+      ],
+      "specs": [
+        "tr-yks"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.meb.gov.tr/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "TZ",
+      "name": "Tanzania",
+      "status": "INITIAL_RESEARCH",
+      "incomeGroup": "low",
+      "profile": "TZ.md",
+      "routeCount": 1,
+      "years": [
+        "Form 1",
+        "Form 2",
+        "Form 3",
+        "Form 4"
+      ],
+      "qualifications": [],
+      "specs": [
+        "tz-csee"
+      ],
+      "registryRecordReview": [
+        "mapped"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://documents1.worldbank.org/curated/en/099092523030514417/pdf/P1796070183df100c082d702966387de2ed.pdf",
+        "https://necta.go.tz/webroot/uploads/news/FTLE_2025.pdf",
+        "https://datahelpdesk.worldbank.org/knowledgebase/articles/906519-world-bank-country-and-lending-groups"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "UA",
+      "name": "Ukraine",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "UA.md",
+      "routeCount": 1,
+      "years": [
+        "Grade 7",
+        "Grade 8",
+        "Grade 9",
+        "Grade 10",
+        "Grade 11",
+        "Grade 12"
+      ],
+      "qualifications": [
+        "НМТ (National Multi-subject Test)"
+      ],
+      "specs": [
+        "ua-nmt"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://mon.gov.ua/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "UG",
+      "name": "Uganda",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "UG.md",
+      "routeCount": 1,
+      "years": [
+        "S1",
+        "S2",
+        "S3",
+        "S4"
+      ],
+      "qualifications": [],
+      "specs": [
+        "ug-uce"
+      ],
+      "registryRecordReview": [
+        "mapped"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "US",
+      "name": "United States",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "US.md",
+      "routeCount": 1,
+      "years": [
+        "Grade 6",
+        "Grade 7",
+        "Grade 8",
+        "Grade 9",
+        "Grade 10",
+        "Grade 11",
+        "Grade 12"
+      ],
+      "qualifications": [],
+      "specs": [
+        "us-core",
+        "us-sat",
+        "us-ap"
+      ],
+      "registryRecordReview": [
+        "mapped"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "UZ",
+      "name": "Uzbekistan",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "UZ.md",
+      "routeCount": 1,
+      "years": [
+        "Grade 5",
+        "Grade 6",
+        "Grade 7",
+        "Grade 8",
+        "Grade 9",
+        "Grade 10",
+        "Grade 11"
+      ],
+      "qualifications": [
+        "University entrance examinations"
+      ],
+      "specs": [
+        "uz-entrance"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://uzedu.uz/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "VN",
+      "name": "Vietnam",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "VN.md",
+      "routeCount": 1,
+      "years": [
+        "Grade 6",
+        "Grade 7",
+        "Grade 8",
+        "Grade 9",
+        "Grade 10",
+        "Grade 11",
+        "Grade 12"
+      ],
+      "qualifications": [
+        "THPT Quốc gia"
+      ],
+      "specs": [
+        "vn-thpt"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://moet.gov.vn/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "YE",
+      "name": "Yemen",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "YE.md",
+      "routeCount": 1,
+      "years": [
+        "Grade 7",
+        "Grade 8",
+        "Grade 9",
+        "Grade 10",
+        "Grade 11",
+        "Grade 12"
+      ],
+      "qualifications": [
+        "General Secondary Certificate"
+      ],
+      "specs": [
+        "ye-general-secondary"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://moe.gov.ye/"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "ZA",
+      "name": "South Africa",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "ZA.md",
+      "routeCount": 1,
+      "years": [
+        "Grade 8",
+        "Grade 9",
+        "Grade 10",
+        "Grade 11",
+        "Grade 12"
+      ],
+      "qualifications": [],
+      "specs": [
+        "za-nsc"
+      ],
+      "registryRecordReview": [
+        "mapped"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "ZM",
+      "name": "Zambia",
+      "status": "INITIAL_RESEARCH",
+      "incomeGroup": "lower-middle",
+      "profile": "ZM.md",
+      "routeCount": 1,
+      "years": [
+        "Grade 8",
+        "Grade 9",
+        "Grade 10",
+        "Grade 11",
+        "Grade 12"
+      ],
+      "qualifications": [
+        "School Certificate"
+      ],
+      "specs": [
+        "zm-school-certificate"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.unicef.org/innocenti/media/7891/file/UNICEF-Innocenti-DMS-Zambia-Report-2024.pdf.pdf",
+        "https://datahelpdesk.worldbank.org/knowledgebase/articles/906519-world-bank-country-and-lending-groups"
+      ],
+      "updated": "2026-11-13"
+    },
+    {
+      "code": "ZW",
+      "name": "Zimbabwe",
+      "status": "NOT_RESEARCHED",
+      "incomeGroup": "unknown",
+      "profile": "ZW.md",
+      "routeCount": 1,
+      "years": [
+        "Form 1",
+        "Form 2",
+        "Form 3",
+        "Form 4",
+        "Lower Sixth",
+        "Upper Sixth"
+      ],
+      "qualifications": [
+        "ZIMSEC Ordinary Level",
+        "ZIMSEC Advanced Level"
+      ],
+      "specs": [
+        "zw-o-level",
+        "zw-a-level"
+      ],
+      "registryRecordReview": [
+        "researched"
+      ],
+      "registryMappingReview": [
+        "mapped"
+      ],
+      "sourceUrls": [
+        "https://www.zimsec.co.zw/"
+      ],
+      "updated": "2026-11-13"
+    }
+  ]
+}
