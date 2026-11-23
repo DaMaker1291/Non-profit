@@ -1,34 +1,26 @@
 {
   "generatedBy": "scripts/autonomous-checkpoint.mjs",
-  "generatedAt": "2026-11-12T17:57:01.230Z",
+  "generatedAt": "2026-11-22T12:22:47.214Z",
   "branch": "main",
-  "head": "d26a076",
-  "dirtyFiles": 100,
-  "freeGiB": 10.99,
+  "head": "9a55e0b",
+  "dirtyFiles": 222,
+  "freeGiB": 15.05,
   "lowSpace": false,
   "counts": {
     "concepts": 135,
-    "authoredLessons": 88,
-    "outlineConcepts": 47,
-    "machineChecked": 88,
-    "browserVerifiedLessons": 88,
+    "authoredLessons": 135,
+    "outlineConcepts": 0,
+    "machineChecked": 135,
+    "browserVerifiedLessons": 135,
     "humanReviewedLessons": 0,
     "assessmentBlueprints": 3,
     "assessmentServable": 0,
     "humanReviewedTranslations": 0
   },
-  "nextTask": {
-    "id": "CUR-completing-square",
-    "conceptId": "completing-square",
-    "title": "Completing the square",
-    "subject": "maths",
-    "reason": "First unresolved concept in genome order whose declared prerequisites are authored.",
-    "status": "outline",
-    "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
-  },
+  "nextTask": null,
   "levelA": {
-    "achieved": false,
-    "reason": "47 concepts still have no authored lesson. All 88 authored lessons are browser-verified, and the production build, standalone startup and restore drill are recorded PASS. Level A also requires the full curriculum, so it is not achieved."
+    "achieved": true,
+    "reason": "All 135 concepts have an authored lesson (0 outlines); every authored lesson is browser-verified; and the production build, standalone startup and restore drill are recorded PASS."
   },
   "levelB": {
     "achieved": false,
@@ -36,23 +28,23 @@
   },
   "lastCheckpointEvidence": [
     "npm run typecheck (PASS)",
-    "npm run lesson:catalogue (88 authored, 47 outlines)",
+    "npm run lesson:catalogue (135 authored, 0 outlines)",
     "node scripts/secondary-maths-lesson-check.mjs (included in verify:lessons)",
     "npm run verify (4631 passed, 0 failed)",
     "npm run verify:lessons (PASS)",
-    "npm run verify:lesson (989 passed, 0 failed; 88 authored lessons)",
+    "npm run verify:lesson (1424 passed, 0 failed; 135 authored lessons)",
     "npm run production-check (PASS)",
     "npm run restore-drill (26 passed, 0 failed)",
     "npm run e2e (892 passed, 0 failed)"
   ],
   "browserEvidence": {
     "generatedBy": "scripts/lesson-walk.mjs",
-    "at": "2026-11-12T17:54:53.892Z",
+    "at": "2026-11-19T19:21:49.700Z",
     "command": "npm run verify:lesson",
-    "passed": 989,
+    "passed": 1424,
     "failed": 0,
-    "authoredLessons": 88,
-    "authoredCatalogue": 88,
+    "authoredLessons": 135,
+    "authoredCatalogue": 135,
     "allAuthoredPainted": true,
     "widths": [
       1280,

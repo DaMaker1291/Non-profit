@@ -1,51 +1,127 @@
 {
   "generatedBy": "scripts/autonomous-checkpoint.mjs",
-  "generatedAt": "2026-11-12T17:57:01.230Z",
+  "generatedAt": "2026-11-22T12:22:47.214Z",
   "sourceOfTruth": "audit/lesson-catalogue.json and the other artifacts named in each item",
   "repository": {
     "branch": "main",
-    "head": "d26a076",
-    "dirtyFiles": 100,
+    "head": "9a55e0b",
+    "dirtyFiles": 222,
     "dirty": [
-      "M EXTERNAL_RESOURCE_CATALOGUE_REPORT.md",
+      "M .env.example",
+      " M AGENTS.md",
+      " M EXTERNAL_RESOURCE_CATALOGUE_REPORT.md",
       " M LANGUAGE_COVERAGE_MATRIX.json",
       " M LOW_BANDWIDTH_READINESS_REPORT.md",
       " M MULTILINGUAL_ACCEPTANCE.md",
       " M MULTILINGUAL_READINESS_REPORT.md",
       " M OFFLINE_PACKAGE_REPORT.md",
+      " M OPENMIND_AUTONOMOUS_STATE.json",
+      " M OPENMIND_AUTONOMOUS_STATUS.md",
+      " M OPENMIND_BACKLOG.json",
+      " M OPENMIND_BLOCKERS.md",
+      " M OPENMIND_RESUME.md",
+      " M README.md",
       " M RESOURCE_RECOMMENDATION_REPORT.md",
       " M VIDEO_AND_MEDIA_OFFLINE_REPORT.md",
-      " M app/learn/[subject]/[concept]/page.tsx",
+      " M app/account/page.tsx",
+      " M app/api/auth/signup/route.ts",
+      " M app/api/offline-pack/route.ts",
+      " M app/api/progress/route.ts",
+      " M app/curriculum/page.tsx",
+      " M app/globals.css",
+      " M app/layout.tsx",
+      " M app/mind/[conceptId]/page.tsx",
+      " M app/offline/study/page.tsx",
+      " M app/onboarding/page.tsx",
+      " M app/page.tsx",
+      " M app/teacher/page.tsx",
       " M audit/content-platform.json",
-      " M audit/content-platform.md",
-      " M audit/content-release.json",
+      " M audit/lesson-browser.json",
       " M audit/lesson-catalogue.json",
       " M audit/lesson-catalogue.md",
-      " M audit/options-gate.json",
+      " M audit/status.json",
       " M audit/storage-conformance.json",
-      " M components/probability-tree-activity.tsx",
-      " M docs/ASSESSMENT_VALIDITY.md",
-      " M docs/CONTENT_PLATFORM.md",
+      " M audit/subsystem-evidence.json",
+      " M components/authored-assessment.tsx",
+      " M components/authored-lesson.tsx",
+      " M components/context-strip.tsx",
+      " M components/fraction-answer.tsx",
+      " M components/lesson-figure.tsx",
+      " M components/nav.tsx",
+      " M components/numeric-answer.tsx",
+      " M components/pair-answer.tsx",
+      " M docs/CLASSROOM2_VERIFICATION.md",
+      " M docs/CURRICULUM_REGISTRY.md",
+      " M docs/PILOT_PROTOCOL.md",
+      " M lib/api/client.ts",
+      " M lib/api/identity.ts",
+      " M lib/app-state.ts",
+      " M lib/client.tsx",
+      " M lib/curricula/registry.ts",
+      " M lib/evidence-view.ts",
+      " M lib/evidence.ts",
+      " M lib/i18n-curriculum.ts",
+      " M lib/i18n.ts",
+      " M lib/lesson-assessment.ts",
       " M lib/lesson-contract.ts",
+      " M lib/lesson-figure.ts",
+      " M lib/lesson-frameworks.ts",
+      " M lib/lesson-plans-supplemental.ts",
+      " M lib/lesson-verify.ts",
+      " M lib/lessons/authored/addition.ts",
+      " M lib/lessons/authored/biology-cells.ts",
+      " M lib/lessons/authored/biology-digestion.ts",
+      " M lib/lessons/authored/biology-enzymes.ts",
+      " M lib/lessons/authored/biology-photosynthesis.ts",
+      " M lib/lessons/authored/chemistry-energy-changes.ts",
+      " M lib/lessons/authored/chemistry-periodic-table.ts",
+      " M lib/lessons/authored/chemistry-rates-reaction.ts",
+      " M lib/lessons/authored/computing-binary.ts",
+      " M lib/lessons/authored/computing-conditionals.ts",
+      " M lib/lessons/authored/computing-dictionaries.ts",
+      " M lib/lessons/authored/computing-functions.ts",
+      " M lib/lessons/authored/computing-loops.ts",
+      " M lib/lessons/authored/computing-searching.ts",
+      " M lib/lessons/authored/computing-variables.ts",
+      " M lib/lessons/authored/computing-what-is-code.ts",
+      " M lib/lessons/authored/decimals.ts",
+      " M lib/lessons/authored/division.ts",
+      " M lib/lessons/authored/fraction-ops.ts",
       " M lib/lessons/authored/index.ts",
-      " M lib/pilot.ts",
-      " M lib/probability-activities.ts",
-      " M lib/questions-deep.ts",
-      " M lib/questions.ts",
+      " M lib/lessons/authored/maths-coordinates.ts",
+      " M lib/lessons/authored/maths-data-charts.ts",
+      " M lib/lessons/authored/maths-fractions.ts",
+      " M lib/lessons/authored/maths-quadratics.ts",
+      " M lib/lessons/authored/maths-scatter-correlation.ts",
+      " M lib/lessons/authored/maths-simultaneous.ts",
+      " M lib/lessons/authored/maths-straight-lines.ts",
+      " M lib/lessons/authored/multiplication.ts",
+      " M lib/lessons/authored/negatives.ts",
+      " M lib/lessons/authored/order-ops.ts",
+      " M lib/lessons/authored/percentages.ts",
+      " M lib/lessons/authored/physics-circuits.ts",
+      " M lib/lessons/authored/physics-energy.ts",
+      " M lib/lessons/authored/physics-forces.ts",
+      " M lib/lessons/authored/physics-motion.ts",
+      " M lib/lessons/authored/physics-waves.ts",
+      " M lib/lessons/authored/place-value.ts",
+      " M lib/lessons/authored/rounding.ts",
+      " M lib/lessons/authored/subtraction.ts",
+      " M lib/lessons/authored/translations.ts",
+      " M lib/offline-pack.ts",
+      " M lib/replay.ts",
+      " M lib/server/class-view.ts",
+      " M lib/server/storage-file.ts",
+      " M lib/server/storage.ts",
+      " M lib/server/store.ts",
+      " M lib/specifications.ts",
+      " M lib/sync-queue.ts",
+      " M lib/types.ts",
       " M next-env.d.ts",
       " M package.json",
-      " M reports/.pilot-verify/lib/answer.js",
-      " M reports/.pilot-verify/lib/curricula/registry.js",
+      " M public/sw.js",
       " M reports/.pilot-verify/lib/evidence.js",
-      " M reports/.pilot-verify/lib/i18n.js",
-      " M reports/.pilot-verify/lib/lesson-plans.js",
-      " M reports/.pilot-verify/lib/numeric-items-core.js",
       " M reports/.pilot-verify/lib/pilot.js",
-      " M reports/.pilot-verify/lib/questions-deep.js",
-      " M reports/.pilot-verify/lib/questions.js",
-      " M reports/.pilot-verify/lib/specifications.js",
-      " M reports/.pilot-verify/lib/subjects.js",
-      " M reports/.pilot-verify/lib/types.js",
       " M reports/international-readiness/BACKLOG.md",
       " M reports/international-readiness/EXECUTION_STATE.md",
       " M reports/international-readiness/READINESS.json",
@@ -57,92 +133,126 @@
       " M reports/lesson-quality/queue.md",
       " M screenshots/lesson-walk/1280-worked.png",
       " M screenshots/lesson-walk/1280-wrong-answer.png",
-      " M scripts/assessment-browser-check.mjs",
-      " M scripts/e2e-api.mjs",
+      " M scripts/autonomous-checkpoint.mjs",
+      " M scripts/biology-lesson-check.mjs",
+      " M scripts/browser.mjs",
+      " M scripts/code-lab-check.mjs",
+      " M scripts/compile-engines.mjs",
+      " M scripts/coordinates-lesson-check.mjs",
+      " M scripts/data-charts-lesson-check.mjs",
+      " M scripts/lesson-quality-dashboard.mjs",
       " M scripts/lesson-walk.mjs",
-      " M scripts/probability-basics-lesson-check.mjs",
+      " M scripts/maths-batch-live-check.mjs",
       " M scripts/production-check.mjs",
-      " M scripts/restore-drill.mjs",
-      " M scripts/verify-assignment-browser.mjs",
-      " M scripts/verify-auth-sync.mjs",
-      " M scripts/verify-pilot.mjs",
-      " M scripts/verify-questions.mjs",
-      " M tsconfig.json",
-      "?? OPENMIND_AUTONOMOUS_STATE.json",
-      "?? OPENMIND_AUTONOMOUS_STATUS.md",
-      "?? OPENMIND_BACKLOG.json",
-      "?? OPENMIND_BLOCKERS.md",
-      "?? OPENMIND_RESUME.md",
-      "?? audit/assessment-browser.json",
-      "?? audit/lesson-browser.json",
-      "?? audit/release-evidence.json",
-      "?? audit/subsystem-evidence.json",
-      "?? lib/lessons/authored/maths-algebra-expand.ts",
-      "?? lib/lessons/authored/maths-circle-theorems.ts",
-      "?? lib/lessons/authored/maths-functions.ts",
-      "?? lib/lessons/authored/maths-inequalities.ts",
-      "?? lib/lessons/authored/maths-pythagoras.ts",
-      "?? lib/lessons/authored/maths-scatter-correlation.ts",
-      "?? lib/lessons/authored/maths-sim-equations-quad.ts",
-      "?? lib/lessons/authored/maths-simultaneous.ts",
-      "?? lib/lessons/authored/maths-standard-form.ts",
-      "?? lib/lessons/authored/maths-straight-lines.ts",
-      "?? lib/lessons/authored/maths-surds.ts",
-      "?? lib/lessons/authored/maths-transformations.ts",
-      "?? lib/lessons/authored/maths-tree-diagrams.ts",
-      "?? lib/lessons/authored/maths-trig-identity.ts",
-      "?? lib/lessons/authored/maths-trig-ratios.ts",
-      "?? lib/lessons/authored/maths-vectors.ts",
-      "?? lib/lessons/authored/maths-volume.ts",
-      "?? reports/.pilot-verify/lib/i18n-atlas-extra.js",
-      "?? reports/.pilot-verify/lib/i18n-atlas.js",
-      "?? reports/.pilot-verify/lib/i18n-learning.js",
-      "?? reports/.pilot-verify/lib/i18n-lessons.js",
-      "?? reports/.pilot-verify/lib/i18n-theory.js",
-      "?? reports/.pilot-verify/lib/lesson-plans-computing.js",
-      "?? reports/.pilot-verify/lib/lesson-plans-lens.js",
-      "?? reports/.pilot-verify/lib/lesson-plans-maths.js",
-      "?? reports/.pilot-verify/lib/lesson-plans-science.js",
-      "?? reports/.pilot-verify/lib/lesson-plans-supplemental.js",
-      "?? reports/.pilot-verify/lib/world-countries.js",
-      "?? scripts/autonomous-checkpoint.mjs",
-      "?? scripts/secondary-maths-lesson-check.mjs"
+      " M scripts/secondary-maths-lesson-check.mjs",
+      " M scripts/verify-engines.mjs",
+      " M scripts/verify-kiosk-identity.mjs",
+      " M scripts/verify-offline-browser.mjs",
+      "?? app/api/auth/resend-verification/",
+      "?? app/api/auth/verify/",
+      "?? app/api/authored-lessons/",
+      "?? app/api/teacher/",
+      "?? app/learn/[subject]/[concept]/layout.tsx",
+      "?? app/learn/[subject]/layout.tsx",
+      "?? app/print/",
+      "?? app/robots.ts",
+      "?? app/sitemap.ts",
+      "?? app/teach/",
+      "?? app/teacher/paper/",
+      "?? app/verify/",
+      "?? audit/assessment-format-matrix.json",
+      "?? audit/assessment-format-matrix.md",
+      "?? audit/code-lab-browser.json",
+      "?? audit/lesson-formats-browser.json",
+      "?? audit/subject-review-pack.json",
+      "?? components/classroom-presenter.tsx",
+      "?? components/landing.tsx",
+      "?? components/offline-authored-assessment.tsx",
+      "?? components/paper-mark-entry.tsx",
+      "?? components/print-button.tsx",
+      "?? components/print-sheet.tsx",
+      "?? components/teacher-guide-sheet.tsx",
+      "?? dist/",
+      "?? docs/FINAL_QUALITY_REGISTER.md",
+      "?? docs/LOW_RESOURCE_ACCEPTANCE.md",
+      "?? docs/PAPER_OFFLINE_AUDIT.md",
+      "?? docs/SUBJECT_REVIEW_PACK.md",
+      "?? docs/TEACHER_REVIEW_FORM.md",
+      "?? docs/country-research/",
+      "?? lib/classroom-session.ts",
+      "?? lib/i18n-verify.ts",
+      "?? lib/lesson-interactions.ts",
+      "?? lib/lesson-print.ts",
+      "?? lib/lessons/authored/_gap-lesson.ts",
+      "?? lib/lessons/authored/computing-gaps-1.ts",
+      "?? lib/lessons/authored/computing-gaps-2.ts",
+      "?? lib/lessons/authored/computing-gaps-3.ts",
+      "?? lib/lessons/authored/computing-gaps.ts",
+      "?? lib/lessons/authored/maths-completing-square.ts",
+      "?? lib/lessons/authored/maths-gaps-1.ts",
+      "?? lib/lessons/authored/maths-gaps-2.ts",
+      "?? lib/lessons/authored/maths-gaps-3.ts",
+      "?? lib/lessons/authored/maths-gaps-4.ts",
+      "?? lib/lessons/authored/maths-gaps-5.ts",
+      "?? lib/lessons/authored/maths-gaps-6.ts",
+      "?? lib/lessons/authored/maths-gaps-7.ts",
+      "?? lib/lessons/authored/physics-gaps-1.ts",
+      "?? lib/lessons/authored/physics-gaps-2.ts",
+      "?? lib/lessons/authored/physics-gaps-3.ts",
+      "?? lib/lessons/authored/physics-gaps-4.ts",
+      "?? lib/offline-assessment.ts",
+      "?? lib/server/mail.ts",
+      "?? lib/server/seo.ts",
+      "?? lib/server/verification.ts",
+      "?? lib/teacher-guide.ts",
+      "?? reports/lesson-effectiveness/",
+      "?? reports/lesson-quality/coverage-matrix.json",
+      "?? reports/lesson-quality/coverage-matrix.md",
+      "?? reports/low-bandwidth.json",
+      "?? reports/print-evidence/",
+      "?? scripts/assessment-format-matrix.mjs",
+      "?? scripts/completing-square-lesson-check.mjs",
+      "?? scripts/country-research.mjs",
+      "?? scripts/gap-lessons-check.mjs",
+      "?? scripts/lesson-coverage-matrix.mjs",
+      "?? scripts/lesson-formats-browser-check.mjs",
+      "?? scripts/lesson-interactions-check.mjs",
+      "?? scripts/local-content-pack.mjs",
+      "?? scripts/low-resource-check.mjs",
+      "?? scripts/objective-gate.mjs",
+      "?? scripts/offline-assessment-check.mjs",
+      "?? scripts/school-reality-check.mjs",
+      "?? scripts/serve-local-content.mjs",
+      "?? scripts/subject-review-pack.mjs",
+      "?? scripts/verify-graph-lesson-browser.mjs",
+      "?? scripts/verify-local-content.mjs",
+      "?? scripts/verify-low-bandwidth.mjs",
+      "?? scripts/verify-offline-assessment-browser.mjs",
+      "?? scripts/verify-teacher-cache.mjs"
     ]
   },
   "environment": {
-    "freeGiB": 10.99,
+    "freeGiB": 15.05,
     "guardGiB": 5,
     "lowSpace": false,
     "platform": "darwin"
   },
   "counts": {
     "concepts": 135,
-    "authoredLessons": 88,
-    "outlineConcepts": 47,
-    "machineChecked": 88,
-    "browserVerifiedLessons": 88,
+    "authoredLessons": 135,
+    "outlineConcepts": 0,
+    "machineChecked": 135,
+    "browserVerifiedLessons": 135,
     "humanReviewedLessons": 0,
     "assessmentBlueprints": 3,
     "assessmentServable": 0,
     "humanReviewedTranslations": 0
   },
-  "nextTask": {
-    "id": "CUR-completing-square",
-    "conceptId": "completing-square",
-    "title": "Completing the square",
-    "subject": "maths",
-    "reason": "First unresolved concept in genome order whose declared prerequisites are authored.",
-    "status": "outline",
-    "blocker": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline."
-  },
-  "nextTaskIfPrerequisitesBlocked": {
-    "id": "CUR-completing-square",
-    "conceptId": "completing-square",
-    "title": "Completing the square"
-  },
+  "nextTask": null,
+  "nextTaskIfPrerequisitesBlocked": null,
   "levelA": {
-    "achieved": false,
-    "reason": "47 concepts still have no authored lesson. All 88 authored lessons are browser-verified, and the production build, standalone startup and restore drill are recorded PASS. Level A also requires the full curriculum, so it is not achieved."
+    "achieved": true,
+    "reason": "All 135 concepts have an authored lesson (0 outlines); every authored lesson is browser-verified; and the production build, standalone startup and restore drill are recorded PASS."
   },
   "levelB": {
     "achieved": false,
@@ -1180,30 +1290,35 @@
       "id": "CUR-completing-square",
       "area": "curriculum",
       "title": "Completing the square",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
         "quadratics"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: completing-square is outline"
+        "audit/lesson-catalogue.json: completing-square earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A pilot plan exists in lib/lesson-plans.ts. It is a substantial start but predates openmind.lesson/1.0 and has not been assessed against it, so it counts as an outline.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-polynomials",
       "area": "curriculum",
       "title": "Polynomials & factor theorem",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
@@ -1211,20 +1326,25 @@
         "quadratics"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: polynomials is outline"
+        "audit/lesson-catalogue.json: polynomials earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-binomial",
       "area": "curriculum",
       "title": "Binomial expansion",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
@@ -1232,20 +1352,25 @@
         "indices-intro"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: binomial is outline"
+        "audit/lesson-catalogue.json: binomial earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-trig-rule",
       "area": "curriculum",
       "title": "Sine & cosine rules",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
@@ -1253,40 +1378,50 @@
         "pythagoras"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: trig-rule is outline"
+        "audit/lesson-catalogue.json: trig-rule earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-circle-area-arc",
       "area": "curriculum",
       "title": "Arcs, sectors & circles",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
         "area-perimeter"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: circle-area-arc is outline"
+        "audit/lesson-catalogue.json: circle-area-arc earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-mixture-problems",
       "area": "curriculum",
       "title": "Word problems & modelling",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
@@ -1294,20 +1429,25 @@
         "ratio"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: mixture-problems is outline"
+        "audit/lesson-catalogue.json: mixture-problems earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-growth-decay",
       "area": "curriculum",
       "title": "Exponential growth & decay",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
@@ -1315,20 +1455,25 @@
         "percentages"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: growth-decay is outline"
+        "audit/lesson-catalogue.json: growth-decay earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-logs",
       "area": "curriculum",
       "title": "Logarithms",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
@@ -1336,20 +1481,25 @@
         "indices-intro"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: logs is outline"
+        "audit/lesson-catalogue.json: logs earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-calculus-diff",
       "area": "curriculum",
       "title": "Differentiation",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
@@ -1357,40 +1507,50 @@
         "indices-intro"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: calculus-diff is outline"
+        "audit/lesson-catalogue.json: calculus-diff earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-calculus-int",
       "area": "curriculum",
       "title": "Integration",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
         "calculus-diff"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: calculus-int is outline"
+        "audit/lesson-catalogue.json: calculus-int earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-kinematics",
       "area": "curriculum",
       "title": "Kinematics",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
@@ -1398,20 +1558,25 @@
         "area-perimeter"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: kinematics is outline"
+        "audit/lesson-catalogue.json: kinematics earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-proof",
       "area": "curriculum",
       "title": "Proof & reasoning",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
@@ -1419,20 +1584,25 @@
         "inequalities"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: proof is outline"
+        "audit/lesson-catalogue.json: proof earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-matrices-intro",
       "area": "curriculum",
       "title": "Matrices",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
@@ -1440,40 +1610,50 @@
         "vectors"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: matrices-intro is outline"
+        "audit/lesson-catalogue.json: matrices-intro earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-sets-venn",
       "area": "curriculum",
       "title": "Sets & Venn diagrams",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
         "probability-basics"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: sets-venn is outline"
+        "audit/lesson-catalogue.json: sets-venn earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-financial-maths",
       "area": "curriculum",
       "title": "Financial mathematics",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
@@ -1481,40 +1661,50 @@
         "growth-decay"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: financial-maths is outline"
+        "audit/lesson-catalogue.json: financial-maths earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-bounds",
       "area": "curriculum",
       "title": "Error bounds & limits of accuracy",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
         "rounding"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: bounds is outline"
+        "audit/lesson-catalogue.json: bounds earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-loci-constructions",
       "area": "curriculum",
       "title": "Loci & constructions",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
@@ -1522,40 +1712,50 @@
         "angles-lines"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: loci-constructions is outline"
+        "audit/lesson-catalogue.json: loci-constructions earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-bearings",
       "area": "curriculum",
       "title": "Bearings & navigation",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
         "trig-rule"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: bearings is outline"
+        "audit/lesson-catalogue.json: bearings earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-proportional-graphs",
       "area": "curriculum",
       "title": "Proportional graphs",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
@@ -1563,20 +1763,25 @@
         "straight-lines"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: proportional-graphs is outline"
+        "audit/lesson-catalogue.json: proportional-graphs earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-quadratic-graphs",
       "area": "curriculum",
       "title": "Quadratic graphs",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
@@ -1584,20 +1789,25 @@
         "completing-square"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: quadratic-graphs is outline"
+        "audit/lesson-catalogue.json: quadratic-graphs earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-algebraic-fractions",
       "area": "curriculum",
       "title": "Algebraic fractions",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
@@ -1605,20 +1815,25 @@
         "algebra-expand"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: algebraic-fractions is outline"
+        "audit/lesson-catalogue.json: algebraic-fractions earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-iteration",
       "area": "curriculum",
       "title": "Numerical iteration",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
@@ -1626,71 +1841,91 @@
         "functions"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: iteration is outline"
+        "audit/lesson-catalogue.json: iteration earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-circle-geometry-adv",
       "area": "curriculum",
       "title": "Advanced circle geometry",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
         "circle-theorems"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: circle-geometry-adv is outline"
+        "audit/lesson-catalogue.json: circle-geometry-adv earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-number-bases",
       "area": "curriculum",
       "title": "Number bases & binary",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
         "place-value"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: number-bases is outline"
+        "audit/lesson-catalogue.json: number-bases earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-logic-maths",
       "area": "curriculum",
       "title": "Logic & truth tables",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
         "sets-venn"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: logic-maths is outline"
+        "audit/lesson-catalogue.json: logic-maths earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-forces-basics",
@@ -1745,10 +1980,10 @@
       "id": "CUR-newton-laws",
       "area": "curriculum",
       "title": "Newton's laws",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
@@ -1756,31 +1991,41 @@
         "motion-graphs"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: newton-laws is outline"
+        "audit/lesson-catalogue.json: newton-laws earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-momentum",
       "area": "curriculum",
       "title": "Momentum & collisions",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
         "newton-laws"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: momentum is outline"
+        "audit/lesson-catalogue.json: momentum earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-energy-conservation",
@@ -1809,21 +2054,26 @@
       "id": "CUR-work-power",
       "area": "curriculum",
       "title": "Work, power & efficiency",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
         "energy-conservation"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: work-power is outline"
+        "audit/lesson-catalogue.json: work-power earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-waves-basics",
@@ -1852,10 +2102,10 @@
       "id": "CUR-light-optics",
       "area": "curriculum",
       "title": "Light & optics",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
@@ -1863,31 +2113,41 @@
         "trig-ratios"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: light-optics is outline"
+        "audit/lesson-catalogue.json: light-optics earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-sound-acoustics",
       "area": "curriculum",
       "title": "Sound",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
         "waves-basics"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: sound-acoustics is outline"
+        "audit/lesson-catalogue.json: sound-acoustics earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-electricity-circuits",
@@ -1918,28 +2178,33 @@
       "id": "CUR-magnetism",
       "area": "curriculum",
       "title": "Magnetism",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [],
       "evidence": [
-        "audit/lesson-catalogue.json: magnetism is outline"
+        "audit/lesson-catalogue.json: magnetism earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-em-induction",
       "area": "curriculum",
       "title": "Electromagnetic induction",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
@@ -1947,60 +2212,75 @@
         "electricity-circuits"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: em-induction is outline"
+        "audit/lesson-catalogue.json: em-induction earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-thermal-physics",
       "area": "curriculum",
       "title": "Thermal physics",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
         "energy-conservation"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: thermal-physics is outline"
+        "audit/lesson-catalogue.json: thermal-physics earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-pressure-fluids",
       "area": "curriculum",
       "title": "Pressure & density",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
         "forces-basics"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: pressure-fluids is outline"
+        "audit/lesson-catalogue.json: pressure-fluids earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-radioactivity",
       "area": "curriculum",
       "title": "Radioactivity",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
@@ -2008,20 +2288,25 @@
         "growth-decay"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: radioactivity is outline"
+        "audit/lesson-catalogue.json: radioactivity earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-astrophysics",
       "area": "curriculum",
       "title": "Space & astrophysics",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
@@ -2029,40 +2314,50 @@
         "waves-basics"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: astrophysics is outline"
+        "audit/lesson-catalogue.json: astrophysics earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-atoms-nucleus",
       "area": "curriculum",
       "title": "Atomic structure",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
         "electricity-circuits"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: atoms-nucleus is outline"
+        "audit/lesson-catalogue.json: atoms-nucleus earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-gravity-fields",
       "area": "curriculum",
       "title": "Gravity & orbits",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
@@ -2070,11 +2365,16 @@
         "proportion"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: gravity-fields is outline"
+        "audit/lesson-catalogue.json: gravity-fields earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-atoms-elements",
@@ -3094,50 +3394,60 @@
       "id": "CUR-algorithms-sort",
       "area": "curriculum",
       "title": "Sorting algorithms",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
         "algorithms-search"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: algorithms-sort is outline"
+        "audit/lesson-catalogue.json: algorithms-sort earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-recursion",
       "area": "curriculum",
       "title": "Recursion",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
         "functions-code"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: recursion is outline"
+        "audit/lesson-catalogue.json: recursion earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-complexity",
       "area": "curriculum",
       "title": "Computational thinking & Big-O",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
@@ -3145,11 +3455,16 @@
         "functions-code"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: complexity is outline"
+        "audit/lesson-catalogue.json: complexity earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-binary-data",
@@ -3180,30 +3495,35 @@
       "id": "CUR-networks",
       "area": "curriculum",
       "title": "Networks & the internet",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
         "binary-data"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: networks is outline"
+        "audit/lesson-catalogue.json: networks earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-cybersecurity",
       "area": "curriculum",
       "title": "Cybersecurity",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
@@ -3211,60 +3531,75 @@
         "logic-maths"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: cybersecurity is outline"
+        "audit/lesson-catalogue.json: cybersecurity earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-databases-sql",
       "area": "curriculum",
       "title": "Databases",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
         "dictionaries"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: databases-sql is outline"
+        "audit/lesson-catalogue.json: databases-sql earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-web-stack",
       "area": "curriculum",
       "title": "How the web works",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
         "networks"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: web-stack is outline"
+        "audit/lesson-catalogue.json: web-stack earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-ai-basics",
       "area": "curriculum",
       "title": "AI & machine learning",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
@@ -3272,20 +3607,25 @@
         "statistics-data"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: ai-basics is outline"
+        "audit/lesson-catalogue.json: ai-basics earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "CUR-statistics-data",
       "area": "curriculum",
       "title": "Data analysis & statistics",
-      "status": "MISSING",
+      "status": "BROWSER_VERIFIED",
       "sourceFiles": [
-        "lib/lesson-plans.ts",
-        "lib/genome.ts"
+        "lib/lessons/authored",
+        "lib/lessons/authored/index.ts"
       ],
       "acceptance": "An authored lesson meeting openmind.lesson/1.0: diagnostic, reasoned worked examples, misconception corrections, guided practice, independent assessment, transfer, spaced retrieval, accessibility alternatives and provenance.",
       "dependencies": [
@@ -3293,11 +3633,16 @@
         "lists-arrays"
       ],
       "evidence": [
-        "audit/lesson-catalogue.json: statistics-data is outline"
+        "audit/lesson-catalogue.json: statistics-data earned machine_checked",
+        "npm run lesson:catalogue",
+        "audit/lesson-browser.json: all authored lessons painted at 1280, 768, 375 and 320 px"
       ],
-      "remainingWork": "A supplemental plan assembled from the genome note and a concept lens exists. It is an outline, not authored teaching: no diagnostic, worked reasoning, assessment or review record.",
-      "browserVerified": false,
-      "externalBlockers": []
+      "remainingWork": "Browser-verify this lesson at 1280, 768, 375 and 320 px; subject-teacher review remains external.",
+      "browserVerified": true,
+      "externalBlockers": [
+        "qualified subject-teacher review",
+        "learner trial measuring independent understanding and delayed retention"
+      ]
     },
     {
       "id": "ASSESS-001",
@@ -3322,6 +3667,62 @@
       "externalBlockers": [
         "teacher review of every blueprint",
         "source permission and licensing review"
+      ]
+    },
+    {
+      "id": "ADAPTIVE-001",
+      "area": "learning",
+      "title": "Adaptive next-action and mastery reliability",
+      "status": "AUTOMATED_VERIFIED",
+      "sourceFiles": [
+        "lib/decision.ts",
+        "lib/learner-model.ts",
+        "scripts/north-star.mjs",
+        "scripts/educational-benchmark.mjs"
+      ],
+      "acceptance": "A learner's own evidence changes what they are asked to do, in the direction the pedagogy claims; the mastery threshold that gates prerequisites and stages separates durable answers from fragile ones, and the measurement reports where it fails.",
+      "dependencies": [],
+      "evidence": [
+        "npm run reliability: held-out mastery Brier 0.276 vs the learner-own-rate baseline 0.311 (n=327); the 0.65 threshold separates 65.3% correct among established calls from 49.1% among not-yet calls",
+        "npm run benchmark: 43 learners; plan names a documented weak concept 76.7%, top action is one 25.6%, coverage 40.5%; 90-learner cohort, 0 invariant violations; 52 of 90 return to a weak concept",
+        "Benchmark reports 1 named adversarial capability gap and 4/8 Section G hint-reliance cells not held; hint reliance is invisible below the established bar",
+        "The conventional specification-order rule scores 0.0% on the weak-concept question by construction; that is a structural difference, not a learning gain",
+        "npm run reliability",
+        "npm run benchmark"
+      ],
+      "remainingWork": "Both instruments use a seeded synthetic cohort. Neither measures whether following the recommendation improves learning; that needs real learners, a baseline and a delayed test. One adversarial expectation and four hint-reliance cells remain unresolved and must not be reported as full adaptive validity.",
+      "externalBlockers": [
+        "real learner outcomes",
+        "delayed retrieval evidence"
+      ]
+    },
+    {
+      "id": "RELEASE-001",
+      "area": "release",
+      "title": "Production release gate",
+      "status": "RELEASE_READY",
+      "sourceFiles": [
+        "scripts/production-check.mjs",
+        "audit/release-evidence.json",
+        "docs/FINAL_QUALITY_REGISTER.md"
+      ],
+      "acceptance": "The production build is served from the standalone artefact, its assets resolve, the public and private doors answer, assessment and offline journeys work in a browser, storage and restore are exercised, and generated files are restored after the run.",
+      "dependencies": [],
+      "evidence": [
+        "OPENMIND_CHECK_UI=1 npm run production-check: PASS, 31 recorded checks, 0 failed; database configuration is a stated skip",
+        "typecheck pass; npm run verify 4631 passed, 0 failed, including 2744 low-resource assertions and the country-profile check; storage conformance 138 passed, 1 stated skip; disk headroom 11.3 GB",
+        "verify:q pass; content release pass; local content 30/0; curriculum and paper-shape gates pass; option gate pass; content platform 72/0; structured audit 230 checks/0 failures",
+        "production build and standalone server start; static assets, render 37/0, smoke 21/0; permissions 87/0; offline sync 32/0",
+        "development server starts; e2e 892 passed, 0 failed; UI walk 73 passed, 0 failed",
+        "print walk 101/0; offline assessment walk 22/0; measured bandwidth pass; generated files restored",
+        "OPENMIND_CHECK_UI=1 npm run production-check"
+      ],
+      "remainingWork": "This is software release readiness, not educational approval. Postgres is not configured (the database step is a stated skip), and physical hardware, real carriers, school LAN, translated/RTL print, teacher review and learner outcomes remain external. See docs/FINAL_QUALITY_REGISTER.md.",
+      "externalBlockers": [
+        "deployment-specific secrets and durable store",
+        "physical hardware",
+        "teacher review",
+        "learner pilot"
       ]
     },
     {
@@ -3368,6 +3769,130 @@
       ]
     },
     {
+      "id": "LOW-RESOURCE-001",
+      "area": "low-resource",
+      "title": "No-device, group, print and paper delivery",
+      "status": "BROWSER_VERIFIED",
+      "sourceFiles": [
+        "app/print",
+        "app/teach",
+        "app/teacher/paper",
+        "components/print-sheet.tsx",
+        "components/classroom-presenter.tsx",
+        "lib/lesson-print.ts",
+        "lib/classroom-session.ts",
+        "docs/LOW_RESOURCE_ACCEPTANCE.md"
+      ],
+      "acceptance": "Every authored lesson has a printable pupil sheet and separate teacher key from one authored definition; a teacher can present the lesson with no pupil accounts; paper marks are recorded as teacher-entered with version, rubric, observer and quality; group evidence never becomes individual mastery; offline packages and the offline browser journey work.",
+      "dependencies": [],
+      "evidence": [
+        "scripts/low-resource-check.mjs: 2744 passed, 0 failed — 135 worksheets, 135 separate keys, 135 teacher guides with four temporary groups, 135 presenter runs, all eight authored paper kinds, five declared classroom conditions, structured number/graph/read-off/plot/table forms, no key fields in a pupil sheet, group evidence excluded, answer-bearing pages excluded from the service-worker cache",
+        "scripts/verify-print-browser.mjs: 101 passed, 0 failed — Chrome print-to-PDF; authored data-charts table, motion-graphs plot and rates-reaction practical-planning pages printed and visually inspected; default and large-class teacher guides are 6-page A4 PDFs with run-of-show and four-group tables at zero horizontal overflow and no row splits; 539-page all-Maths set; separate 3-page teacher key; no pupil key text",
+        "scripts/verify-low-bandwidth.mjs: worksheet 54.1 KiB / 16,947 ms at 50 kbps + 300 ms; 3G lesson 16.1 KiB / 549 ms; budgets 250 KiB and 2.5 MiB, no video",
+        "scripts/verify-offline-browser.mjs: 45 passed, 0 failed — two learners on one browser profile, offline hand-back, queue retained and scoped, offline restart, single sync, duplicate refused",
+        "scripts/verify-teacher-cache.mjs: 10 passed, 0 failed (prior run) — no key/presenter response in CacheStorage; planted stale entry not served",
+        "scripts/verify-kiosk-identity.mjs: 105 passed, 0 failed (prior run) — kiosk identity, PIN reissue, rate limits, revocation, authority matrix",
+        "scripts/verify-local-content.mjs: 30 passed, 0 failed — 135 lessons, 137 files, SHA-256 from disk, no learner records/keys, read-only HTTP, traversal refused",
+        "Curriculum reconciliation: 135 concepts, 135 authored, 0 outlines; 67 maths, 18 physics, 16 chemistry, 16 biology, 18 computing; 451 assessment items",
+        "npm run verify:low-resource",
+        "docs/LOW_RESOURCE_ACCEPTANCE.md"
+      ],
+      "remainingWork": "Physical printing/scanning, real low-cost Android or old school hardware, memory/CPU/thermal measurement, a real school LAN, 2G/3G carrier measurement, teacher review, learner trials and translated/RTL print are not verified. The assessment matrix retains 51 lessons with a recommended-format gap. See docs/LOW_RESOURCE_ACCEPTANCE.md and docs/PAPER_OFFLINE_AUDIT.md.",
+      "externalBlockers": [
+        "physical print and photocopy trial",
+        "low-cost device and network-throttling measurement",
+        "teacher review of the paper workflow",
+        "school-local network deployment trial"
+      ]
+    },
+    {
+      "id": "TEACHER-CACHE-001",
+      "area": "security",
+      "title": "Teacher answer-key and presenter cache separation",
+      "status": "BROWSER_VERIFIED",
+      "sourceFiles": [
+        "public/sw.js",
+        "scripts/verify-teacher-cache.mjs",
+        "docs/LOW_RESOURCE_ACCEPTANCE.md"
+      ],
+      "acceptance": "A teacher's authenticated answer key and presenter are not stored in a browser cache that the next learner on the same profile can read offline, and a stale cache from an earlier worker version is not served.",
+      "dependencies": [],
+      "evidence": [
+        "scripts/verify-teacher-cache.mjs: 10 passed, 0 failed — authenticated key and presenter rendered, 41 cache entries inspected with zero key/presenter responses, sign-out hand-back marker, offline key/presenter attempts exposed no answers, a planted openmind-v2 entry was not served",
+        "npm run verify:teacher-cache",
+        "docs/LOW_RESOURCE_ACCEPTANCE.md"
+      ],
+      "remainingWork": "A browser profile shared by a teacher and a learner on a real managed device was not tested; the service-worker policy is browser-verified on Chrome only.",
+      "externalBlockers": [
+        "managed school browser profile",
+        "teacher PDF in a shared Downloads folder"
+      ]
+    },
+    {
+      "id": "COUNTRY-001",
+      "area": "research",
+      "title": "Country reality research and classroom conditions",
+      "status": "INITIAL_RESEARCH / AUTOMATED_VERIFIED INDEX",
+      "sourceFiles": [
+        "docs/country-research",
+        "scripts/country-research.mjs",
+        "lib/classroom-session.ts",
+        "lib/teacher-guide.ts",
+        "components/classroom-presenter.tsx",
+        "components/teacher-guide-sheet.tsx",
+        "app/print/[subject]/[concept]/guide/page.tsx",
+        "docs/country-research/SCHOOL_ARCHETYPES.md",
+        "docs/country-research/SCHOOL_SCENARIOS.json",
+        "scripts/school-reality-check.mjs"
+      ],
+      "acceptance": "Every national route has a profile with an explicit research status; sourced profiles record the population, year, method, confidence and limits of each statistic; the teacher-led mode can run with no pupil devices, shared devices, a large class, a multilingual class or limited materials without turning group answers into individual mastery; eight synthetic school scenarios covering seven archetypes have a complete delivery path across every authored lesson.",
+      "dependencies": [],
+      "evidence": [
+        "scripts/country-research.mjs --check: 70 national routes, 13 with collected research, 57 NOT_RESEARCHED, 0 missing required sections; every profile carries one of the agreed statuses",
+        "docs/country-research/COUNTRY_RESEARCH_STATE.json: 13 INITIAL_RESEARCH, 0 CURRICULUM_MAPPED, 0 HUMAN_REVIEWED, 0 SCHOOL_VALIDATED; income group is unknown where not checked",
+        "docs/country-research/COUNTRY_COMPARISON.md and COUNTRY_PRODUCT_REQUIREMENTS.md: figures carry year, population, source, method, confidence and limitations; national averages are not presented as every school",
+        "scripts/low-resource-check.mjs: 2744 passed, 0 failed — 135 teacher guides carry the selected classroom routine, prior checks, misconceptions, four temporary groups and an answer-free assessment list; no-student-devices, shared-devices, large-class, multilingual and limited-materials modes change the group routine and prompts; every mode records no learner answers",
+        "scripts/school-reality-check.mjs: 110 passed, 0 failed — 8 synthetic scenarios cover all 7 archetypes and 1,080 lesson-scenario combinations; every combination has a teacher guide, worksheet, separate key, presenter routine and deterministic offline assessment; Chichewa, Nepali and Kinyarwanda are declared unsupported rather than silently mapped to English",
+        "npm run typecheck pass; npm run build pass; npm run verify 4631 engine assertions, 2744 low-resource assertions, 110 school-reality assertions, 551 offline authored assertions, country check pass",
+        "npm run country:check",
+        "scripts/country-research.mjs --check"
+      ],
+      "remainingWork": "57 routes are NOT_RESEARCHED; no country curriculum mapping has a subject-specialist review; only one reviewed-language pair exists (French fractions) and it is not a country localisation claim; 0 teachers and 0 learners have reviewed the country materials; no school partner, consent, safeguarding approval or learner pilot exists. Country research is not a curriculum alignment claim.",
+      "externalBlockers": [
+        "57 routes not researched",
+        "no reviewed curriculum mapping",
+        "no reviewed country teaching translation",
+        "no teacher or learner review",
+        "no school partner or learner pilot"
+      ]
+    },
+    {
+      "id": "LOCAL-CONTENT-001",
+      "area": "low-resource",
+      "title": "School-local read-only content mirror",
+      "status": "AUTOMATED_VERIFIED",
+      "sourceFiles": [
+        "scripts/local-content-pack.mjs",
+        "scripts/serve-local-content.mjs",
+        "docs/PAPER_OFFLINE_AUDIT.md"
+      ],
+      "acceptance": "A school can export a versioned, checksummed content folder once, serve it read-only on its own network, and keep learner records and teacher keys out of that folder.",
+      "dependencies": [],
+      "evidence": [
+        "scripts/local-content-pack.mjs: 135 lessons, 137 files, per-file SHA-256 verified from disk; no learner records, accounts or teacher keys",
+        "scripts/verify-local-content.mjs: 30 passed, 0 failed — scratch rebuild, every byte count and SHA-256, no profiles/accounts/papers/classes/rooms/erasures/evidence or secret/password/key fields, GET/HEAD 200, POST 405, encoded traversal 404, unknown file 404, Cache-Control no-store",
+        "scripts/serve-local-content.mjs: read-only HTTP mirror, LAN bind by default",
+        "npm run content:bundle",
+        "docs/PAPER_OFFLINE_AUDIT.md"
+      ],
+      "remainingWork": "No real school LAN or USB round-trip was performed. Integrity is a checksum, not a signature; teacher-controlled signed updates and client merge are not implemented.",
+      "externalBlockers": [
+        "real school LAN",
+        "USB round trip",
+        "signed package or authenticated mirror"
+      ]
+    },
+    {
       "id": "OFFLINE-001",
       "area": "offline",
       "title": "Offline packages and synchronisation",
@@ -3381,14 +3906,17 @@
       "acceptance": "A learner can download permitted content, use lessons offline, persist progress locally, restart, reconnect and synchronise without silent loss or duplicate writes.",
       "dependencies": [],
       "evidence": [
-        "scripts/verify-offline-browser.mjs: 25 passed, 0 failed — downloaded Fractions, production service worker, offline reload, browser restart, local-only queue, reconnect, exactly one ledger event, duplicate replay refused, sign-out cleanup",
-        "scripts/production-check.mjs: offline sync protocol — dedupe, refusals, paging, replay",
+        "scripts/offline-assessment-check.mjs: 551 passed, 0 failed — deterministic authored offline formats selected; online graders reused; partial credit, criteria and device event provenance",
+        "scripts/verify-offline-assessment-browser.mjs: 22 passed, 0 failed — downloaded photosynthesis authored gap-fill (5/5) and matching (5/5) after browser restart offline; local-only labels; scoped draft; one queued event each; two ledger events after reconnect; device provenance; 10/10 projected marks and mastery",
+        "scripts/verify-offline-browser.mjs: 45 passed, 0 failed — learner A hand-back with queue retained, learner B cannot see A pack/answers/queue, offline restart as B, A returns and exactly one event, duplicate replay refused",
+        "scripts/verify-offline-sync.mjs: 32 passed, 0 failed — dedupe, refusals, paging, device clock",
+        "Offline assessment excludes prose constructed response and code; the printed worksheet is the written route and the teacher key remains separate",
         "OFFLINE_PACKAGE_REPORT.md",
         "LOW_BANDWIDTH_READINESS_REPORT.md",
         "npm run verify:offline-browser",
         "npm run verify:sync"
       ],
-      "remainingWork": "Re-run after any change to the service worker, offline store or sync protocol. External media remains link-only unless redistribution permission exists.",
+      "remainingWork": "Extended prose and code are not locally marked; a device cannot execute code or judge prose without a teacher/runner. Physical offline devices and real school storage limits are not measured.",
       "externalBlockers": [
         "media licensing for offline redistribution"
       ]
@@ -3481,7 +4009,7 @@
       "acceptance": "Build, start standalone, create isolated records, submit an assessment, stop, restart, and verify identity, evidence, permissions and absence of duplicate writes.",
       "dependencies": [],
       "evidence": [
-        "10.99 GiB free; guard 5.0 GiB",
+        "15.05 GiB free; guard 5.0 GiB",
         "audit/release-evidence.json: npm run production-check PASS",
         "audit/release-evidence.json: npm run restore-drill PASS (26 passed, 0 failed, planted erasure re-applied)"
       ],

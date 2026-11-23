@@ -88,7 +88,7 @@ visitor ──► onboarding ──► baseline diagnostic ──► Home ──
 
 ## Accounts, enrolment, exam papers and AI
 
-**Accounts are real.** Email + password (scrypt, per-account salt), a signed HttpOnly session cookie, and one learner profile per account — so signing in on any device restores the whole history. Sign-up keeps the anonymous profile already on that device: `POST /api/auth/signup` with `claim.profileId` moves the recorded work across instead of starting again. Accounts are **optional** — the wedge and practice still run without one, and the UI says plainly which of the two you are using. Honest limit: OpenMind sends no mail, so an address is never *verified*; the account record says so.
+**Accounts are real.** Email + password (scrypt, per-account salt), a signed HttpOnly session cookie, and one learner profile per account — so signing in on any device restores the whole history. Sign-up keeps the anonymous profile already on that device: `POST /api/auth/signup` with `claim.profileId` moves the recorded work across instead of starting again. Accounts are **optional** — the wedge and practice still run without one, and the UI says plainly which of the two you are using. Email confirmation is real when the deployment can send mail: set `RESEND_API_KEY` (and `OPENMIND_MAIL_FROM`, `NEXT_PUBLIC_SITE_URL`) and sign-up mails a single-use, 24-hour link from `/verify?token=…`; the account page shows whether the address is proved and can resend it. With no mail key nothing is faked — the account record stays `verified: false` and the page says the address is unconfirmed, because a deployment that cannot send a message cannot prove an address.
 
 **Enrolment is three screens** (`/onboarding`): account or guest → where you are and what you read → what you study. That is everything the rest of the product cannot work without.
 
@@ -331,7 +331,7 @@ Runtime results are not listed here on purpose — a gate's last pass count is t
 |  | Course × subject rows audited for depth | 311 | every subject's target depth is reachable, by some generator in its course | `audit/content-coverage.json` |
 | **Storage** | Lock tables in lib/ and app/ | 1 | one, in lib/server/store.ts — two tables means two writers with no common serialisation point | `source scan` |
 |  | Owners of where learning data lives | 1 | one, in lib/server/store.ts; lib/env.ts reports the variable and resolves nothing, so it is exempt | `source scan` |
-|  | Route files importing the store | 24 | 84 export statements in a 1321-line store; this is the surface docs/STORAGE_SPEC.md has to port | `app/api` |
+|  | Route files importing the store | 25 | 86 export statements in a 1373-line store; this is the surface docs/STORAGE_SPEC.md has to port | `app/api` |
 |  | JSON files the server modules own | 15 | plus the per-learner evidence/*.jsonl ledgers and session-secret: "accounts.json", "ai-cache.json", "boots.json", "classes.json", "classroom-sessions.json", "content-reviews.json", "erasures.json", "interventions.json", "kiosk-sessions.json", "lesson-validation.json", "packs.json", "papers.json", "personal-papers.json", "profiles.json", "rooms.json" | `lib/server/*.ts` |
 | **Pilot (UK GCSE maths)** | Concepts in the review cluster | 20 | computed from the genome's prerequisite graph, not hand-picked | `audit/pilot-pack.json` |
 |  | Items awaiting human review | 179 | every item a learner in the cluster meets, at a seed the reviewer can reproduce | `audit/pilot-pack.json` |
