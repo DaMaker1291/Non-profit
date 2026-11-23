@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
-  deleteKioskSessionsFor, getProfile, newProfileState, publicProfileState, resolveKioskSession, saveProfile,
+  deleteKioskSessionsFor, getProfile, mintProfileSecret, newProfileState, publicProfileState, resolveKioskSession,
+  saveProfile,
 } from "@/lib/server/store";
 // THE ERASURE IS ONE WORKFLOW, shared with the restore path — see
 // lib/server/erasure.ts for why it is a sequence rather than three calls from
@@ -182,7 +183,19 @@ export async function POST(req: Request): Promise<NextResponse> {
         ? body.secret
         : undefined;
       state = newProfileState(newProfileId(), {});
-      if (seedSecret) state.secret = seedSecret;
+      // A PROFILE IS BORN WITH ITS CREDENTIAL, whichever door created it.
+      //
+      // This used to store whatever the caller sent, including nothing — and an
+      // empty secret is a record the FIRST WRITER can claim (`authorize`'s
+      // legacy branch below, which exists for profiles born before secrets did).
+      // So a client that created a profile without one produced a record whose id
+      // alone was enough: the next caller to POST any 16–128 characters became
+      // its owner permanently and the real learner was locked out. Minting here
+      // closes that window rather than narrowing it, and the secret is returned
+      // in the response (`publicProfileState` carries it, `adoptProfile` stores
+      // it) so the creating device still holds the credential its next write
+      // needs.
+      state.secret = seedSecret ?? mintProfileSecret();
       await saveProfile(state);
     } else if (!(await authorize(req, state, body.secret))) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });

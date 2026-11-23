@@ -1310,6 +1310,24 @@ export function mintUnshownSecret(): string {
   return randomBytes(32).toString("hex");
 }
 
+/** The permanent capability for a profile being CREATED through the anonymous
+ *  door — the same 256 random bits as `mintUnshownSecret`, and the difference is
+ *  only who sees it: this one travels back to its creator in the create
+ *  response, because the device that made the record must hold the credential
+ *  or its very next write is refused, while a classroom learner's is never
+ *  disclosed at all.
+ *
+ *  It exists because "a profile with an empty secret is a profile the first
+ *  writer could claim" was true of the CREATE path: a caller that omitted its
+ *  own secret left `secret: ""`, and anyone who then learned the id — a URL, a
+ *  screenshot, a shared handset — could POST any 16–128 characters to it, own
+ *  the learner permanently, and lock the real one out. The teacher's
+ *  provisioning path already minted here for exactly that reason; this is the
+ *  same rule at the other door. */
+export function mintProfileSecret(): string {
+  return randomBytes(32).toString("hex");
+}
+
 export async function createKioskSession(
   profileId: string,
   classId: string,

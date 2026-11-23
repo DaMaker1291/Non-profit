@@ -14625,6 +14625,24 @@ console.log("▸ The deployment reports its own configuration, and invents no re
     }
     store.resetStoreWritePolicy();
     ok(store.storeWriteBlock() === null, "and the suite's own store is writable again once the cases are over");
+
+    // A PROFILE IS BORN WITH ITS CREDENTIAL. The create door stored whatever the
+    // caller sent, including nothing — and an empty secret is a record the FIRST
+    // WRITER can claim, which is the legacy branch `authorize` keeps for profiles
+    // born before secrets existed. So a client that created a profile without one
+    // produced a record whose ID ALONE was enough: the next POST with any 16
+    // characters to that id owned the learner, and the real device was locked out
+    // of its own work. The teacher's provisioning path already minted here
+    // (app/api/classes/route.ts), which is why the rule is asserted at this door
+    // too rather than trusted to the one that had it.
+    const profileRouteSrc = fs.readFileSync("app/api/profile/route.ts", "utf8");
+    ok(/state\.secret = seedSecret \?\? mintProfileSecret\(\)/.test(profileRouteSrc),
+      "a profile created without a client secret is minted one by the SERVER, so no new record is claimable by its first writer");
+    ok(!/if \(seedSecret\) state\.secret = seedSecret;/.test(profileRouteSrc),
+      "and the old shape — store the caller's secret and let an absent one stay absent — is gone rather than sitting beside it");
+    const minted = store.mintProfileSecret();
+    ok(/^[0-9a-f]{64}$/.test(minted) && minted !== store.mintProfileSecret(),
+      "that secret is 256 random bits, different on every call, and inside the 16..128 range every door accepts");
     try {
       fs.rmSync(nodePath.join(tmpData, probeFile), { force: true });
     } catch {
