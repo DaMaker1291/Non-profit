@@ -113,3 +113,36 @@ for (const [code, value] of Object.entries(UNTIERED)) {
   const dict = CURRICULUM_STRINGS[code];
   if (dict && !("curr.untiered" in dict)) dict["curr.untiered"] = value;
 }
+
+// ── WHY SAVE IS OFF: THE YEAR GROUP ───────────────────────────────────────
+//
+// The qualification and the tier are empty selects with a prompt, so a
+// learner can see they are unanswered. The year group is not: it renders the
+// option "I'm learning independently", which looks like an answer, while the
+// course gate (and Home's "needs: year group" card) still counts it as
+// missing and Save stays dark. Naming the field is not enough next to a box
+// that looks filled — the sentence says what the year group is blocking.
+//
+// Declared as one map and merged, like UNTIERED above, so the fifteen
+// translations sit in one place and the parity gate sees one key.
+const NEED_GRADE: Record<string, string> = {
+  en: "Save stays off until you choose a year group above.",
+  es: "Guardar sigue desactivado hasta que elijas un año escolar arriba.",
+  fr: "L'enregistrement reste désactivé tant que tu n'as pas choisi une année scolaire ci-dessus.",
+  pt: "Guardar continua desativado até escolheres um ano escolar acima.",
+  ar: "يبقى الحفظ معطّلًا حتى تختار الصف الدراسي أعلاه.",
+  sw: "Kuhifadhi hakutumika hadi uchague darasa lako la mwaka hapo juu.",
+  hi: "जब तक आप ऊपर अपनी कक्षा नहीं चुनते, सहेजना बंद रहेगा।",
+  id: "Simpan tetap nonaktif sampai kamu memilih tingkat kelas di atas.",
+  tl: "Mananatiling naka-off ang Save hanggang pumili ka ng baitang sa itaas.",
+  de: "Speichern bleibt aus, bis du oben eine Jahrgangsstufe auswählst.",
+  ja: "上で学年を選ぶまで保存はできません。",
+  zh: "选择上方年级后才能保存。",
+  fa: "تا زمانی که سال تحصیلی خود را در بالا انتخاب نکنید، ذخیره خاموش می‌ماند.",
+  ur: "جب تک آپ اوپر اپنی جماعت منتخب نہیں کرتے، محفوظ کرنا بند رہے گا۔",
+  bn: "উপরে আপনার শিক্ষাবর্ষ বেছে না নেওয়া পর্যন্ত সংরক্ষণ বন্ধ থাকবে।",
+};
+for (const [code, value] of Object.entries(NEED_GRADE)) {
+  const dict = CURRICULUM_STRINGS[code];
+  if (dict && !("curr.needGrade" in dict)) dict["curr.needGrade"] = value;
+}

@@ -12122,7 +12122,7 @@ console.log("▸ A refused save is not a connection problem");
   // English string would pass that and still show English.
   const lit = require("../.verify/i18n.js");
   const EN = lit.DICTS.en;
-  for (const key of ["onb.errRefused", "onb.errNotYours", "onb.freshStart", "onb.ephemeral"]) {
+  for (const key of ["onb.errRefused", "onb.errNotYours", "onb.freshStart", "onb.ephemeral", "acct.ephemeralDemo"]) {
     const missing = lit.LANG_CODES.filter((c) => !lit.DICTS[c] || !lit.DICTS[c][key]);
     ok(missing.length === 0, `${key} is authored in all ${lit.LANG_CODES.length} languages (missing: ${missing.join(",") || "none"})`);
     const english = lit.LANG_CODES.filter((c) => c !== "en" && lit.DICTS[c][key] === EN[key]);
@@ -12154,6 +12154,17 @@ console.log("▸ A refused save is not a connection problem");
     "the durability probe answers `unknown` on any failure, so it cannot block a sign-up");
   ok(/export function deploymentHealth\(\)[\s\S]{0,120}\/api\/health/.test(fs.readFileSync("lib/api/client.ts", "utf8")),
     "and it is an OPERATION on the shared client, so the page never names a door");
+
+  // ── THE GUEST HEARS IT WHERE THE FALSE PROMISE IS MADE ──────────────────
+  // The account notice is guarded to the account steps, and a guest reaches
+  // none of them: onboarding's guest step said "your work is saved on this
+  // device" and `/account` said the same, on an instance whose store is /tmp.
+  // So the two screens a guest actually sees must ask the deployment too.
+  const acct = fs.readFileSync("app/account/page.tsx", "utf8");
+  ok(acct.includes("storeDurability()") && acct.includes('t("acct.ephemeralDemo")'),
+    "the guest account screen asks the deployment's durability where it tells a guest their work is saved");
+  ok(/ephemeralStore && mode === "guest"/.test(onb),
+    "and onboarding's guest step — the only step a guest sees — carries the same notice");
 }
 
 console.log("▸ A finished diagnostic is a change to where the learner belongs");

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { fetchProfile, loadLocalProfileId, loadLocalProfileSecret, mintRecoveryCode, rememberOnDevice, resendVerification, saveProfilePatch, signOut, updateAccount, useAccount, useI18n } from "@/lib/client";
+import { fetchProfile, loadLocalProfileId, loadLocalProfileSecret, mintRecoveryCode, rememberOnDevice, resendVerification, saveProfilePatch, signOut, storeDurability, updateAccount, useAccount, useI18n } from "@/lib/client";
 import * as api from "@/lib/api/client";
 import { ApiError } from "@/lib/api/client";
 import AttachAccount from "@/components/attach-account";
@@ -20,6 +20,23 @@ import type { ProfileState } from "@/lib/types";
 export default function AccountPage() {
   const { t } = useI18n();
   const { session, ready, refresh } = useAccount();
+  /* ── IS THIS A DEPLOYMENT THAT KEEPS NOTHING? ───────────────────────────
+     This screen told a guest "your work is saved on this device" and that is a
+     promise about tomorrow. On a demo instance the record lives in the
+     instance's own /tmp, so the promise is false and the learner finds out by
+     losing the work. The onboarding discloses it at sign-up; a guest never sees
+     that step, which is exactly the learner with the most to lose and the least
+     warning. Asked of the deployment (`/api/health` → `lib/env.ts`), never
+     guessed from the host, and `unknown` on any failure — a disclosure may not
+     break the screen it describes. */
+  const [ephemeralStore, setEphemeralStore] = useState(false);
+  useEffect(() => {
+    let live = true;
+    storeDurability().then((word) => {
+      if (live && word === "ephemeral") setEphemeralStore(true);
+    });
+    return () => { live = false; };
+  }, []);
   const [profile, setProfile] = useState<ProfileState | null>(null);
   const [name, setName] = useState("");
   // WHO USES THIS ACCOUNT. Mirrored from the session rather than held as an
@@ -293,6 +310,9 @@ export default function AccountPage() {
           <>
             <h1>{t("acct.title")}</h1>
             <p className="lead">{t("acct.guestLead")}</p>
+            {ephemeralStore && (
+              <p className="alert small demo-note">{t("acct.ephemeralDemo")}</p>
+            )}
             {/* What is on this device, counted from the profile itself — read
                 only once it has actually loaded, because "0 answers" while the
                 fetch is in flight would be a claim about the learner rather

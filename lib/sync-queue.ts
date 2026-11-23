@@ -289,11 +289,19 @@ export type PostOutcome =
   | { kind: "refused"; status: number; res: Response };
 
 /** A status a LATER attempt could still succeed on: the network, the server, or
- *  a capability that can be re-established. Everything else is a refusal the
- *  server would repeat, and holding it forever would be a lie about a queue
- *  that is draining. */
+ *  a limit that lifts. Everything else is a refusal the server would repeat,
+ *  and holding it forever would be a lie about a queue that is draining.
+ *
+ *  A 401/403 is NOT in this list. It used to be, on the theory that a
+ *  capability can be re-established — and the cost was measured on a live
+ *  deployment: an answer the server refused with `unauthorized` was queued
+ *  anyway, and the surface told the learner "Saved on this device. It will be
+ *  marked when you reconnect." Their connection was fine and the answer was
+ *  never marked. A refused credential is a fact about this device (lib/client.tsx
+ *  already treats it as one for the profile), not an outage, so it is reported
+ *  as the refusal it is. */
 export function isRetryable(status: number): boolean {
-  return status >= 500 || status === 408 || status === 425 || status === 429 || status === 401 || status === 403;
+  return status >= 500 || status === 408 || status === 425 || status === 429;
 }
 
 /**

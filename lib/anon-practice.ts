@@ -117,31 +117,79 @@ async function createAnonProfile(language: string): Promise<string | null> {
   }
 }
 
+/**
+ * ONE-SHOT RECOVERY FROM A LOST PROFILE.
+ *
+ * A deployment that keeps its store on the instance (a Vercel container, a
+ * Render free service) can answer 404 for a learner this device still holds —
+ * and it can do it BETWEEN two requests of the same page, which is how a
+ * served question ends in a 401 when it is answered.
+ *
+ * `ensureAnonProfile` already heals the state it can SEE: a stored id that no
+ * longer exists is replaced before the request goes out. It cannot heal the
+ * id that disappears after that check, and the learner should not have to
+ * reload to find out. So a request the server refused FOR ITS IDENTITY is
+ * repeated ONCE as a freshly minted learner. Only that status set: a 400 about
+ * the answer, or a dropped connection, is not a lost profile and retrying it
+ * as a different person would be nonsense.
+ */
+function profileIsGone(status: number, code = ""): boolean {
+  // A refused capability (401/403) is the identity. A 404 is only the identity
+  // when the learner door says so: "no generator for concept" and "no such
+  // assessment" are 404s about the QUESTION, and re-minting a learner for them
+  // would abandon a real profile over a bad link.
+  if (status === 401 || status === 403) return true;
+  return status === 404 && code === "not found";
+}
+
+async function remintAnonProfile(language: string): Promise<string | null> {
+  // A new identity is a new creation: the single-flight guard must not hand
+  // back the creation that produced the profile the server has just disowned.
+  pendingAnon = null;
+  return createAnonProfile(language);
+}
+
+/** Serve, repeating the request once under a new identity when the server says
+ *  the identity we sent is gone. A failure that survives the retry is a real
+ *  failure and stays one. */
+async function serveWithRecovery(
+  conceptId: string,
+  language: string,
+  intent: "practice" | "transfer",
+): Promise<{ kind: "ok"; question: AnonPracticeQ | null } | { kind: "failed" }> {
+  const attempt = async (fresh: boolean) => {
+    const id = fresh ? await remintAnonProfile(language) : await ensureAnonProfile(language);
+    if (!id) return { kind: "lost" as const };
+    try {
+      const body = intent === "transfer"
+        ? await api.serveQuestion(id, conceptId, { intent: "transfer", lang: language })
+        : await api.serveQuestion(id, conceptId, { lang: language });
+      return { kind: "ok" as const, question: body.question ?? null };
+    } catch (e) {
+      const lost = e instanceof api.ApiError && profileIsGone(e.status, e.code);
+      return lost ? { kind: "lost" as const } : { kind: "failed" as const };
+    }
+  };
+  const first = await attempt(false);
+  if (first.kind === "ok") return first;
+  if (first.kind === "failed") return first;
+  const second = await attempt(true);
+  return second.kind === "ok" ? second : { kind: "failed" };
+}
+
 /** Serve one practice question for a concept, recording against the (possibly
  *  newly created) anonymous profile. */
 export async function anonServe(conceptId: string, language: string): Promise<AnonPracticeQ | null> {
-  const id = await ensureAnonProfile(language);
-  if (!id) return null;
-  try {
-    const body = await api.serveQuestion(id, conceptId, { lang: language });
-    return body.question ?? null;
-  } catch {
-    return null;
-  }
+  const r = await serveWithRecovery(conceptId, language, "practice");
+  return r.kind === "ok" ? r.question : null;
 }
 
 /** Serve a *transfer* question: the serve request declares the intent, the
  *  server stages it (harder question, transfer attribution on grading) and
  *  the client cannot claim transfer credit for an ordinary practice draw. */
 export async function anonServeTransfer(conceptId: string, language: string): Promise<AnonPracticeQ | null> {
-  const id = await ensureAnonProfile(language);
-  if (!id) return null;
-  try {
-    const body = await api.serveQuestion(id, conceptId, { intent: "transfer", lang: language });
-    return body.question ?? null;
-  } catch {
-    return null;
-  }
+  const r = await serveWithRecovery(conceptId, language, "transfer");
+  return r.kind === "ok" ? r.question : null;
 }
 
 /** Grade a picked choice through the server; the client never decides
@@ -158,9 +206,18 @@ export async function anonAnswer(
 ): Promise<AnonAnswerOutcome> {
   const id = await ensureAnonProfile(language);
   if (!id) return { kind: "error", status: 0 };
-  const outcome = await api.answerQuestion({
-    id, conceptId, questionId, ...given, lang: language, ms: meta?.ms,
+  const send = (who: string) => api.answerQuestion({
+    id: who, conceptId, questionId, ...given, lang: language, ms: meta?.ms,
   });
+  let outcome = await send(id);
+  // THE SAME ANSWER, ASKED AGAIN AS THE NEW LEARNER. A refusal that names the
+  // identity (not the answer) is the instance changing under the question that
+  // was just served; the learner's answer is unaffected, and reloading is not
+  // something to make them discover for themselves. Retry once, then report.
+  if (outcome.kind === "error" && profileIsGone(outcome.status, outcome.code)) {
+    const fresh = await remintAnonProfile(language);
+    if (fresh) outcome = await send(fresh);
+  }
   if (outcome.kind === "offline") return { kind: "offline" };
   if (outcome.kind === "error") return { kind: "error", status: outcome.status };
   const v = outcome.verdict;

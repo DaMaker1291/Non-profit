@@ -581,7 +581,16 @@ export default function CurriculumPage() {
         )}
         {!canSave && (
           <p className="field-error" role="status">
-            {fill(t("onb.needFields"), { fields: t(FIELD_LABEL[missingField] as Parameters<typeof t>[0]) })}
+            {/* THE YEAR GROUP IS THE ONE BLOCKER THAT DOES NOT LOOK LIKE ONE.
+                The qualification and the tier are empty selects with a prompt;
+                the year group shows "I'm learning independently", so the screen
+                reads as answered while Save stays off. Naming the field is not
+                enough there ("Your grade level" beside a filled-looking box is
+                what the learner is already looking at) — the sentence says the
+                Save is what it is blocking. */}
+            {missingField === "grade"
+              ? t("curr.needGrade")
+              : fill(t("onb.needFields"), { fields: t(FIELD_LABEL[missingField] as Parameters<typeof t>[0]) })}
           </p>
         )}
       </section>

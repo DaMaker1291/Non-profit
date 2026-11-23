@@ -971,6 +971,17 @@ function OnboardingFlow() {
               <p className="alert small demo-note" style={{ marginTop: 12 }}>{t("onb.ephemeral")}</p>
             )}
 
+            {/* THE GUEST STEP SAYS IT TOO. The account-step notice above is
+                guarded to the account steps on purpose, and those are the steps
+                a guest never reaches — so on a demo store the one learner who is
+                told "your work is saved" is the one who was never warned. This
+                is the same fact in the words that fit somebody with no account:
+                it survives nothing here, and an account would not survive
+                either. */}
+            {ephemeralStore && mode === "guest" && (
+              <p className="alert small demo-note" style={{ marginTop: 12 }}>{t("acct.ephemeralDemo")}</p>
+            )}
+
             <p className="small muted" style={{ marginTop: 12 }}>
               {mode === "guest" ? t("onb.guestNote") : t("onb.verifyNote")}
             </p>

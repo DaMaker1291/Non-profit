@@ -82,7 +82,15 @@ export default function TryConceptPage() {
     try {
       const o = await anonAnswer(q.conceptId, q.id, given, lang);
       if (o.kind === "offline") { setSaved(true); return; }
-      if (o.kind === "error") { setErr(t("common.error")); return; }
+      if (o.kind === "error") {
+        // A REFUSAL IS NOT AN OFFLINE SAVE. A 401/403 is the server declining
+        // to write this device's profile — the sentence for that is the one the
+        // enrolment form already uses, and it is true here too: nothing was
+        // erased, this browser cannot reach that record. Anything else is said
+        // as what it is: not marked, not saved.
+        setErr(o.status === 401 || o.status === 403 ? t("onb.errNotYours") : t("try.notSaved"));
+        return;
+      }
       setCorrect(o.grade.correct);
       setAnswerIndex(o.grade.answerIndex);
       setExplanation(o.grade.explanation);
