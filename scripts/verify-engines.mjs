@@ -1086,6 +1086,7 @@ console.log("▸ The level a sitting opens at");
   const specsMod = require("../.verify/specifications.js");
   const qBank = require("../.verify/questions.js");
   const cannotPlace = [];
+  const underSupplied = [];
   const wrongRung = [];
   let courses = 0;
   for (const spec of specsMod.SPECIFICATIONS) {
@@ -1098,8 +1099,17 @@ console.log("▸ The level a sitting opens at");
         wrongRung.push(`${spec.id}/${level.id}: openStage ${s.openStage}`);
       }
       for (const c of s.concepts) {
-        if (qBank.difficultyBandFor(qBank.conceptDepth(c.conceptId)) < declaredBand - 1) {
+        // The concept must REACH the course's declared band. Allowing one band
+        // below (`declaredBand - 1`) was the hole through which a GCSE Higher
+        // sitting sampled a concept whose entire range topped out at
+        // application level; that is a capacity fact, not a learner fact.
+        if (qBank.difficultyBandFor(qBank.conceptDepth(c.conceptId)) < declaredBand) {
           cannotPlace.push(`${spec.id}/${level.id}:${c.conceptId}`);
+        }
+        // A ceiling is not a supply. The concept must also produce the declared
+        // demand in at least the measured minimum share of its natural draws.
+        if (qBank.conceptReachRate(c.conceptId, level.difficulty) < qBank.CONCEPT_REACH_MIN_RATE) {
+          underSupplied.push(`${spec.id}/${level.id}:${c.conceptId}@${level.difficulty}`);
         }
       }
       // …and the rung the first concept actually opens at, which is the
@@ -1112,14 +1122,82 @@ console.log("▸ The level a sitting opens at");
   }
   ok(courses > 0 && cannotPlace.length === 0,
     `no course samples a concept that cannot place its learner (${cannotPlace.slice(0, 3).join(", ") || `${courses} courses clear`})`);
+  ok(underSupplied.length === 0,
+    `no course samples a concept whose natural supply rarely reaches its demand (${underSupplied.slice(0, 3).join(", ") || `${courses} courses clear`})`);
   ok(wrongRung.length === 0,
     `every course opens its concepts at its own rung (${wrongRung.slice(0, 3).join(", ") || `${courses} courses agree`})`);
+}
+// ── 3a-ii-b. The course gate the diagnostic must pass ──────────────────────
+// `specForProfile` may keep a deterministic fallback for a display reader, but
+// a pedagogical surface may not. These are the four cases the audit named:
+// a chosen Higher course, an unanswered tier, a valid one-tier qualification,
+// and two subjects whose courses differ.
+console.log("▸ The diagnostic course gate");
+{
+  const specsMod = require("../.verify/specifications.js");
+  const higherProfile = {
+    country: "GB", grade: "Year 11", subjects: ["maths"],
+    subjectCourses: { maths: { spec: "uk-gcse", specLevel: "higher" } },
+  };
+  const higherGate = specsMod.servingCourseFor(higherProfile, "maths");
+  ok(higherGate.ok && higherGate.active.spec.id === "uk-gcse" && higherGate.active.level.id === "higher",
+    "a chosen GCSE Higher course is served as Higher, not as the fallback Foundation tier");
+
+  const unanswered = {
+    country: "GB", grade: "Year 11", subjects: ["maths"],
+    subjectCourses: { maths: { spec: "uk-gcse" } },
+  };
+  const unansweredGate = specsMod.servingCourseFor(unanswered, "maths");
+  ok(!unansweredGate.ok && unansweredGate.missing.includes("specLevel"),
+    `an unanswered tier is a named gap, never a silent Foundation course (${unansweredGate.ok ? "served " + unansweredGate.active.level.id : unansweredGate.missing.join(",")})`);
+  ok(specsMod.resolveCourse(unanswered, "maths").source === "fallback" &&
+     specsMod.resolveCourse(unanswered, "maths").tier === null,
+    "the resolver records the serving fallback and no chosen tier, so the two facts cannot be confused");
+
+  const oneTier = {
+    country: "US", grade: "Grade 11", subjects: ["maths"],
+    subjectCourses: { maths: { spec: "us-sat" } },
+  };
+  const oneTierGate = specsMod.servingCourseFor(oneTier, "maths");
+  ok(oneTierGate.ok && oneTierGate.active.level.id === "sat",
+    "a one-tier qualification is complete with no tier chosen (no false requirement)");
+
+  const mixed = {
+    country: "GB", grade: "Year 11", subjects: ["biology", "maths"],
+    subjectCourses: {
+      biology: { spec: "uk-gcse", specLevel: "foundation" },
+      maths: { spec: "uk-gcse", specLevel: "higher" },
+    },
+  };
+  ok(specsMod.servingCourseFor(mixed, "maths").active.level.id === "higher" &&
+     specsMod.servingCourseFor(mixed, "biology").active.level.id === "foundation",
+    "a multi-subject learner's maths and biology courses are resolved independently");
+
+  // The route itself must pass the subject and gate before starting. Source
+  // checks are a weak instrument, but they catch the exact regression: the old
+  // line called `specForProfile(state.profile)` with no subject and no gate.
+  const routeSrc = fs.readFileSync("app/api/diagnostic/route.ts", "utf8");
+  ok(/servingCourseFor\(state\.profile, body\.subject\)/.test(routeSrc),
+    "the diagnostic route resolves the course for the request's subject");
+  ok(!/specForProfile\(state\.profile\)/.test(routeSrc),
+    "and never calls the subject-less display resolver");
+  ok(/courseIncomplete: true/.test(routeSrc),
+    "an incomplete course is returned as a named refusal before any question is served");
+
+  // The measured supply rule itself: a concept whose only A-level item is a
+  // rarity must not be treated as an A-level source, even though its maximum
+  // depth clears the band.
+  const qBank = require("../.verify/questions.js");
+  ok(qBank.conceptDepth("factors-primes") >= 0.75 &&
+     qBank.conceptReachRate("factors-primes", 0.75) < qBank.CONCEPT_REACH_MIN_RATE,
+    `a concept whose ceiling clears 0.75 but whose natural reach is ${(qBank.conceptReachRate("factors-primes", 0.75) * 100).toFixed(1)}% is not treated as an A-level source`);
 }
 // ── 3a-iii. The defect, on the real sitting, at both ends ───────────────────
 console.log("▸ No primary questions for a Year 11, and no credit for wrong answers");
 {
   const specsMod = require("../.verify/specifications.js");
   const qBank = require("../.verify/questions.js");
+  const bankMod = require("../.verify/question-bank.js");
   const gcse = specsMod.SPECIFICATIONS.find((s) => s.id === "uk-gcse");
   const higher = gcse.levels.find((l) => l.id === "higher");
   const walk = (answerCorrectly) => {
@@ -1135,8 +1213,11 @@ console.log("▸ No primary questions for a Year 11, and no credit for wrong ans
   const bad = walk(false);
   const goodFloors = good.s.log.map((x) => x.difficulty);
   const bands = [...new Set(goodFloors.map((d) => qBank.difficultyBandFor(d)))].sort();
-  ok(goodFloors.length > 0 && goodFloors.every((d) => qBank.difficultyBandFor(d) >= 2),
-    `a Year 11 GCSE Higher sitting asks nothing of primary difficulty (served bands ${bands.join("/")}, lowest ${Math.min(...goodFloors).toFixed(2)})`);
+  // The course declares Higher at 0.65 (multi-step). Checking only “not
+  // primary” let application-level items through as long as they were not
+  // literally band 1. The sitting must meet the course's own demand band.
+  ok(goodFloors.length > 0 && goodFloors.every((d) => ["multi_step", "data_interpretation"].includes(bankMod.skillForDifficulty(d))),
+    `a Year 11 GCSE Higher sitting stays at or above the course's own demand (served bands ${bands.join("/")}, lowest ${Math.min(...goodFloors).toFixed(2)})`);
   const badFloors = bad.s.log.map((x) => x.difficulty);
   // A learner who cannot do their course's band is measured THERE and stopped:
   // the band rules still close a band on two misses, so the sitting never falls
@@ -5842,6 +5923,15 @@ console.log("▸ The question bank");
     const concepts = a.map((id) => genome.CONCEPTS_BY_ID[id]);
     ok(concepts.every(Boolean), "every sampled concept exists in the genome");
     ok(concepts.every((x) => x.subject === "maths"), "and belongs to the subject being diagnosed");
+    // A narrow course must not be padded with anchor concepts from outside its
+    // coverage when the blueprint cannot fill the sample.
+    const onlyFractionsAndDecimals = new Set(["fractions", "decimals"]);
+    const narrow = bank.blueprintConcepts(
+      R, "maths", (id) => onlyFractionsAndDecimals.has(id),
+      ["quadratics", "place-value"], 4,
+    );
+    ok(narrow.length > 0 && narrow.every((id) => onlyFractionsAndDecimals.has(id)),
+      `a narrow course's fallback stays inside its eligible coverage (${narrow.join(",")})`);
     const stages = concepts.map((x) => x.stage);
     ok(JSON.stringify(stages) === JSON.stringify([...stages].sort((x, y) => x - y)),
       "sampled in teaching order, foundations first");
@@ -5922,7 +6012,10 @@ console.log("▸ The question bank");
     const fromBlueprint = bl.topics.flatMap((t) => t.concepts);
     const sampled = s.concepts.map((c) => c.conceptId);
     ok(sampled.every((id) => genome.CONCEPTS_BY_ID[id]), "the session's concepts all exist");
-    ok(sampled.every((id) => fromBlueprint.length === 0 || fromBlueprint.includes(id) || true),
+    // The old assertion ended in `|| true`, so it could not fail. Membership is
+    // the whole claim: every sampled concept must be in the qualification's
+    // course, not merely a real concept somewhere in the genome.
+    ok(fromBlueprint.length > 0 && sampled.every((id) => fromBlueprint.includes(id)),
       `baseline concepts come from the qualification's coverage (${sampled.join(",")})`);
   }
 
@@ -11207,10 +11300,26 @@ console.log("▸ AI explains, never records");
   // other half: both selects were driven by the RESOLVED course, so when the
   // fallback already equalled the course the learner wanted, choosing it fired
   // no `change` at all — Save stayed dead under a box that already showed it.
-  ok(/const needsSpec = !specId && !hasStoredCourse;/.test(curSrc) &&
+  ok(/const needsSpec = !specId && !hasStoredSpec;/.test(curSrc) &&
      /value=\{needsSpec \? "" : active\.spec\.id\}/.test(curSrc) &&
      curSrc.includes('{needsSpec && <option value="" disabled>{t("onb.pickSpec")}</option>}'),
     "and the qualification control opens empty when nothing is chosen, so picking the fallback is a real choice");
+  // A STORED QUALIFICATION WITHOUT A TIER IS HALF AN ANSWER, NOT NO ANSWER.
+  // Requiring both halves made the learner who had chosen GCSE but not its tier
+  // open the page to an empty qualification select and "Still to choose:
+  // Qualification" — while the gate was asking for the TIER. The selected
+  // qualification must remain visible; only the tier is still a question.
+  ok(/const hasStoredSpec = Boolean\(storedCourse\?\.spec\);/.test(curSrc) &&
+     /const hasStoredCourse = Boolean\(hasStoredSpec && storedCourse\?\.specLevel\);/.test(curSrc),
+    "a qualification already chosen is shown even while its tier is still missing");
+  // AND THE WRITE DOOR MUST NOT MINT THE MISSING TIER. `courseEntry` used to
+  // fill `spec.levels[0]` whenever no tier was named; for GCSE Mathematics that
+  // is Foundation. A client that sent only "GCSE" therefore stored a learner
+  // who had chosen Foundation, and the serving gate could no longer tell. This
+  // asserts the absence, not merely the presence of a warning.
+  const profileDoor = fs.readFileSync("app/api/profile/route.ts", "utf8");
+  ok(!/levels\[0\]\.id/.test(profileDoor) && /delete entry\.specLevel/.test(profileDoor) && /delete p\.specLevel/.test(profileDoor),
+    "choosing a qualification without a tier leaves the tier absent, never silently defaults it to Foundation");
   ok(/disabled=\{!canSave\}/.test(curSrc) && curSrc.includes('fill(t("onb.needFields")'),
     "the button is disabled by that same gate and the screen names what it is waiting for");
   ok(curSrc.includes('tierForYear(chosenSpec, profile?.grade ?? "", subject)') && curSrc.includes('t("onb.grade")'),
@@ -12461,12 +12570,16 @@ console.log("▸ One course per subject");
      S.specForProfile(twoSubjects, "maths").level.id === "foundation",
     "the subject that HAS a course resolves to exactly that qualification and tier");
   // Two subjects, two qualifications, one profile — the whole point.
+  // Both courses must genuinely SERVE this year, or "fully configured" is a
+  // fixture asserting something the product should refuse. Year 11 is served by
+  // the GCSE and by Cambridge IGCSE; the two qualifications still differ, which
+  // is the property under test.
   const mixed = {
-    country: "GB", grade: "Year 12", subjects: ["maths", "physics"],
-    subjectCourses: { maths: { spec: "uk-gcse", specLevel: "foundation" }, physics: { spec: "uk-alevel", specLevel: "as" } },
+    country: "GB", grade: "Year 11", subjects: ["maths", "physics"],
+    subjectCourses: { maths: { spec: "uk-gcse", specLevel: "foundation" }, physics: { spec: "int-igcse", specLevel: "extended" } },
   };
   ok(S.specForProfile(mixed, "maths").spec.id === "uk-gcse" &&
-     S.specForProfile(mixed, "physics").spec.id === "uk-alevel",
+     S.specForProfile(mixed, "physics").spec.id === "int-igcse",
     "one learner can sit two different qualifications, each resolved for its own subject");
   ok(S.difficultyFor(S.specForProfile(mixed, "maths")) < S.difficultyFor(S.specForProfile(mixed, "physics")),
     "and each subject practises at its own depth " +
@@ -12620,11 +12733,19 @@ console.log("▸ Every offered country can complete a course");
     const courseRoute =
       C.routeForPathwayId(code, R.pathwayForSpec(code, spec.id)?.id) ?? route;
     if (courseRoute.grades.length === 0) problems.push(`${code}: ${spec.id} offers no years to choose`);
+    // A QUALIFICATION'S YEAR IS THE YEAR IT ACTUALLY SERVES. The route lists
+    // every year the SYSTEM has; a GCSE route begins at Year 7, and handing
+    // Year 7 to a GCSE course is the mismatch this suite now refuses. So the
+    // fixture takes a year one of the qualification's own tiers declares, and
+    // falls back to the route only where the qualification declares none (an
+    // international qualification with no school-year tie).
+    const servedYears = [...new Set(spec.levels.flatMap((l) => l.schoolYears ?? []))];
+    const servedGrade = servedYears[0] ?? courseRoute.grades[0];
     const gaps = S.courseGaps(
       {
         country: code,
         pathway,
-        grade: courseRoute.grades[0],
+        grade: servedGrade,
         subjects: ["maths"],
         subjectCourses: { maths: { spec: spec.id, specLevel: spec.levels[0].id } },
       },
@@ -18875,6 +18996,7 @@ console.log("▸ The Number checkpoint uses unseen items and never ships their k
     "number-line-model": "components/number-line-model.tsx",
     "fraction-line-model": "components/fraction-line-model.tsx",
     "fraction-ops-model": "components/fraction-ops-model.tsx",
+    "factor-model": "components/factor-model.tsx",
   };
   ok(models.INTERACTIVE_MODEL_IDS.every((id) => fsMod.existsSync(modelComponents[id])),
     `every interactive model a plan can name has a component (${models.INTERACTIVE_MODEL_IDS.join(", ")})`);
@@ -18886,6 +19008,34 @@ console.log("▸ The Number checkpoint uses unseen items and never ships their k
   const pageSrc = fsMod.readFileSync("app/learn/[subject]/[concept]/page.tsx", "utf8");
   ok(/lessonModel === "circuit-model" && <CircuitModel \/>/.test(pageSrc),
     "and the lesson page renders it on that condition rather than importing it for nothing");
+
+  // ── FACTORS, PRIMES, HCF AND LCM ─────────────────────────────────────────────
+  // The factor tree is arithmetic a learner can see, so the tree and the
+  // reading are asserted from the same module the component uses.
+  const factorPairs = models.factorPairs(36).map((p) => `${p.a}x${p.b}`).join(",");
+  ok(factorPairs === "2x18,3x12,4x9,6x6",
+    `the factor tree offers the proper factor pairs of 36 (${factorPairs})`);
+  const factorTree = models.makeFactorTree(36);
+  const firstFactorSplit = models.splitFactorTree(factorTree, "root", 4, 9);
+  const secondFactorSplit = firstFactorSplit && models.splitFactorTree(firstFactorSplit, "root-4", 2, 2);
+  const thirdFactorSplit = secondFactorSplit && models.splitFactorTree(secondFactorSplit, "root-9", 3, 3);
+  const factorSummary = thirdFactorSplit && models.readFactorTree(thirdFactorSplit);
+  ok(Boolean(firstFactorSplit) && Boolean(secondFactorSplit) && Boolean(thirdFactorSplit) &&
+     factorSummary.complete && factorSummary.productText === "2 × 2 × 3 × 3" && factorSummary.indexText === "2² × 3²",
+    "splitting 36 into 4×9, then 4 into 2×2 and 9 into 3×3, ends at exactly 2² × 3²");
+  ok(models.splitFactorTree(factorTree, "root", 2, 19) === null,
+    "a factor pair that does not multiply to the node is refused, so the drawing cannot contradict the arithmetic");
+  const twinFactorSplit = models.splitFactorTree(factorTree, "root", 6, 6);
+  ok(Boolean(twinFactorSplit) && twinFactorSplit.left.id !== twinFactorSplit.right.id,
+    "an equal factor pair gets two distinct node ids, so 6 × 6 does not highlight the same leaf twice");
+  ok(models.firstUnsplitComposite(factorTree)?.value === 36 &&
+     models.firstUnsplitComposite(firstFactorSplit)?.value === 4,
+    "the active leaf is the next composite the learner must split, not an arbitrary node");
+  const hcfLcm = models.readHcfLcm(24, 36);
+  ok(hcfLcm.hcf === 12 && hcfLcm.lcm === 72 && hcfLcm.hcfText === "2² × 3" && hcfLcm.lcmText === "2³ × 3²",
+    "24 and 36 read as HCF 12 (shared primes, lower powers) and LCM 72 (every prime, highest power)");
+  ok(models.readHcfLcm(18, 30).hcf === 6 && models.readHcfLcm(18, 30).lcm === 90,
+    "the same reading gives 18 and 30 the HCF 6 and LCM 90, so the method is not tuned to one pair");
 
   // ── THE OTHER THREE PILOT MODELS ─────────────────────────────────────────────
   // Assertions on the MODEL, not on the component: if a belief in the table stops
@@ -19391,6 +19541,71 @@ console.log("▸ The Number checkpoint uses unseen items and never ships their k
     `the file-only subsystems are exactly the ones enumerated here — ${KNOWN.length} named, ${found.length} found`
     + (added.length ? `; NEW bypass: ${added.join(", ")}` : "")
     + (removed.length ? `; migrated, so delete from the list: ${removed.join(", ")}` : ""));
+}
+
+// ── STRICT COURSE SERVING, DOOR BY DOOR ────────────────────────────────
+//
+// The learning-method audit's first requirement: a course-bound serve must
+// never be answered from the DISPLAY resolver's fallback. These are the cases
+// the review named, asserted where the rule lives rather than through a screen.
+{
+  const specs = require("../.verify/specifications.js");
+  const gb = (grade, extra = {}) => ({ country: "GB", spec: "uk-gcse", grade, subjects: ["maths"], ...extra });
+
+  const noTier = specs.servingCourseFor(gb("Year 11"), "maths");
+  ok(!noTier.ok && noTier.missing.includes("specLevel"),
+    "a Year 11 GCSE learner with NO tier is refused by name (specLevel), never served at Foundation");
+
+  const higher = specs.servingCourseFor(gb("Year 11", { specLevel: "higher" }), "maths");
+  ok(higher.ok && higher.active.level.id === "higher" && higher.active.level.difficulty === 0.65,
+    "…and the same learner with Higher is served at Higher's band (0.65)");
+
+  const foundation = specs.servingCourseFor(gb("Year 11", { specLevel: "foundation" }), "maths");
+  ok(foundation.ok && foundation.active.level.id === "foundation" && foundation.active.level.difficulty === 0.45,
+    "…and a Foundation learner at Foundation's band (0.45), so the two tiers are genuinely different courses");
+
+  // ── THE YEAR IS NOT A TIER ────────────────────────────────────────────
+  // A Year 7/9/5 learner holding a GCSE is NOT a GCSE Foundation candidate.
+  // The qualification declares Years 10–11, so the year is outside the course
+  // and the gap is the QUALIFICATION — asking for a tier would invite an answer
+  // that enrols them in a curriculum they do not sit.
+  for (const year of ["Year 5", "Year 7", "Year 9"]) {
+    const r = specs.servingCourseFor(gb(year), "maths");
+    ok(!r.ok && r.missing.includes("spec") && !r.missing.includes("specLevel"),
+      `${year} on a GCSE course is refused as OUTSIDE the course (missing qualification), not asked to pick a GCSE tier`);
+  }
+
+  // A qualification that is genuinely untiered for a subject needs no choice.
+  const computing = specs.servingCourseFor({ country: "GB", spec: "uk-gcse", grade: "Year 11", subjects: ["computing"] }, "computing");
+  ok(computing.ok && computing.active.level.difficulty === 0.45,
+    "GCSE Computer Science is untiered, so a complete course resolves with no tier chosen");
+
+  // A class/provisioned learner's two subjects keep their own tiers.
+  const twoSubjects = specs.servingCourseFor({
+    country: "GB",
+    grade: "Year 11",
+    subjects: ["maths", "physics"],
+    subjectCourses: {
+      maths: { spec: "uk-gcse", specLevel: "higher" },
+      physics: { spec: "uk-gcse", specLevel: "foundation" },
+    },
+  }, "physics");
+  ok(twoSubjects.ok && twoSubjects.active.level.id === "foundation",
+    "physics resolves at ITS OWN tier even when maths on the same record is Higher");
+
+  // ── AN EXPLICIT ?spec= IS VALIDATED, NOT TRUSTED ──────────────────────
+  ok(specs.explicitCourse("uk-gcse", undefined, "maths").error === "tier_required",
+    "an explicit multi-tier qualification with no tier is refused rather than given levels[0]");
+  ok(specs.explicitCourse("uk-gcse", "higher", "maths").ok === true,
+    "an explicit qualification WITH its tier resolves");
+  ok(specs.explicitCourse("uk-gcse", "higher", "computing").error === "unknown_tier",
+    "a tier the subject does not offer is refused by name");
+  ok(specs.explicitCourse("us-sat", undefined, "biology").error === "course_does_not_teach_subject",
+    "an explicit maths-only qualification cannot be used for a biology paper");
+  ok(specs.explicitCourse("not-a-course", undefined, "maths").error === "unknown_spec",
+    "an unknown qualification is refused, never silently replaced by the learner's own");
+  ok(specs.explicitCourse("us-sat", undefined, "maths").ok === true,
+    "a genuinely single-tier qualification still resolves with no tier named");
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

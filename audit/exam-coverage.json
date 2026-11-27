@@ -1930,9 +1930,9 @@
           "conceptId": "factors-primes",
           "lessonFile": true,
           "teachingSequence": true,
-          "modality": "plan-text",
-          "interaction": null,
-          "browserVerified": false,
+          "modality": "interactive-model",
+          "interaction": "factor-model",
+          "browserVerified": true,
           "educatorReviewed": false,
           "learnerTested": false
         },

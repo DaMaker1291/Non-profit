@@ -35,6 +35,7 @@ export const INTERACTIVE_MODEL_IDS = [
   "number-line-model",
   "fraction-line-model",
   "fraction-ops-model",
+  "factor-model",
 ] as const;
 export type InteractiveModelId = (typeof INTERACTIVE_MODEL_IDS)[number];
 
@@ -208,6 +209,206 @@ export const CIRCUIT_BELIEFS: readonly CircuitBelief[] = [
   },
 ];
 
+// ── FACTORS, PRIME FACTORISATION, HCF AND LCM ─────────────────────────────
+//
+// The N4 lesson is prose-strong but it described its factor tree in notation.
+// This model makes the tree a thing the learner builds, and then uses the same
+// primes for the comparison the lesson is really about: the shared primes at
+// the lower powers give the HCF, every prime at its highest power gives the
+// LCM. The arithmetic is here, not in the component, so the suite can prove
+// that the tree's leaves multiply back to 36 and that 24/36 read 12 and 72.
+
+export interface FactorPair {
+  readonly a: number;
+  readonly b: number;
+}
+
+/** Proper factor pairs below the square root, with 1 excluded: 1 is a factor
+ *  but not a prime, and a factor tree needs to make progress. 36 gives
+ *  [2×18, 3×12, 4×9, 6×6] — the four choices a learner should see. */
+export function factorPairs(n: number): FactorPair[] {
+  if (!Number.isInteger(n) || n < 4) return [];
+  const pairs: FactorPair[] = [];
+  for (let a = 2; a * a <= n; a += 1) {
+    if (n % a === 0) pairs.push({ a, b: n / a });
+  }
+  return pairs;
+}
+
+export function isPrime(n: number): boolean {
+  if (!Number.isInteger(n) || n < 2) return false;
+  if (n % 2 === 0) return n === 2;
+  for (let d = 3; d * d <= n; d += 2) if (n % d === 0) return false;
+  return true;
+}
+
+export interface FactorNode {
+  readonly id: string;
+  readonly value: number;
+  readonly pair?: FactorPair;
+  readonly left?: FactorNode;
+  readonly right?: FactorNode;
+}
+
+export function makeFactorTree(n: number): FactorNode {
+  return { id: "root", value: n };
+}
+
+/** Replace one unsplit composite leaf with its two children. Returns null for a
+ *  pair that does not multiply to that leaf, so the component cannot grow a tree
+ *  that contradicts the arithmetic. */
+export function splitFactorTree(
+  tree: FactorNode,
+  nodeId: string,
+  a: number,
+  b: number,
+): FactorNode | null {
+  if (!Number.isInteger(a) || !Number.isInteger(b) || a < 2 || b < 2) return null;
+  if (tree.id === nodeId) {
+    if (tree.left || tree.right || a * b !== tree.value) return null;
+    const low = Math.min(a, b);
+    const high = Math.max(a, b);
+    // 6 × 6 gives two equal children. Without distinct ids both nodes look like
+    // the active leaf, so the learner is shown two places to split when only one
+    // is next. The suffix is only added for an equal pair, so the 4 × 9 route
+    // keeps the ids the suite and the browser evidence already name.
+    return {
+      ...tree,
+      pair: { a: low, b: high },
+      left: { id: `${tree.id}-${low}${low === high ? "-a" : ""}`, value: low },
+      right: { id: `${tree.id}-${high}${low === high ? "-b" : ""}`, value: high },
+    };
+  }
+  if (tree.left) {
+    const left = splitFactorTree(tree.left, nodeId, a, b);
+    if (left) return { ...tree, left };
+  }
+  if (tree.right) {
+    const right = splitFactorTree(tree.right, nodeId, a, b);
+    if (right) return { ...tree, right };
+  }
+  return null;
+}
+
+/** The next leaf a learner must split: the leftmost composite leaf. A prime
+ *  leaf is finished, and a node that already has children is not a leaf. */
+export function firstUnsplitComposite(node: FactorNode): FactorNode | null {
+  if (!node.left || !node.right) return !isPrime(node.value) ? node : null;
+  return firstUnsplitComposite(node.left) ?? firstUnsplitComposite(node.right);
+}
+
+export function factorLeaves(node: FactorNode): number[] {
+  if (!node.left || !node.right) return [node.value];
+  return [...factorLeaves(node.left), ...factorLeaves(node.right)];
+}
+
+const SUPERSCRIPT: Readonly<Record<number, string>> = {
+  0: "⁰", 1: "¹", 2: "²", 3: "³", 4: "⁴",
+  5: "⁵", 6: "⁶", 7: "⁷", 8: "⁸", 9: "⁹",
+};
+
+function primePowerText(powers: readonly { prime: number; power: number }[]): string {
+  return powers
+    .map(({ prime, power }) =>
+      power === 1 ? String(prime) : `${prime}${SUPERSCRIPT[power] ?? `^${power}`}`)
+    .join(" × ");
+}
+
+export interface FactorTreeSummary {
+  readonly leaves: number[];
+  readonly complete: boolean;
+  readonly productText: string;
+  readonly indexText: string;
+}
+
+export function readFactorTree(node: FactorNode): FactorTreeSummary {
+  const leaves = factorLeaves(node).sort((a, b) => a - b);
+  const counts = new Map<number, number>();
+  for (const leaf of leaves) counts.set(leaf, (counts.get(leaf) ?? 0) + 1);
+  const powers = [...counts.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([prime, power]) => ({ prime, power }));
+  return {
+    leaves,
+    complete: leaves.every(isPrime),
+    productText: leaves.join(" × "),
+    indexText: primePowerText(powers),
+  };
+}
+
+export interface PrimePower {
+  readonly prime: number;
+  readonly power: number;
+}
+
+export function primePowers(n: number): PrimePower[] {
+  if (!Number.isInteger(n) || n < 2) return [];
+  const powers: PrimePower[] = [];
+  let rest = n;
+  for (let prime = 2; prime * prime <= rest; prime += 1) {
+    let power = 0;
+    while (rest % prime === 0) {
+      rest /= prime;
+      power += 1;
+    }
+    if (power > 0) powers.push({ prime, power });
+  }
+  if (rest > 1) powers.push({ prime: rest, power: 1 });
+  return powers;
+}
+
+export interface HcfLcmReading {
+  readonly a: number;
+  readonly b: number;
+  readonly hcf: number;
+  readonly lcm: number;
+  readonly aText: string;
+  readonly bText: string;
+  readonly hcfText: string;
+  readonly lcmText: string;
+  readonly shared: readonly PrimePower[];
+}
+
+/** The HCF and LCM read from the prime factorisations, with the products in
+ *  the same notation the lesson uses. The HCF takes the shared primes at the
+ *  LOWER power; the LCM takes EVERY prime at its HIGHEST power. */
+export function readHcfLcm(a: number, b: number): HcfLcmReading {
+  const aPowers = primePowers(a);
+  const bPowers = primePowers(b);
+  const aMap = new Map(aPowers.map((p) => [p.prime, p.power] as const));
+  const bMap = new Map(bPowers.map((p) => [p.prime, p.power] as const));
+  const primes = [...new Set([...aMap.keys(), ...bMap.keys()])].sort((x, y) => x - y);
+  const hcfPowers: PrimePower[] = [];
+  const lcmPowers: PrimePower[] = [];
+  const shared: PrimePower[] = [];
+  let hcf = 1;
+  let lcm = 1;
+  for (const prime of primes) {
+    const ca = aMap.get(prime) ?? 0;
+    const cb = bMap.get(prime) ?? 0;
+    const lower = Math.min(ca, cb);
+    const higher = Math.max(ca, cb);
+    if (lower > 0) {
+      hcfPowers.push({ prime, power: lower });
+      shared.push({ prime, power: lower });
+      hcf *= prime ** lower;
+    }
+    lcmPowers.push({ prime, power: higher });
+    lcm *= prime ** higher;
+  }
+  return {
+    a,
+    b,
+    hcf,
+    lcm,
+    aText: primePowerText(aPowers),
+    bText: primePowerText(bPowers),
+    hcfText: primePowerText(hcfPowers),
+    lcmText: primePowerText(lcmPowers),
+    shared,
+  };
+}
+
 /** The model a concept renders without an authored plan saying so. Kept small and
  *  explicit: a concept gets a model because somebody decided the picture answers a
  *  question the prose cannot, not because its subject has one. */
@@ -220,6 +421,7 @@ export const MODEL_BY_CONCEPT: Readonly<Record<string, InteractiveModelId>> = {
   // of why the pieces shrink.
   fractions: "fraction-line-model",
   "fraction-ops": "fraction-ops-model",
+  "factors-primes": "factor-model",
   "atoms-elements": "atom-model",
   cells: "cell-model",
   "algorithms-search": "search-model",

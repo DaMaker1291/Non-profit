@@ -16,7 +16,7 @@ import { currentSlip } from "@/lib/learner-model";
 import { generateQuestion, hasGenerator, serveView } from "@/lib/questions";
 import { gradeChoice, gradeFraction, gradeNumeric, gradePair, parseFractionParts, parseNumericInput, parsePairParts } from "@/lib/answer";
 import { difficultyBandFor } from "@/lib/question-bank";
-import { applyTerminology } from "@/lib/specifications";
+import { applyTerminology, servingCourseFor } from "@/lib/specifications";
 import { MISCONCEPTIONS_BY_ID } from "@/lib/misconceptions";
 import { pushRecentHit, buildFlare, gradeMicroCheck } from "@/lib/microdiag";
 import { buildStarter, viewStarter, gradeConnector } from "@/lib/starter";
@@ -202,6 +202,32 @@ export async function POST(req: Request): Promise<NextResponse> {
       const isTransfer = body.intent === "transfer";
       const upd = await withLearnerState(body.id, (_ctx, state) => {
         checkPresentedSecret(state, body.secret, kioskFor);
+        // ── THE PRACTICE DOOR IS A SERVING DOOR ─────────────────────────────
+        //
+        // `specForProfile` keeps a deterministic fallback so a label can always
+        // name a course. That fallback is not an answer to "what should this
+        // learner be taught?": a multi-tier qualification with no tier chosen
+        // resolves to its FIRST tier (Foundation, for the GCSE), and this door
+        // used to serve from it — so a Year 11 Higher learner could be given
+        // Foundation work without any surface saying a choice was missing. The
+        // diagnostic already refuses; practice did not, which made the strict
+        // resolution a property of one screen rather than of the product.
+        //
+        // The refusal is NAMED, with the fields still unanswered, so the page
+        // can ask for exactly those instead of guessing a course.
+        const conceptForCourse = getConcept(conceptId);
+        if (!conceptForCourse) return { error: "no generator for concept" as const };
+        const course = servingCourseFor(state.profile, conceptForCourse.subject);
+        if (!course.ok) {
+          return {
+            refusal: {
+              error: "course_incomplete" as const,
+              courseIncomplete: true as const,
+              missing: course.missing,
+              subject: conceptForCourse.subject,
+            },
+          };
+        }
         const sess = (state as Session);
         const served = servePractice({
           state: sess,
@@ -250,7 +276,16 @@ export async function POST(req: Request): Promise<NextResponse> {
         };
       });
       if (!upd) return NextResponse.json({ error: "not found" }, { status: 404 });
-      const r = upd.result as { error?: string; question?: Question };
+      const r = upd.result as {
+        error?: string;
+        question?: Question;
+        refusal?: { courseIncomplete: true; missing: string[]; subject: string };
+      };
+      if (r.refusal) {
+        // 409: the learner's course is not wrong, it is unfinished. 400 would
+        // read as a malformed request and hide the missing choice.
+        return NextResponse.json(r.refusal, { status: 409 });
+      }
       if (r.error) return NextResponse.json({ error: r.error }, { status: 400 });
       return NextResponse.json(r);
     }

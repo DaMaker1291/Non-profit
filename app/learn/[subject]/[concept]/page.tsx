@@ -36,6 +36,7 @@ import { CircuitModel } from "@/components/circuit-model";
 import { AtomModel } from "@/components/atom-model";
 import { CellModel } from "@/components/cell-model";
 import { SearchModel } from "@/components/search-model";
+import { FactorModel } from "@/components/factor-model";
 import { NumberLineModel } from "@/components/number-line-model";
 import { FractionLineModel } from "@/components/fraction-line-model";
 import { FractionOpsModel } from "@/components/fraction-ops-model";
@@ -688,6 +689,10 @@ export default function ConceptPage() {
    *  let it fade. False until the record has loaded — a loading ledger is not a
    *  forgotten topic. */
   const faded = state ? isRetentionDue(state, conceptId) : false;
+  /** A RETRIEVAL PROMPT NEEDS A COMMITTED ANSWER, not a reveal button. Kept in
+   *  the page rather than a component because this card sits ABOVE the teaching
+   *  and its copy is already translated. */
+  const [recallDraft, setRecallDraft] = useState("");
   /** THE SLIP STILL LIVE ON THIS CONCEPT, and the repair for it when one has
    *  been written. Both come from the product's one rule (`currentSlip`: three
    *  clean answers retire a belief), so the lesson, the hint ladder and the
@@ -1142,6 +1147,7 @@ export default function ConceptPage() {
           {lessonModel === "atom-model" && <AtomModel />}
           {lessonModel === "cell-model" && <CellModel />}
           {lessonModel === "search-model" && <SearchModel />}
+          {lessonModel === "factor-model" && <FactorModel />}
           {lessonModel === "number-line-model" && <NumberLineModel conceptId={conceptId} />}
           {lessonModel === "fraction-line-model" && <FractionLineModel />}
           {lessonModel === "fraction-ops-model" && <FractionOpsModel />}
@@ -1174,9 +1180,26 @@ export default function ConceptPage() {
           {recalled ? (
             <p className="reading lesson-text">{authoredLesson.retrieval[0].answer}</p>
           ) : (
-            <button className="btn ghost small" onClick={() => setRecalled(true)}>
-              {t("plan.rest")}
-            </button>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              {/* THE ATTEMPT COMES FIRST. "Show me" beside a recall prompt is
+                  a re-read, not a retrieval attempt: the learner can open it
+                  having thought of nothing. Typing something first — even a
+                  guess — is the minimum that makes the reveal a check. */}
+              <input
+                className="input"
+                value={recallDraft}
+                onChange={(e) => setRecallDraft(e.target.value)}
+                aria-label={t("plan.rest")}
+                style={{ maxWidth: 280 }}
+              />
+              <button
+                className="btn ghost small"
+                disabled={recallDraft.trim() === ""}
+                onClick={() => setRecalled(true)}
+              >
+                {t("plan.rest")}
+              </button>
+            </div>
           )}
         </div>
       )}

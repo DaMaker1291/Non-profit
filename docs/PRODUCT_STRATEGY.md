@@ -63,7 +63,7 @@ adequate public evidence was found; it does not mean the capability is absent.
 | Curriculum alignment | **Verified strong** — national curricula, localisation through government systems | **Partially supported** — large content library; national curriculum mapping varies by channel | **Partially supported** — strong US course coverage; national alignment varies | **Partially supported** — institutions author and align their own courses | **Partially supported** — 91 course labels, 70 recorded national routes; 0 reviewed mappings; 16/97 AQA references inventoried |
 | Full lesson teaching | **Partially supported** — courses and local content; pedagogical depth varies by deployment | **Partially supported** — resource library; not a single authored teaching sequence per objective | **Verified strong** — explanations, videos, worked practice and mastery progression | **Verified strong** — authored course sequences, but quality depends on the author | **Partially supported** — 136 authored lesson contracts, 16 hand-authored pilot sequences; 0 educator-reviewed |
 | Diagnostic remediation | **Unknown / partially supported** — assessment and progress tracking; concept-level diagnosis not established from public evidence | **Partially supported** — quizzes, feedback and reports; not a named misconception diagnosis | **Partially supported** — mastery levels and recommendations; not a misconception-level causal diagnosis | **Partially supported** — assessment and analytics; diagnosis is course-author dependent | **Structurally strong, unvalidated** — append-only evidence, concept-level projection, named beliefs, repair cards; one pathway browser-verified |
-| Interactive STEM | **Partially supported** — local content and interactive resources | **Partially supported** — interactive exercises and simulations in the library | **Verified strong** — exercises, hints and a very large STEM library | **Partially supported** — XBlocks and external tools | **Partially supported** — 8 declared model types; 5 AQA concepts browser-verified; not measured on low-end devices |
+| Interactive STEM | **Partially supported** — local content and interactive resources | **Partially supported** — interactive exercises and simulations in the library | **Verified strong** — exercises, hints and a very large STEM library | **Partially supported** — XBlocks and external tools | **Partially supported** — 9 declared model types; 6 AQA concepts browser-verified; not measured on low-end devices |
 | Teacher lesson preparation | **Partially supported** — teacher training, blended-learning guidance, national support | **Verified strong** — coach dashboard, lessons, quizzes, groups | **Verified strong** — assignments, reports, mastery goals | **Verified strong** — course authoring and staff tools | **Partially supported** — weekly plan, roster, presentation mode, worksheet and key; no classroom trial; differentiation 0/136 |
 | Offline learning | **Verified strong** — hub/LAN model and sneakernet sync | **Verified strong** — classroom server, LAN clients, automated device sync | **Partially supported** — downloads and offline access in places; not a full local-school system | **Partially supported** — mobile offline content and result sync | **Partially supported** — printable pack, offline study and local queue; no local hub or conflict-tested multi-device sync |
 | Localised content | **Verified strong** — national-language content and local curriculum delivery | **Verified strong** — 173+ languages in the content library | **Partially supported** — substantial translated content, uneven by course | **Partially supported** — platform translation and institution-authored content | **Partially supported** — 15 interface languages; 0 linguist-reviewed; lesson translation is partial |
@@ -143,7 +143,9 @@ gap this strategy addresses.
   generators, a typed numeric item, seven assessment items (11 marks), a mark
   scheme and a repair for the factor/multiple direction belief. The lesson and
   assessment are browser-verified; they are not educator-reviewed or
-  learner-tested.
+  learner-tested. The `factor-model` now makes the tree something the learner
+  builds and uses the same primes for the 24/36 HCF/LCM comparison, with a
+  prediction gate and browser evidence at 1440 and 390.
 - **Five objectives have complete assessment coverage.** `N2-fractions` has
   four items (9 marks), the two N4 objectives share seven items (11 marks),
   `N10-recurring` has five items (14 marks), and `N2-negatives` has three items
@@ -214,7 +216,7 @@ traced to a reviewed objective.
 The lesson library is large, but 0 lessons are subject-teacher reviewed. The
 fraction sequence is strong on paper; that is not the same as a teacher saying it
 is clear, accurate, well sequenced and usable with a mixed class. Representations
-are uneven: 5 AQA concepts have a browser-verified model; most do not.
+are uneven: 6 AQA concepts have a browser-verified model; most do not.
 
 **Why it matters:** a lesson that is structurally complete but pedagogically
 unclear teaches nothing. The next quality step is human inspection, not more
@@ -325,6 +327,9 @@ a concrete task for each group, never a generic "support/challenge" label.
   items (9 marks). A composed **Number checkpoint** now puts the five completed
   objectives into one 14-question, 30-mark sitting. Its items are written for
   the checkpoint and appear in no lesson, so a model answer cannot be looked up
+  from the lesson page. The new `factor-model` closes the N4 representation gap:
+  the learner builds the 36 tree to its four prime leaves, then compares 24 and
+  36 to read HCF 12 and LCM 72 from the shared and unshared primes.
   before the sitting; a checkpoint-only server action marks them, records
   `assessment` evidence under a `checkpoint:` id, and leaves the lesson's own
   `lessonCheck` counters untouched. It reports an objective-level breakdown; a

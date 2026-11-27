@@ -234,7 +234,7 @@ export default function AssessmentPage() {
   );
 
   return (
-    <main className="wrap">
+    <main className="container page">
       <p className="eyebrow">Assessment</p>
       <h1>A complete assessment journey, with the gate visible</h1>
       <p className="lede">

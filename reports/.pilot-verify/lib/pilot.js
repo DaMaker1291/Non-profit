@@ -151,8 +151,14 @@ exports.PILOT_TEST_APPROVALS = [
  *  empty registry; the fixture is reachable only from an explicit development
  *  test run. */
 function pilotApprovals() {
+    // TWO KEYS, not one. The approvals flag alone was one shell line away from
+    // granting fixture approvals to a process that was also serving real
+    // learners; `OPENMIND_TEST_SCRATCH=1` is set only by the isolated runner,
+    // beside a scratch data directory it created and marked. Production is
+    // refused twice — by NODE_ENV, and by a flag it never sets.
     const testRun = process.env.NODE_ENV !== "production"
-        && process.env.OPENMIND_TEST_CONTENT_APPROVALS === "1";
+        && process.env.OPENMIND_TEST_CONTENT_APPROVALS === "1"
+        && process.env.OPENMIND_TEST_SCRATCH === "1";
     return testRun ? [...exports.PILOT_APPROVALS, ...exports.PILOT_TEST_APPROVALS] : exports.PILOT_APPROVALS;
 }
 /** What a complete plan must carry before anybody can review it. This is a

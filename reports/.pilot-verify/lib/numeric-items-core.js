@@ -28,25 +28,44 @@ exports.CORE_NUMERIC_GENS = {
         return {
             prompt: `In the number ${n}, what is the VALUE of the ${which} digit?`,
             value, wrongs: [String(which === "tens" ? t : which === "hundreds" ? h : o), String(value * 10), String(value / 10)],
-            tags: [], difficulty: 0.35,
+            // The first option is the digit read at face value. In the ones column
+            // that value IS the answer, so tagging it would put the belief on the key;
+            // the others are a one-column shift or a decimal slip, not that belief.
+            choiceMisconceptionTags: (which === "tens" ? t : which === "hundreds" ? h : o) !== value
+                ? [["place-value-face"], [], []]
+                : [[], [], []],
+            tags: (which === "tens" ? t : which === "hundreds" ? h : o) !== value ? ["place-value-face"] : [],
+            difficulty: 0.35,
             explanation: `In ${n} the columns are worth 100, 10 and 1 from the left, so every digit is scaled by the column it sits in. The ${h} hundreds are worth ${h * 100}, the ${t} tens are worth ${t * 10} and the ${o} ones are worth ${o}, and those add back to ${n}. The ${which} digit on its own is ${which === "tens" ? t : which === "hundreds" ? h : o}, but its VALUE is ${value} — writing the digit instead of the value is the usual slip, and ${value * 10} would be one column further left.`,
         };
     },
     addition: (r) => {
-        const a = r.int(120, 980), b = r.int(120, 980);
+        // The tagged distractor is a dropped carry, so the ones column must carry.
+        let a = r.int(120, 980), b = r.int(120, 980);
+        for (let tries = 0; tries < 20 && (a % 10) + (b % 10) < 10; tries++) {
+            a = r.int(120, 980);
+            b = r.int(120, 980);
+        }
         return {
             prompt: `Work out ${a} + ${b}.`,
-            value: a + b, wrongs: [String(a + b + 10), String(a + b - 10), String(a + b + 100)],
-            tags: [], difficulty: 0.3,
+            value: a + b, wrongs: [String(a + b - 10), String(a + b + 10), String(a + b + 100)],
+            choiceMisconceptionTags: [["add-carry-drop"], [], []],
+            tags: ["add-carry-drop"], difficulty: 0.3,
             explanation: `Write the two numbers in columns and add from the right: the ones first, then the tens, then the hundreds, carrying a ten into the next column whenever one column reaches 10. ${a} + ${b} comes to ${a + b}. The answers ${a + b + 10} and ${a + b - 10} are what a single column does when its carry is added twice or dropped.`,
         };
     },
     subtraction: (r) => {
-        const a = r.int(400, 980), b = r.int(120, a - 50);
+        // The tagged distractor is an unrepaid borrow, so a borrow must be needed.
+        let a = r.int(400, 980), b = r.int(120, a - 50);
+        for (let tries = 0; tries < 20 && (a % 10) >= (b % 10); tries++) {
+            a = r.int(400, 980);
+            b = r.int(120, a - 50);
+        }
         return {
             prompt: `Work out ${a} − ${b}.`,
             value: a - b, wrongs: [String(a - b + 10), String(a - b - 10), String(b - a)],
-            tags: [], difficulty: 0.3,
+            choiceMisconceptionTags: [["sub-borrow-unrepaid"], [], []],
+            tags: ["sub-borrow-unrepaid"], difficulty: 0.3,
             explanation: `Take ${b} away from ${a} column by column, borrowing one ten from the next column whenever the digit on top is smaller than the digit below it. Working that through, ${a} − ${b} = ${a - b}. Swapping the order gives ${b - a}, a negative amount that no longer answers "how many are left", and ${a - b + 10} is what one column produces when the borrow is added instead of taken.`,
         };
     },
@@ -55,7 +74,8 @@ exports.CORE_NUMERIC_GENS = {
         return {
             prompt: `Work out ${a} × ${b}.`,
             value: a * b, wrongs: [String(a * b + a), String(a * b - b), String(a + b)],
-            tags: [], difficulty: 0.35,
+            choiceMisconceptionTags: [[], [], ["mul-as-add"]],
+            tags: ["mul-as-add"], difficulty: 0.35,
             explanation: `${a} × ${b} means ${b} lots of ${a}, which comes to ${a * b}. Multiplying in two steps is the reliable way to get there: ${a} × ${b - 1} = ${a * (b - 1)}, and one more ${a} takes it to ${a * b}. Adding the two numbers instead (${a + b}) is the commonest slip, and it is not multiplication at all — ${b} lots of ${a} is far more than the two numbers added together.`,
         };
     },
@@ -64,9 +84,10 @@ exports.CORE_NUMERIC_GENS = {
         const a = b * q;
         return {
             prompt: `Work out ${a} ÷ ${b}.`,
-            value: q, wrongs: [String(q + 1), String(q - 1), String(b)],
-            tags: [], difficulty: 0.35,
-            explanation: `${a} ÷ ${b} asks how many groups of ${b} fit into ${a}. Since ${b} × ${q} = ${a}, the answer is ${q}, and multiplying back is the check that catches a slip. The options ${q + 1} and ${q - 1} are one group too many and one group too few, and ${b} is the size of the group rather than how many of them there are.`,
+            value: q, wrongs: [String(q + 1), String(q - 1), String(a - b)],
+            choiceMisconceptionTags: [[], [], ["div-as-subtract"]],
+            tags: ["div-as-subtract"], difficulty: 0.35,
+            explanation: `${a} ÷ ${b} asks how many groups of ${b} fit into ${a}. Since ${b} × ${q} = ${a}, the answer is ${q}, and multiplying back is the check that catches a slip. The options ${q + 1} and ${q - 1} are one group too many and one group too few, and ${a - b} is ${a} − ${b}: a subtraction, not a count of groups.`,
         };
     },
     negatives: (r) => {
@@ -102,6 +123,9 @@ exports.CORE_NUMERIC_GENS = {
         return {
             prompt: `Work out ${n}/${d} of ${d * k}.`,
             value: n * k, wrongs: [String(n * d), String(k), String(n * k + d)],
+            // `k` is one part, not n parts. When n = 1 that value IS the answer, so
+            // there is no misconception to diagnose; the assembler drops the duplicate.
+            ...(n > 1 ? { choiceMisconceptionTags: [[], ["frac-of-amount"], []] } : {}),
             // No tag. The item asks for a fraction OF a quantity, and its three wrong
             // options are multiply-by-the-denominator, divide-and-stop, and
             // add-the-denominator. None of them reveals "a bigger denominator means a
@@ -113,7 +137,7 @@ exports.CORE_NUMERIC_GENS = {
             // the decision door answer "you can do the steps, but 'Bigger denominator
             // = bigger slice' keeps recurring" to someone who cannot yet find 3/4 of
             // 12 at all — a named cause where the record says the idea is unbuilt.
-            tags: [], difficulty: 0.4,
+            tags: n > 1 ? ["frac-of-amount"] : [], difficulty: 0.4,
             // THE PROSE WAS WRONG IN TWO WAYS A LEARNER WOULD HAVE READ:
             //   · "so 1 parts come to …" — the draw takes n = 1 one time in seven, and
             //     the sentence was written for the plural only;
@@ -131,6 +155,27 @@ exports.CORE_NUMERIC_GENS = {
                 `Multiplying the numerator by the denominator (${n * d}) is not a step in this method.`,
                 n === 1 ? "" : `Nor is stopping after the division (${k}) — that takes one part, and the question asks for ${n}.`,
             ].filter(Boolean).join(" "),
+        };
+    },
+    "factors-primes": (r) => {
+        const [a, b] = r.pick([[12, 18], [18, 24], [20, 30], [24, 36]]);
+        const h = gcd(a, b);
+        if (r.next() < 0.5) {
+            return {
+                prompt: `Work out the highest common factor (HCF) of ${a} and ${b}.`,
+                value: h,
+                wrongs: [h / 2, h * 2, a + b],
+                tags: [], difficulty: 0.38,
+                explanation: `The HCF is the largest number that divides both ${a} and ${b} exactly. ${a} ÷ ${h} = ${a / h} and ${b} ÷ ${h} = ${b / h}. ${h / 2} is also a common factor but not the highest; ${h * 2} does not divide both, and ${a + b} is a sum, not a factor of either number.`,
+            };
+        }
+        const l = (a * b) / h;
+        return {
+            prompt: `Work out the lowest common multiple (LCM) of ${a} and ${b}.`,
+            value: l,
+            wrongs: [a + b, a * b, l - a],
+            tags: [], difficulty: 0.42,
+            explanation: `The LCM is the smallest number both ${a} and ${b} divide into. ${l} ÷ ${a} = ${l / a} and ${l} ÷ ${b} = ${l / b}. Adding the numbers (${a + b}) does not produce a common multiple, and multiplying them (${a * b}) gives a common multiple that is larger than the lowest one whenever the numbers share a factor.`,
         };
     },
     "fraction-ops": (r) => {

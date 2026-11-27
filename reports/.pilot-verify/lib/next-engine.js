@@ -588,7 +588,11 @@ function decideNext(state, max = 4, tt, title, now = Date.now(), evidence) {
             const subj = state.profile.subjects[0] ?? "maths";
             const measuredBefore = Object.keys(state.diagnostics ?? {}).some((k) => k.split(":")[0] === subj);
             const course = (0, specifications_1.specForProfile)(state.profile, subj);
-            const courseFirst = (0, specifications_1.coverageOf)({ spec: course.spec, level: course.level })[0]?.id;
+            // The course's OPENING idea, not simply the first row of its coverage:
+            // Higher contains foundational arithmetic for remediation but must not
+            // tell an unplaced Year 10 learner to start at place value. The shared
+            // rule lives in specifications#startConceptFor so every surface agrees.
+            const courseFirst = (0, specifications_1.startConceptFor)(course, subj)?.id;
             const first = measuredBefore ? (courseFirst ?? (0, genome_1.bySubject)(subj)[0]?.id) : undefined;
             if (first) {
                 push({

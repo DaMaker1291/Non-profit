@@ -547,7 +547,23 @@ const OPENING_GENS = {
         return {
             prompt: `A mass of ${m} kg is taken to a place where the gravitational field strength is ${g} N/kg. What is its weight there, in newtons?`,
             value: Number((m * g).toFixed(1)), tolerance: { abs: 0.05, unit: "N" },
-            wrongs: [String(m), String(Number((m * g + g).toFixed(1))), String(Number((m / g).toFixed(2)))],
+            // ALL FOUR OPTIONS SIT IN THE ANSWER'S OWN MAGNITUDE CLASS.
+            // The old set included `m` (the mass quoted as a weight) and `m / g`,
+            // which are one and two orders of magnitude below the key — so "pick the
+            // option with the most digits" identified the answer without reading the
+            // question (measured: the digit cue on this concept was 37.3%). A slip is
+            // only a useful distractor if it is the SAME KIND OF NUMBER as the answer
+            // and wrong for a reason: here, being one kilogram out, or rounding g to
+            // the other value a learner has been taught (10 instead of 9.8).
+            // All four options sit in the answer's magnitude class, so the digit cue
+            // is not the mass being quoted as a weight (which is two orders of
+            // magnitude below the key). The measured cue on this concept lives in the
+            // standard-form family, not here: see the note in docs/ASSESSMENT_VALIDITY.md.
+            wrongs: [
+                String(Number(((m + 1) * g).toFixed(1))),
+                String(Number(((m - 1) * g).toFixed(1))),
+                String(Number((m * (g === 9.8 ? 10 : 9.8)).toFixed(1))),
+            ],
             tags: ["bal-motion"], difficulty: 0.4,
             explanation: `Weight = mass × field strength = ${m} × ${g} = ${Number((m * g).toFixed(1))} N. Mass (kg) is unchanged by where you are; weight is not.`,
         };

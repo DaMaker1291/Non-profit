@@ -1458,6 +1458,81 @@ export const RESEARCH_SOURCES: readonly ResearchSource[] = [
     intendedUse:
       "Reference for how the 2D-model limitation is assessed and for the organelle set the model should match; it is not used as evidence about plant cells. No item is copied.",
   },
+  {
+    id: "sutarto-2021-hcf-lcm-misconceptions",
+    title: "Fourth-Grade Primary School Students' Misconception on Greatest Common Factor and Least Common Multiple",
+    creator: "Sutarto, Dwi Hastuti, Tomi Listiawan, Sutopo, Aan Komariah & Mohammadreza Dabirnia",
+    institution: "Education Research International",
+    url: "https://onlinelibrary.wiley.com/doi/full/10.1155/2021/6581653",
+    format: "research-paper",
+    published: iso(2021, 1, 1),
+    accessedOn: iso(2026, 11, 27),
+    language: "en",
+    ageRange: "9–12",
+    licence: { name: "Open access journal article (reference only)", url: null, reuse: "reference-only" },
+    attribution: "Sutarto et al., Education Research International 2021",
+    inspection: "inspected",
+    depth: "section",
+    whatWasInspected:
+      "The abstract, methodology, findings for questions 1–6 (including the tables of misconception types and the interview evidence) and the discussion; the answer images inside the tables were not rendered.",
+    findings:
+      "In 124 grade-4 learners, the LCM was often found by multiplying the two numbers (8 for 2 and 4), and factors and multiples were confused (multiples of 12 offered as its factors). Learners also could not identify all prime factors, used a factor tree but divided by 6 rather than the smallest prime, and read the HCF by looking for the 'same factors with the largest rank' rather than the greatest common factor.",
+    limitations:
+      "Grade-4 sample from one Indonesian province; a case study of written answers and interviews, not a teaching intervention; the answer images were not rendered and the article's tables were read as text.",
+    concepts: ["factors-primes"],
+    intendedUse:
+      "Names the beliefs the tree and the 24/36 comparison are built to refute (LCM = product, factor/multiple reversal, a tree that is not carried to primes, an HCF taken from a shared rank). No item or wording is copied.",
+  },
+  {
+    id: "mahmud-2023-factor-tree-obstacles",
+    title: "Learning obstacles analysis of lowest common multiple and greatest common factor in primary school",
+    creator: "Muhammad Rifqi Mahmud, Turmudi, Wahyu Sopandi, Siti Maryam Rohimah & Inne Marthyane Pratiwi",
+    institution: "Jurnal Elemen",
+    url: "https://pdfs.semanticscholar.org/a5d6/4773765e4fa609499c4399812b94556880cf.pdf",
+    format: "research-paper",
+    published: iso(2023, 7, 31),
+    accessedOn: iso(2026, 11, 27),
+    language: "en",
+    ageRange: "10–12",
+    licence: { name: "Open access journal article (reference only)", url: null, reuse: "reference-only" },
+    attribution: "Mahmud et al., Jurnal Elemen 9(2), 2023",
+    inspection: "inspected",
+    depth: "section",
+    whatWasInspected:
+      "The abstract, methodology, the didactical-obstacle section with its factor-tree example (8 shown as 2 and 4, answered as 2 and 8), and the conclusion; the figures were read through their captions and surrounding text, not rendered.",
+    findings:
+      "In 74 grade-5 learners, the factor tree was taught procedurally. One learner took the first branch as 2 and 8, multiplied those to get 16, and did not understand that the tree stops only when every branch ends in a prime. The paper attributes the obstacle to teaching the procedure without the meaning of prime factorisation.",
+    limitations:
+      "A small case study in three Indonesian schools; the figures were not rendered; no learner used OpenMind, so this is a design input rather than an evaluation of the model.",
+    concepts: ["factors-primes"],
+    intendedUse:
+      "Grounds two model rules: a factor pair must multiply to its parent, and a leaf is finished only when it is prime. The model shows the unfinished branch and the prime leaves rather than stating the rule alone.",
+  },
+  {
+    id: "mohyuddin-khalil-2016-primary-misconceptions",
+    title: "Misconceptions of Students in Learning Mathematics at Primary Level",
+    creator: "Mohyuddin & Khalil",
+    institution: "Journal of Elementary Education / ERIC (EJ1210348)",
+    url: "https://files.eric.ed.gov/fulltext/EJ1210348.pdf",
+    format: "research-paper",
+    published: iso(2016, 6, 1),
+    accessedOn: iso(2026, 11, 27),
+    language: "en",
+    ageRange: "9–11",
+    licence: { name: "Open access ERIC full text (reference only)", url: null, reuse: "reference-only" },
+    attribution: "Mohyuddin & Khalil, Journal of Elementary Education, 2016",
+    inspection: "inspected",
+    depth: "section",
+    whatWasInspected:
+      "The abstract, methodology, the item analyses for questions 6, 7, 34 and 35 (factors of 28; LCM of 12 and 18; prime numbers; prime factors of 16 and 24), and the discussion; not the whole paper.",
+    findings:
+      "Of 248 class-5 learners, 42% found all factors of 28, but many thought 1 was not a factor and confused factors with multiples. For the LCM of 12 and 18, about one third chose 36, many chose the HCF, and 42 chose 18 because it was the largest number. In the prime items, learners counted 1 as prime or required 1 in a prime factorisation.",
+    limitations:
+      "A Pakistani grade-5 sample using multiple-choice items; percentages are item-level, not a measure of teaching effect; the item images were not rendered.",
+    concepts: ["factors-primes"],
+    intendedUse:
+      "Supports the lesson's 1-is-not-prime correction and the model's HCF/LCM discrimination; the 18-as-largest error is why the comparison names 12 and 72 against 864 and 12 rather than only showing the correct products.",
+  },
 ];
 
 /** The five pilot concepts the transformation starts with: one per subject. */
@@ -1619,6 +1694,24 @@ export const CONCEPT_DOSSIERS: readonly ConceptDossier[] = [
     disagreements: [],
     nextStep:
       "A computing teacher should check the comparison counts and the 'it depends' conclusion against their exam board, and the off-by-one case (target at the boundary of a window) should be added as a deliberate step-through.",
+    educatorReview: "pending",
+  },
+  {
+    conceptId: "factors-primes",
+    subject: "maths",
+    status: "researched",
+    designDecision:
+      "The tree is built before the rule is named. The learner chooses any valid factor pair for 36 and must carry every composite branch to a prime leaf; the model refuses a pair that does not multiply to its parent, so the arithmetic is checked by the drawing rather than by a sentence beside it. Only then are 24 and 36 compared: the shared primes at the lower power give the HCF, every prime at its highest power gives the LCM, and 864 is named as a common multiple that is not the lowest. That sequence is aimed at the documented beliefs that the LCM is the product and that a shared factor is the HCF.",
+    misconceptions: [
+      { id: "lcm-is-product", statement: "The LCM of two numbers is their product, so 24 and 36 have LCM 864.", sourceId: "sutarto-2021-hcf-lcm-misconceptions" },
+      { id: "factor-multiple-confusion", statement: "Factors and multiples are the same relationship, or a factor can be larger than its number.", sourceId: "mohyuddin-khalil-2016-primary-misconceptions" },
+      { id: "one-is-prime", statement: "1 is prime, so it belongs in a prime factorisation.", sourceId: "mohyuddin-khalil-2016-primary-misconceptions" },
+      { id: "tree-stops-before-primes", statement: "A factor tree is finished once a pair is written, even when a branch is still composite.", sourceId: "mahmud-2023-factor-tree-obstacles" },
+      { id: "hcf-from-largest-rank", statement: "The HCF is read from the shared factor with the largest rank, rather than by taking the greatest common factor.", sourceId: "sutarto-2021-hcf-lcm-misconceptions" },
+    ],
+    disagreements: [],
+    nextStep:
+      "A maths teacher must check the 24/36 wording, the index notation and the claim that every route gives the same prime leaves. A supervised learner trial should test whether building the tree before seeing the HCF/LCM rule reduces the LCM-equals-product error, rather than only whether a learner can finish a tree; the model currently covers one pair and two-number HCF/LCM only, and has no three-number, coprime or equal-number case.",
     educatorReview: "pending",
   },
 ];

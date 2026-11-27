@@ -19,6 +19,7 @@
     "country:check": "node scripts/country-research.mjs --check",
     "verify:low-resource": "node scripts/low-resource-check.mjs",
     "verify:right-level": "node scripts/right-level-check.mjs",
+    "audit:diagnostic": "node scripts/diagnostic-pipeline-audit.mjs",
     "verify:content": "npm run verify:q && npm run gate:ceiling && npm run gate:options && npm run explain:audit && npm run validation:status",
     "assessment-quality": "node scripts/assessment-quality.mjs",
     "teacher-readiness": "node scripts/teacher-readiness.mjs",

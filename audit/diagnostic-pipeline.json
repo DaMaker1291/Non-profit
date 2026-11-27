@@ -1,0 +1,1170 @@
+{
+  "generatedAt": "2026-11-27T21:37:46.871Z",
+  "subject": "maths",
+  "method": {
+    "sessionsPerPattern": 40,
+    "patterns": [
+      "correct",
+      "wrong",
+      "alternate"
+    ],
+    "questionsPerSession": 10,
+    "rawDrawsPerConcept": 96,
+    "note": "Deterministic engine-only audit. No learner store is opened. `startedAt` is overridden before the first serve so every trace is reproducible."
+  },
+  "totals": {
+    "profiles": 9,
+    "profilesServed": 7,
+    "profilesRefused": 2,
+    "sessions": 840,
+    "questions": 7840,
+    "outOfCourse": 0,
+    "expectedBelow": 0,
+    "courseOpeningBelow": 0,
+    "declaredBelow": 1235,
+    "sessionsWithLimitation": 0
+  },
+  "profiles": [
+    {
+      "id": "year5-primary",
+      "label": "Year 5 · primary mathematics (GB)",
+      "note": "The national route has no Year 5 entry and the qualification registry has no primary specification. The gate must refuse rather than serve GCSE.",
+      "year": "Year 5",
+      "subject": "maths",
+      "course": null,
+      "tier": null,
+      "fallbackTier": {
+        "id": "foundations",
+        "name": "Foundations",
+        "difficulty": 0.35
+      },
+      "source": "single",
+      "complete": false,
+      "gaps": [
+        "grade",
+        "spec"
+      ],
+      "yearInCourse": false,
+      "gate": {
+        "ok": false,
+        "missing": [
+          "grade",
+          "spec"
+        ]
+      },
+      "sessions": 0,
+      "questions": 0,
+      "limitation": "course-refused",
+      "aggregate": {
+        "sessions": 0,
+        "questions": 0,
+        "outOfCourse": 0,
+        "expectedMet": 0,
+        "expectedBelow": 0,
+        "courseOpeningBelow": 0,
+        "declaredMet": 0,
+        "declaredBelow": 0,
+        "firstQuestions": 0,
+        "firstMeetsOpening": 0,
+        "sessionsWithLimitation": 0,
+        "bySkill": {},
+        "byBand": {},
+        "reasons": {}
+      },
+      "concepts": [],
+      "distributions": []
+    },
+    {
+      "id": "year5-generic-foundations",
+      "label": "Year 5 proxy · generic foundations (international)",
+      "note": "A proxy for a low-demand learner, not a primary curriculum: the product has no primary specification. It shows the pipeline at 0.35 demand.",
+      "year": "Foundations",
+      "subject": "maths",
+      "course": {
+        "id": "any-independent",
+        "name": "Independent · skills pathway",
+        "board": "state"
+      },
+      "tier": {
+        "id": "foundations",
+        "name": "Foundations",
+        "difficulty": 0.35
+      },
+      "fallbackTier": {
+        "id": "foundations",
+        "name": "Foundations",
+        "difficulty": 0.35
+      },
+      "source": "chosen",
+      "complete": true,
+      "gaps": [],
+      "yearInCourse": true,
+      "gate": {
+        "ok": true,
+        "specificationId": "any-independent",
+        "levelId": "foundations",
+        "difficulty": 0.35
+      },
+      "sessions": 120,
+      "questions": 1120,
+      "declaredSkill": "application",
+      "openingSkill": "recall",
+      "openingDifficulty": 0.15,
+      "limitation": "none",
+      "aggregate": {
+        "sessions": 120,
+        "questions": 1120,
+        "outOfCourse": 0,
+        "expectedMet": 1120,
+        "expectedBelow": 0,
+        "courseOpeningBelow": 0,
+        "declaredMet": 682,
+        "declaredBelow": 438,
+        "firstQuestions": 120,
+        "firstMeetsOpening": 120,
+        "sessionsWithLimitation": 0,
+        "bySkill": {
+          "application": 522,
+          "multi_step": 80,
+          "data_interpretation": 80,
+          "recall": 438
+        },
+        "byBand": {
+          "1": 158,
+          "2": 777,
+          "3": 66,
+          "4": 76,
+          "5": 43
+        },
+        "reasons": {
+          "meets": 682,
+          "course_opening_rung": 438
+        }
+      },
+      "concepts": [
+        "fraction-ops",
+        "linear-equations",
+        "place-value",
+        "fractions"
+      ],
+      "distributions": [
+        {
+          "conceptId": "fraction-ops",
+          "samples": 96,
+          "min": 0.35,
+          "p25": 0.55,
+          "median": 0.55,
+          "p75": 0.7613159744441509,
+          "max": 0.8094761319831014,
+          "rawReachRate": 1,
+          "reachRate64": 1,
+          "depth": 0.8070727100735531,
+          "bands": {
+            "1": 0,
+            "2": 6,
+            "3": 59,
+            "4": 27,
+            "5": 4
+          }
+        },
+        {
+          "conceptId": "linear-equations",
+          "samples": 96,
+          "min": 0.3,
+          "p25": 0.35,
+          "median": 0.55,
+          "p75": 0.6246649500355124,
+          "max": 0.8255448539345526,
+          "rawReachRate": 0.9166666666666666,
+          "reachRate64": 0.84375,
+          "depth": 0.8175673143542372,
+          "bands": {
+            "1": 0,
+            "2": 35,
+            "3": 29,
+            "4": 24,
+            "5": 8
+          }
+        },
+        {
+          "conceptId": "place-value",
+          "samples": 96,
+          "min": 0.1,
+          "p25": 0.1,
+          "median": 0.35,
+          "p75": 0.35,
+          "max": 0.35,
+          "rawReachRate": 0.5,
+          "reachRate64": 0.5,
+          "depth": 0.35,
+          "bands": {
+            "1": 48,
+            "2": 48,
+            "3": 0,
+            "4": 0,
+            "5": 0
+          }
+        },
+        {
+          "conceptId": "fractions",
+          "samples": 96,
+          "min": 0.15,
+          "p25": 0.4,
+          "median": 0.4,
+          "p75": 0.643813078510575,
+          "max": 0.8086586730577983,
+          "rawReachRate": 0.9375,
+          "reachRate64": 0.90625,
+          "depth": 0.8088941580522806,
+          "bands": {
+            "1": 6,
+            "2": 51,
+            "3": 11,
+            "4": 24,
+            "5": 4
+          }
+        }
+      ]
+    },
+    {
+      "id": "year7-lower-secondary",
+      "label": "Year 7 · lower secondary (GB)",
+      "note": "No pre-GCSE specification exists in the registry; the only completable GB course is GCSE Foundation.",
+      "year": "Year 7",
+      "subject": "maths",
+      "course": {
+        "id": "uk-gcse",
+        "name": "GCSE",
+        "board": "aqa"
+      },
+      "tier": {
+        "id": "foundation",
+        "name": "Foundation tier",
+        "difficulty": 0.45
+      },
+      "fallbackTier": {
+        "id": "foundation",
+        "name": "Foundation tier",
+        "difficulty": 0.45
+      },
+      "source": "chosen",
+      "complete": true,
+      "gaps": [],
+      "yearInCourse": false,
+      "gate": {
+        "ok": true,
+        "specificationId": "uk-gcse",
+        "levelId": "foundation",
+        "difficulty": 0.45
+      },
+      "sessions": 120,
+      "questions": 1120,
+      "declaredSkill": "application",
+      "openingSkill": "application",
+      "openingDifficulty": 0.4,
+      "limitation": "none",
+      "aggregate": {
+        "sessions": 120,
+        "questions": 1120,
+        "outOfCourse": 0,
+        "expectedMet": 1120,
+        "expectedBelow": 0,
+        "courseOpeningBelow": 0,
+        "declaredMet": 1120,
+        "declaredBelow": 0,
+        "firstQuestions": 120,
+        "firstMeetsOpening": 120,
+        "sessionsWithLimitation": 0,
+        "bySkill": {
+          "application": 719,
+          "multi_step": 321,
+          "data_interpretation": 80
+        },
+        "byBand": {
+          "2": 351,
+          "3": 469,
+          "4": 220,
+          "5": 80
+        },
+        "reasons": {
+          "meets": 1120
+        }
+      },
+      "concepts": [
+        "quadratics",
+        "standard-form",
+        "fraction-ops",
+        "negatives"
+      ],
+      "distributions": [
+        {
+          "conceptId": "quadratics",
+          "samples": 96,
+          "min": 0.5,
+          "p25": 0.55,
+          "median": 0.6421916771680116,
+          "p75": 0.66,
+          "max": 0.929816571851261,
+          "rawReachRate": 1,
+          "reachRate64": 1,
+          "depth": 0.920160884486977,
+          "bands": {
+            "1": 0,
+            "2": 0,
+            "3": 36,
+            "4": 40,
+            "5": 20
+          }
+        },
+        {
+          "conceptId": "standard-form",
+          "samples": 96,
+          "min": 0.3,
+          "p25": 0.35,
+          "median": 0.5,
+          "p75": 0.8711764910677448,
+          "max": 0.9292826079949736,
+          "rawReachRate": 0.5,
+          "reachRate64": 0.4375,
+          "depth": 0.9265160934207961,
+          "bands": {
+            "1": 0,
+            "2": 48,
+            "3": 12,
+            "4": 12,
+            "5": 24
+          }
+        },
+        {
+          "conceptId": "fraction-ops",
+          "samples": 96,
+          "min": 0.35,
+          "p25": 0.55,
+          "median": 0.55,
+          "p75": 0.7613159744441509,
+          "max": 0.8094761319831014,
+          "rawReachRate": 0.9375,
+          "reachRate64": 0.875,
+          "depth": 0.8070727100735531,
+          "bands": {
+            "1": 0,
+            "2": 6,
+            "3": 59,
+            "4": 27,
+            "5": 4
+          }
+        },
+        {
+          "conceptId": "negatives",
+          "samples": 96,
+          "min": 0.2,
+          "p25": 0.25,
+          "median": 0.35,
+          "p75": 0.45,
+          "max": 0.45,
+          "rawReachRate": 0.3645833333333333,
+          "reachRate64": 0.328125,
+          "depth": 0.45,
+          "bands": {
+            "1": 29,
+            "2": 32,
+            "3": 35,
+            "4": 0,
+            "5": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "year9-gcse-preparation",
+      "label": "Year 9 · GCSE preparation (GB)",
+      "note": "No Key Stage 3 specification exists; GCSE Foundation is the only completable GB course.",
+      "year": "Year 9",
+      "subject": "maths",
+      "course": {
+        "id": "uk-gcse",
+        "name": "GCSE",
+        "board": "aqa"
+      },
+      "tier": {
+        "id": "foundation",
+        "name": "Foundation tier",
+        "difficulty": 0.45
+      },
+      "fallbackTier": {
+        "id": "foundation",
+        "name": "Foundation tier",
+        "difficulty": 0.45
+      },
+      "source": "chosen",
+      "complete": true,
+      "gaps": [],
+      "yearInCourse": false,
+      "gate": {
+        "ok": true,
+        "specificationId": "uk-gcse",
+        "levelId": "foundation",
+        "difficulty": 0.45
+      },
+      "sessions": 120,
+      "questions": 1120,
+      "declaredSkill": "application",
+      "openingSkill": "application",
+      "openingDifficulty": 0.4,
+      "limitation": "none",
+      "aggregate": {
+        "sessions": 120,
+        "questions": 1120,
+        "outOfCourse": 0,
+        "expectedMet": 1120,
+        "expectedBelow": 0,
+        "courseOpeningBelow": 0,
+        "declaredMet": 1120,
+        "declaredBelow": 0,
+        "firstQuestions": 120,
+        "firstMeetsOpening": 120,
+        "sessionsWithLimitation": 0,
+        "bySkill": {
+          "application": 720,
+          "multi_step": 320,
+          "data_interpretation": 80
+        },
+        "byBand": {
+          "2": 347,
+          "3": 467,
+          "4": 226,
+          "5": 80
+        },
+        "reasons": {
+          "meets": 1120
+        }
+      },
+      "concepts": [
+        "quadratics",
+        "standard-form",
+        "fraction-ops",
+        "negatives"
+      ],
+      "distributions": [
+        {
+          "conceptId": "quadratics",
+          "samples": 96,
+          "min": 0.5,
+          "p25": 0.55,
+          "median": 0.6421916771680116,
+          "p75": 0.66,
+          "max": 0.929816571851261,
+          "rawReachRate": 1,
+          "reachRate64": 1,
+          "depth": 0.920160884486977,
+          "bands": {
+            "1": 0,
+            "2": 0,
+            "3": 36,
+            "4": 40,
+            "5": 20
+          }
+        },
+        {
+          "conceptId": "standard-form",
+          "samples": 96,
+          "min": 0.3,
+          "p25": 0.35,
+          "median": 0.5,
+          "p75": 0.8711764910677448,
+          "max": 0.9292826079949736,
+          "rawReachRate": 0.5,
+          "reachRate64": 0.4375,
+          "depth": 0.9265160934207961,
+          "bands": {
+            "1": 0,
+            "2": 48,
+            "3": 12,
+            "4": 12,
+            "5": 24
+          }
+        },
+        {
+          "conceptId": "fraction-ops",
+          "samples": 96,
+          "min": 0.35,
+          "p25": 0.55,
+          "median": 0.55,
+          "p75": 0.7613159744441509,
+          "max": 0.8094761319831014,
+          "rawReachRate": 0.9375,
+          "reachRate64": 0.875,
+          "depth": 0.8070727100735531,
+          "bands": {
+            "1": 0,
+            "2": 6,
+            "3": 59,
+            "4": 27,
+            "5": 4
+          }
+        },
+        {
+          "conceptId": "negatives",
+          "samples": 96,
+          "min": 0.2,
+          "p25": 0.25,
+          "median": 0.35,
+          "p75": 0.45,
+          "max": 0.45,
+          "rawReachRate": 0.3645833333333333,
+          "reachRate64": 0.328125,
+          "depth": 0.45,
+          "bands": {
+            "1": 29,
+            "2": 32,
+            "3": 35,
+            "4": 0,
+            "5": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "year11-higher",
+      "label": "Year 11 · GCSE Higher",
+      "note": "",
+      "year": "Year 11",
+      "subject": "maths",
+      "course": {
+        "id": "uk-gcse",
+        "name": "GCSE",
+        "board": "aqa"
+      },
+      "tier": {
+        "id": "higher",
+        "name": "Higher tier",
+        "difficulty": 0.65
+      },
+      "fallbackTier": {
+        "id": "higher",
+        "name": "Higher tier",
+        "difficulty": 0.65
+      },
+      "source": "chosen",
+      "complete": true,
+      "gaps": [],
+      "yearInCourse": true,
+      "gate": {
+        "ok": true,
+        "specificationId": "uk-gcse",
+        "levelId": "higher",
+        "difficulty": 0.65
+      },
+      "sessions": 120,
+      "questions": 1120,
+      "declaredSkill": "multi_step",
+      "openingSkill": "multi_step",
+      "openingDifficulty": 0.6,
+      "limitation": "none",
+      "aggregate": {
+        "sessions": 120,
+        "questions": 1120,
+        "outOfCourse": 0,
+        "expectedMet": 1120,
+        "expectedBelow": 0,
+        "courseOpeningBelow": 0,
+        "declaredMet": 1120,
+        "declaredBelow": 0,
+        "firstQuestions": 120,
+        "firstMeetsOpening": 120,
+        "sessionsWithLimitation": 0,
+        "bySkill": {
+          "multi_step": 800,
+          "data_interpretation": 320
+        },
+        "byBand": {
+          "3": 221,
+          "4": 579,
+          "5": 320
+        },
+        "reasons": {
+          "meets": 1120
+        }
+      },
+      "concepts": [
+        "quadratics",
+        "standard-form",
+        "fraction-ops",
+        "fractions"
+      ],
+      "distributions": [
+        {
+          "conceptId": "quadratics",
+          "samples": 96,
+          "min": 0.5,
+          "p25": 0.55,
+          "median": 0.6421916771680116,
+          "p75": 0.66,
+          "max": 0.929816571851261,
+          "rawReachRate": 0.46875,
+          "reachRate64": 0.515625,
+          "depth": 0.920160884486977,
+          "bands": {
+            "1": 0,
+            "2": 0,
+            "3": 36,
+            "4": 40,
+            "5": 20
+          }
+        },
+        {
+          "conceptId": "standard-form",
+          "samples": 96,
+          "min": 0.3,
+          "p25": 0.35,
+          "median": 0.5,
+          "p75": 0.8711764910677448,
+          "max": 0.9292826079949736,
+          "rawReachRate": 0.28125,
+          "reachRate64": 0.28125,
+          "depth": 0.9265160934207961,
+          "bands": {
+            "1": 0,
+            "2": 48,
+            "3": 12,
+            "4": 12,
+            "5": 24
+          }
+        },
+        {
+          "conceptId": "fraction-ops",
+          "samples": 96,
+          "min": 0.35,
+          "p25": 0.55,
+          "median": 0.55,
+          "p75": 0.7613159744441509,
+          "max": 0.8094761319831014,
+          "rawReachRate": 0.2604166666666667,
+          "reachRate64": 0.265625,
+          "depth": 0.8070727100735531,
+          "bands": {
+            "1": 0,
+            "2": 6,
+            "3": 59,
+            "4": 27,
+            "5": 4
+          }
+        },
+        {
+          "conceptId": "fractions",
+          "samples": 96,
+          "min": 0.15,
+          "p25": 0.4,
+          "median": 0.4,
+          "p75": 0.643813078510575,
+          "max": 0.8086586730577983,
+          "rawReachRate": 0.22916666666666666,
+          "reachRate64": 0.234375,
+          "depth": 0.8088941580522806,
+          "bands": {
+            "1": 6,
+            "2": 51,
+            "3": 11,
+            "4": 24,
+            "5": 4
+          }
+        }
+      ]
+    },
+    {
+      "id": "year11-foundation",
+      "label": "Year 11 · GCSE Foundation",
+      "note": "",
+      "year": "Year 11",
+      "subject": "maths",
+      "course": {
+        "id": "uk-gcse",
+        "name": "GCSE",
+        "board": "aqa"
+      },
+      "tier": {
+        "id": "foundation",
+        "name": "Foundation tier",
+        "difficulty": 0.45
+      },
+      "fallbackTier": {
+        "id": "foundation",
+        "name": "Foundation tier",
+        "difficulty": 0.45
+      },
+      "source": "chosen",
+      "complete": true,
+      "gaps": [],
+      "yearInCourse": true,
+      "gate": {
+        "ok": true,
+        "specificationId": "uk-gcse",
+        "levelId": "foundation",
+        "difficulty": 0.45
+      },
+      "sessions": 120,
+      "questions": 1120,
+      "declaredSkill": "application",
+      "openingSkill": "application",
+      "openingDifficulty": 0.4,
+      "limitation": "none",
+      "aggregate": {
+        "sessions": 120,
+        "questions": 1120,
+        "outOfCourse": 0,
+        "expectedMet": 1120,
+        "expectedBelow": 0,
+        "courseOpeningBelow": 0,
+        "declaredMet": 1120,
+        "declaredBelow": 0,
+        "firstQuestions": 120,
+        "firstMeetsOpening": 120,
+        "sessionsWithLimitation": 0,
+        "bySkill": {
+          "application": 720,
+          "multi_step": 319,
+          "data_interpretation": 81
+        },
+        "byBand": {
+          "2": 349,
+          "3": 446,
+          "4": 244,
+          "5": 81
+        },
+        "reasons": {
+          "meets": 1120
+        }
+      },
+      "concepts": [
+        "quadratics",
+        "standard-form",
+        "fraction-ops",
+        "negatives"
+      ],
+      "distributions": [
+        {
+          "conceptId": "quadratics",
+          "samples": 96,
+          "min": 0.5,
+          "p25": 0.55,
+          "median": 0.6421916771680116,
+          "p75": 0.66,
+          "max": 0.929816571851261,
+          "rawReachRate": 1,
+          "reachRate64": 1,
+          "depth": 0.920160884486977,
+          "bands": {
+            "1": 0,
+            "2": 0,
+            "3": 36,
+            "4": 40,
+            "5": 20
+          }
+        },
+        {
+          "conceptId": "standard-form",
+          "samples": 96,
+          "min": 0.3,
+          "p25": 0.35,
+          "median": 0.5,
+          "p75": 0.8711764910677448,
+          "max": 0.9292826079949736,
+          "rawReachRate": 0.5,
+          "reachRate64": 0.4375,
+          "depth": 0.9265160934207961,
+          "bands": {
+            "1": 0,
+            "2": 48,
+            "3": 12,
+            "4": 12,
+            "5": 24
+          }
+        },
+        {
+          "conceptId": "fraction-ops",
+          "samples": 96,
+          "min": 0.35,
+          "p25": 0.55,
+          "median": 0.55,
+          "p75": 0.7613159744441509,
+          "max": 0.8094761319831014,
+          "rawReachRate": 0.9375,
+          "reachRate64": 0.875,
+          "depth": 0.8070727100735531,
+          "bands": {
+            "1": 0,
+            "2": 6,
+            "3": 59,
+            "4": 27,
+            "5": 4
+          }
+        },
+        {
+          "conceptId": "negatives",
+          "samples": 96,
+          "min": 0.2,
+          "p25": 0.25,
+          "median": 0.35,
+          "p75": 0.45,
+          "max": 0.45,
+          "rawReachRate": 0.3645833333333333,
+          "reachRate64": 0.328125,
+          "depth": 0.45,
+          "bands": {
+            "1": 29,
+            "2": 32,
+            "3": 35,
+            "4": 0,
+            "5": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "year11-no-tier",
+      "label": "Year 11 · GCSE with no tier chosen",
+      "note": "The exact silent-Foundation case. The course gate must name specLevel and serve nothing.",
+      "year": "Year 11",
+      "subject": "maths",
+      "course": {
+        "id": "uk-gcse",
+        "name": "GCSE",
+        "board": "aqa"
+      },
+      "tier": null,
+      "fallbackTier": {
+        "id": "foundation",
+        "name": "Foundation tier",
+        "difficulty": 0.45
+      },
+      "source": "fallback",
+      "complete": false,
+      "gaps": [
+        "specLevel"
+      ],
+      "yearInCourse": true,
+      "gate": {
+        "ok": false,
+        "missing": [
+          "specLevel"
+        ]
+      },
+      "sessions": 0,
+      "questions": 0,
+      "limitation": "course-refused",
+      "aggregate": {
+        "sessions": 0,
+        "questions": 0,
+        "outOfCourse": 0,
+        "expectedMet": 0,
+        "expectedBelow": 0,
+        "courseOpeningBelow": 0,
+        "declaredMet": 0,
+        "declaredBelow": 0,
+        "firstQuestions": 0,
+        "firstMeetsOpening": 0,
+        "sessionsWithLimitation": 0,
+        "bySkill": {},
+        "byBand": {},
+        "reasons": {}
+      },
+      "concepts": [],
+      "distributions": []
+    },
+    {
+      "id": "year12-alevel",
+      "label": "Year 12 · A-level",
+      "note": "",
+      "year": "Year 12",
+      "subject": "maths",
+      "course": {
+        "id": "uk-alevel",
+        "name": "A-Level",
+        "board": "aqa"
+      },
+      "tier": {
+        "id": "as",
+        "name": "AS",
+        "difficulty": 0.75
+      },
+      "fallbackTier": {
+        "id": "as",
+        "name": "AS",
+        "difficulty": 0.75
+      },
+      "source": "chosen",
+      "complete": true,
+      "gaps": [],
+      "yearInCourse": true,
+      "gate": {
+        "ok": true,
+        "specificationId": "uk-alevel",
+        "levelId": "as",
+        "difficulty": 0.75
+      },
+      "sessions": 120,
+      "questions": 1120,
+      "declaredSkill": "data_interpretation",
+      "openingSkill": "multi_step",
+      "openingDifficulty": 0.6,
+      "limitation": "none",
+      "aggregate": {
+        "sessions": 120,
+        "questions": 1120,
+        "outOfCourse": 0,
+        "expectedMet": 1120,
+        "expectedBelow": 0,
+        "courseOpeningBelow": 0,
+        "declaredMet": 323,
+        "declaredBelow": 797,
+        "firstQuestions": 120,
+        "firstMeetsOpening": 120,
+        "sessionsWithLimitation": 0,
+        "bySkill": {
+          "multi_step": 797,
+          "data_interpretation": 323
+        },
+        "byBand": {
+          "3": 172,
+          "4": 627,
+          "5": 321
+        },
+        "reasons": {
+          "course_opening_rung": 797,
+          "meets": 323
+        }
+      },
+      "concepts": [
+        "trig-identity",
+        "quadratics",
+        "standard-form",
+        "algebra-expand"
+      ],
+      "distributions": [
+        {
+          "conceptId": "trig-identity",
+          "samples": 96,
+          "min": 0.45,
+          "p25": 0.45,
+          "median": 0.45,
+          "p75": 0.7655932331457734,
+          "max": 0.9181448026513681,
+          "rawReachRate": 0.2604166666666667,
+          "reachRate64": 0.296875,
+          "depth": 0.9140427282755264,
+          "bands": {
+            "1": 0,
+            "2": 0,
+            "3": 61,
+            "4": 12,
+            "5": 23
+          }
+        },
+        {
+          "conceptId": "quadratics",
+          "samples": 96,
+          "min": 0.5,
+          "p25": 0.55,
+          "median": 0.6421916771680116,
+          "p75": 0.66,
+          "max": 0.929816571851261,
+          "rawReachRate": 0.20833333333333334,
+          "reachRate64": 0.28125,
+          "depth": 0.920160884486977,
+          "bands": {
+            "1": 0,
+            "2": 0,
+            "3": 36,
+            "4": 40,
+            "5": 20
+          }
+        },
+        {
+          "conceptId": "standard-form",
+          "samples": 96,
+          "min": 0.3,
+          "p25": 0.35,
+          "median": 0.5,
+          "p75": 0.8711764910677448,
+          "max": 0.9292826079949736,
+          "rawReachRate": 0.25,
+          "reachRate64": 0.28125,
+          "depth": 0.9265160934207961,
+          "bands": {
+            "1": 0,
+            "2": 48,
+            "3": 12,
+            "4": 12,
+            "5": 24
+          }
+        },
+        {
+          "conceptId": "algebra-expand",
+          "samples": 96,
+          "min": 0.45,
+          "p25": 0.5,
+          "median": 0.6,
+          "p75": 0.7457837075507269,
+          "max": 0.9156271493667737,
+          "rawReachRate": 0.23958333333333334,
+          "reachRate64": 0.25,
+          "depth": 0.9149373397463932,
+          "bands": {
+            "1": 0,
+            "2": 0,
+            "3": 42,
+            "4": 34,
+            "5": 20
+          }
+        }
+      ]
+    },
+    {
+      "id": "international-extended",
+      "label": "International · Cambridge IGCSE Extended",
+      "note": "",
+      "year": "Year 11",
+      "subject": "maths",
+      "course": {
+        "id": "int-igcse",
+        "name": "Cambridge IGCSE",
+        "board": "cambridge"
+      },
+      "tier": {
+        "id": "extended",
+        "name": "Extended",
+        "difficulty": 0.65
+      },
+      "fallbackTier": {
+        "id": "extended",
+        "name": "Extended",
+        "difficulty": 0.65
+      },
+      "source": "chosen",
+      "complete": true,
+      "gaps": [],
+      "yearInCourse": true,
+      "gate": {
+        "ok": true,
+        "specificationId": "int-igcse",
+        "levelId": "extended",
+        "difficulty": 0.65
+      },
+      "sessions": 120,
+      "questions": 1120,
+      "declaredSkill": "multi_step",
+      "openingSkill": "multi_step",
+      "openingDifficulty": 0.6,
+      "limitation": "none",
+      "aggregate": {
+        "sessions": 120,
+        "questions": 1120,
+        "outOfCourse": 0,
+        "expectedMet": 1120,
+        "expectedBelow": 0,
+        "courseOpeningBelow": 0,
+        "declaredMet": 1120,
+        "declaredBelow": 0,
+        "firstQuestions": 120,
+        "firstMeetsOpening": 120,
+        "sessionsWithLimitation": 0,
+        "bySkill": {
+          "multi_step": 800,
+          "data_interpretation": 320
+        },
+        "byBand": {
+          "3": 233,
+          "4": 567,
+          "5": 320
+        },
+        "reasons": {
+          "meets": 1120
+        }
+      },
+      "concepts": [
+        "quadratics",
+        "standard-form",
+        "fraction-ops",
+        "fractions"
+      ],
+      "distributions": [
+        {
+          "conceptId": "quadratics",
+          "samples": 96,
+          "min": 0.5,
+          "p25": 0.55,
+          "median": 0.6421916771680116,
+          "p75": 0.66,
+          "max": 0.929816571851261,
+          "rawReachRate": 0.46875,
+          "reachRate64": 0.515625,
+          "depth": 0.920160884486977,
+          "bands": {
+            "1": 0,
+            "2": 0,
+            "3": 36,
+            "4": 40,
+            "5": 20
+          }
+        },
+        {
+          "conceptId": "standard-form",
+          "samples": 96,
+          "min": 0.3,
+          "p25": 0.35,
+          "median": 0.5,
+          "p75": 0.8711764910677448,
+          "max": 0.9292826079949736,
+          "rawReachRate": 0.28125,
+          "reachRate64": 0.28125,
+          "depth": 0.9265160934207961,
+          "bands": {
+            "1": 0,
+            "2": 48,
+            "3": 12,
+            "4": 12,
+            "5": 24
+          }
+        },
+        {
+          "conceptId": "fraction-ops",
+          "samples": 96,
+          "min": 0.35,
+          "p25": 0.55,
+          "median": 0.55,
+          "p75": 0.7613159744441509,
+          "max": 0.8094761319831014,
+          "rawReachRate": 0.2604166666666667,
+          "reachRate64": 0.265625,
+          "depth": 0.8070727100735531,
+          "bands": {
+            "1": 0,
+            "2": 6,
+            "3": 59,
+            "4": 27,
+            "5": 4
+          }
+        },
+        {
+          "conceptId": "fractions",
+          "samples": 96,
+          "min": 0.15,
+          "p25": 0.4,
+          "median": 0.4,
+          "p75": 0.643813078510575,
+          "max": 0.8086586730577983,
+          "rawReachRate": 0.22916666666666666,
+          "reachRate64": 0.234375,
+          "depth": 0.8088941580522806,
+          "bands": {
+            "1": 6,
+            "2": 51,
+            "3": 11,
+            "4": 24,
+            "5": 4
+          }
+        }
+      ]
+    }
+  ]
+}

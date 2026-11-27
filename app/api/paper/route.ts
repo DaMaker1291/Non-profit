@@ -3,7 +3,7 @@ import {
   buildPaper, defaultPaperFor, markPaper, needsPaper, needsPaperId, needsReading,
   paperAllowedFor, paperConceptsTested, paperById, PAPERS, papersForSubject, type BuiltPaperAnswerKey, type PaperBasis,
 } from "@/lib/papers";
-import { specById, specForProfile, levelOf, chosenSubjects, type ActiveSpec, type CourseFields } from "@/lib/specifications";
+import { specForProfile, servingCourseFor, explicitCourse, chosenSubjects, type ActiveSpec, type CourseFields } from "@/lib/specifications";
 // EVERY READ AND WRITE HERE GOES THROUGH THE STORAGE PORT. These five were the
 // file backend's own functions, so on a deployment configured for Postgres a paper
 // was saved to a JSON file the learner's account knows nothing about.
@@ -37,10 +37,16 @@ function activeSpecFor(
   levelParam: string | null,
   profile: CourseFields | null,
   subject: SubjectId,
-): ActiveSpec {
+): ActiveSpec | { error: string } {
   if (specParam) {
-    const s = specById(specParam);
-    if (s) return { spec: s, level: levelOf(s, levelParam ?? undefined) ?? s.levels[0] };
+    // VALIDATED, NOT TRUSTED. An earlier version accepted any known id and
+    // filled a missing tier with `s.levels[0]` — Foundation, for the GCSE — so
+    // `?spec=uk-gcse` silently bought a Foundation paper. It also ignored the
+    // subject: `?spec=us-sat&subject=biology` named a maths-only qualification
+    // and built a biology paper from it.
+    const explicit = explicitCourse(specParam, levelParam ?? undefined, subject);
+    if (!explicit.ok) return { error: explicit.error };
+    return explicit.active;
   }
   return specForProfile(profile ?? {}, subject);
 }
@@ -58,7 +64,9 @@ export async function GET(req: Request): Promise<NextResponse> {
   const lang = searchParams.get("lang") ?? "en";
   const seed = searchParams.get("seed") ?? `p${Date.now().toString(36)}`;
   const profile = await authorisedProfile(req, searchParams.get("id"), searchParams.get("secret"));
-  const active = activeSpecFor(searchParams.get("spec"), searchParams.get("level"), profile?.profile ?? null, subject);
+  const resolved = activeSpecFor(searchParams.get("spec"), searchParams.get("level"), profile?.profile ?? null, subject);
+  if ("error" in resolved) return NextResponse.json({ error: resolved.error }, { status: 400 });
+  const active = resolved;
 
   // ?list=1 — what papers exist for this qualification.
   if (searchParams.get("list") === "1") {
@@ -138,6 +146,23 @@ export async function GET(req: Request): Promise<NextResponse> {
     });
   }
 
+  // ── A PAPER IS SERVED WORK, SO IT IS GATED LIKE THE SERVE ──────────────
+  //
+  // The list above is a menu and may name the course the record holds. Building
+  // a paper puts questions on a desk, so it needs a FINISHED course: a learner
+  // who chose a multi-tier qualification and no tier has not said what they
+  // sit, and `specForProfile` would answer with the first tier (Foundation).
+  // An explicit `spec` parameter is a named request — a teacher or a shared
+  // link asking for a particular paper — and is honoured as such.
+  if (!searchParams.get("spec") && profile) {
+    const course = servingCourseFor(profile.profile, subject);
+    if (!course.ok) {
+      return NextResponse.json(
+        { error: "course_incomplete", courseIncomplete: true, missing: course.missing, subject },
+        { status: 409 },
+      );
+    }
+  }
   const templateId = searchParams.get("templateId") ?? searchParams.get("template");
   // THE RECORD-BUILT PAPER IS READ, NOT LOOKED UP. It is in neither PAPERS nor
   // the built set — its length follows the learner's own record — so it is

@@ -171,8 +171,9 @@
        --font-read  the editorial voice — titles, the reading line, lesson prose
        --font       the interface voice — controls, labels, chrome
        --mono       the data voice — numbers, tables, roman markers */
-  --font-read: "Iowan Old Style", "Palatino Linotype", Palatino, Charter,
-    "Bitstream Charter", "Sitka Text", Cambria, Georgia, "Noto Serif", serif;
+  --font-read: "Charter", "Bitstream Charter", "Sitka Text",
+    "Iowan Old Style", "Palatino Linotype", Palatino, Cambria, Georgia,
+    "Noto Serif", serif;
 
   /* ── Semantic layer ──────────────────────────────────────────────────────
      The middle rung of PRIMITIVE → SEMANTIC → COMPONENT. Every rule below reads
@@ -280,7 +281,7 @@ body {
   color: var(--text);
   font-family: var(--font);
   font-size: var(--t17);
-  line-height: 1.6;
+  line-height: 1.65;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -759,6 +760,13 @@ h1[tabindex="-1"]:focus, h1[tabindex="-1"]:focus-visible { outline: none; }
 }
 main { display: block; }
 .container.narrow { max-width: var(--prose-max); }
+/* A ROW IS A LINE OF CONTROLS OR FACTS, and it was missing from this file.
+   `components/number-checkpoint.tsx` and `app/assessment/page.tsx` use it for
+   the paper's header, objective headers and submit bar; with no rule, every
+   `row` was a block, so the two-column start card stacked, the timer sat under
+   the title, and the start button touched its helper sentence. The published
+   twin had the rule all along (docs/app.css); the app did not. */
+.row { display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap; min-width: 0; }
 .page { padding-top: var(--s4); padding-bottom: var(--s5); }
 .page-head { margin-bottom: var(--s3); }
 .page-head.row { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--s2); flex-wrap: wrap; }
@@ -802,7 +810,8 @@ h3, h2.h2 {
 }
 /* A page title, not a billboard. The landing page asks for something louder and
    gets it by name (.hero h1), so an interior page never shouts. */
-h1 { font-size: clamp(28px, 3.4vw, 36px); margin: 0 0 var(--s2); line-height: 1.15; }
+h1, h2.section, .display { text-wrap: balance; }
+h1 { font-size: clamp(28px, 3.4vw, 36px); margin: 0 0 var(--s2); line-height: 1.12; letter-spacing: -0.018em; }
 h2.section { font-size: clamp(20px, 2.4vw, 25px); margin: 0 0 var(--s1); line-height: 1.2; }
 h1.visually-small { font-size: clamp(22px, 2.6vw, 26px); margin: 0 0 10px; line-height: 1.2; }
 h2.h2 { font-size: clamp(17px, 2vw, 19px); margin: 0 0 var(--s1); line-height: 1.25; }
@@ -833,14 +842,26 @@ h3 { font-weight: 650; letter-spacing: 0; font-size: var(--t16); margin: 0 0 6px
   background: var(--ui-strong);
 }
 
-.lead { font-family: var(--font-read); font-size: clamp(16px, 1.6vw, 18px); color: var(--text-soft); max-width: 620px; line-height: 1.6; }
+.lead { font-family: var(--font-read); font-size: clamp(16px, 1.6vw, 18px); color: var(--text-soft); max-width: 620px; line-height: 1.65; }
+/* The page introduction, at a readable measure instead of the full width of a
+   1440px window. `.lede` was used by the assessment pages and the printable
+   routes but was never defined, so those introductions ran edge to edge. */
+.lede {
+  font-family: var(--font-read);
+  font-size: clamp(17px, 1.7vw, 19px);
+  line-height: 1.65;
+  color: var(--text-soft);
+  max-width: 68ch;
+  margin: 0 0 var(--s3);
+  text-wrap: pretty;
+}
 /* Long-form reading — the lesson, and any block that asks to be READ rather than
    scanned. This is where the serif earns its place: a paragraph of prose is the
    one thing in the product that behaves like a page of a book. `/learn`'s lesson
    block had no class at all (inline styles only), so there was nothing to hook
    the reading voice to; it has one now, and the next reading surface reuses it
    rather than inventing a second rule. */
-.reading { font-family: var(--font-read); line-height: 1.7; }
+.reading { font-family: var(--font-read); line-height: 1.75; }
 /* THE LESSON ITSELF, SET TO BE READ. It was 16.5px/1.7 inside a card — the size
    of body copy, in a page whose whole job is to teach one idea — and it ran the
    full width of the card on a laptop, which is roughly 100 characters a line.
@@ -2160,17 +2181,22 @@ input[aria-invalid="true"], select[aria-invalid="true"] { border-color: var(--ma
   margin-top: auto; padding: var(--s6) 0 var(--s5);
   color: var(--text-muted); font-size: var(--t13-5);
 }
-.footer .container { display: flex; gap: var(--s2); flex-wrap: wrap; justify-content: space-between; align-items: center; }
+.footer .container {
+  display: flex; gap: var(--s2); flex-wrap: wrap;
+  justify-content: space-between; align-items: center;
+  /* The ♿ control is fixed to the same corner at every width, so the footer
+     always keeps its last 80px clear. At ≤900px the control moves up to clear
+     the phone bar, but it is still over the footer's right-hand sentence when
+     the page is scrolled to the end. */
+  padding-inline-end: 80px;
+}
 /* THE ♿ CONTROL IS FIXED, SO THE FOOTER HAS TO KEEP OUT OF ITS CORNER. It is
    46px wide at 14px from the edge, and the footer's right-hand sentence ran
    under it: measured at 1440px the line ended at 1416 and the button spanned
    1380–1426, so the last thing a learner read at the bottom of every page was
-   "15 languag" with a circle drawn over it. The lane is reserved only where the
-   control actually sits in the corner — at ≤900px it is lifted clear of the
-   phone bar (see that block) and the footer stacks. */
-@media (min-width: 901px) {
-  .footer .container { padding-inline-end: 64px; }
-}
+   "15 languag" with a circle drawn over it. The lane is reserved at every
+   width because the control is fixed at every width; at ≤900px it is lifted
+   above the phone bar but still sits over the footer's last line. */
 
 /* ── Sample question beside the pitch (landing only) ── */
 .sample-wrap { display: grid; gap: var(--s3); grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); align-items: start; }
@@ -3182,6 +3208,52 @@ html.low-power .card { box-shadow: none; }
 .fraction-model .fm-on { fill: var(--accent); }
 .fraction-model .fm-off { fill: var(--accent-soft); stroke: var(--accent-line); stroke-width: 1; }
 .fraction-model label { display: grid; gap: 4px; }
+
+/* THE FACTOR TREE — a model that grows as the learner splits it. The branch
+   rules are drawn with borders rather than an SVG so the tree reflows at 320px
+   without a fixed viewBox and without shrinking the nodes below a readable
+   size. The active leaf is outlined; a prime leaf is filled and labelled, so
+   "finished" and "still composite" are distinguishable without colour alone. */
+.factor-model {
+  display: grid; gap: 12px; margin: 14px 0; padding: 14px 16px;
+  border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
+}
+.factor-model-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.factor-tree-wrap { overflow-x: auto; padding: 2px 0; }
+.factor-tree, .factor-tree-children { list-style: none; margin: 0; padding: 0; }
+.factor-tree-children {
+  margin-inline-start: 10px; padding-inline-start: 16px;
+  border-inline-start: 1.5px solid var(--line);
+}
+.factor-tree-item { position: relative; padding: 5px 0 5px 14px; }
+.factor-tree > .factor-tree-item { padding-inline-start: 0; }
+.factor-tree > .factor-tree-item::before { display: none; }
+.factor-tree-children > .factor-tree-item::before {
+  content: ""; position: absolute; inset-inline-start: -16px; top: 22px;
+  width: 14px; border-top: 1.5px solid var(--line);
+}
+.factor-node {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 40px; min-height: 36px; padding: 2px 10px;
+  border: 1.5px solid var(--line); border-radius: 8px;
+  background: var(--surface); color: var(--text);
+  font-family: var(--mono); font-weight: 700; font-size: var(--t15);
+  font-variant-numeric: tabular-nums;
+}
+.factor-node.is-active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.factor-node.is-prime { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent-ink); }
+.factor-result, .factor-compare {
+  border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface-sunken); padding: 10px 12px;
+}
+.factor-compare { background: var(--surface); }
+@media (max-width: 520px) {
+  .factor-model { padding: 12px; }
+  .factor-tree-children { margin-inline-start: 6px; padding-inline-start: 12px; }
+  .factor-tree-item { padding-inline-start: 10px; }
+  .factor-tree-children > .factor-tree-item::before { inset-inline-start: -12px; width: 10px; }
+  .factor-splits .actions .btn { flex: 1 1 100%; }
+}
 
 /* The circuit model. Same shape as the fraction bar on purpose: a card with a
    drawing, a spoken readout and native buttons, so a lesson can gain a model

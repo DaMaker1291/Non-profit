@@ -160,6 +160,47 @@ export interface ModelTeaching {
 }
 
 export const MODEL_TEACHING: readonly ModelTeaching[] = [
+  // ── MATHS · FACTORS, PRIMES, HCF AND LCM ──────────────────────────────────
+  {
+    conceptId: "factors-primes",
+    model: "factor-model",
+    objective:
+      "Build a prime factor tree and use the shared primes to find the HCF and LCM of two numbers.",
+    predict: {
+      kind: "choice",
+      question:
+        "24 = 2³ × 3 and 36 = 2² × 3². What is the lowest common multiple of 24 and 36?",
+      options: [
+        { id: "864", label: "864 — multiply 24 by 36" },
+        { id: "72", label: "72" },
+        { id: "12", label: "12 — the highest common factor" },
+      ],
+      answerId: "72",
+      reveal:
+        "72 is the LCM because it uses every prime at its highest power: 2³ × 3². 864 is a common multiple, but it counts the shared primes twice and is not the lowest. 12 is the HCF, built from the shared primes at their lower powers.",
+    },
+    apply:
+      "Build the tree for 36, then compare it with 24 and name the shared primes before revealing the HCF and LCM.",
+    teacher: {
+      demonstrate: [
+        "Draw 36 on the board and split it into 4 × 9. Ask which factors are prime, then split 4 and 9 until every branch ends in a prime.",
+        "Write 24 = 2³ × 3 and 36 = 2² × 3² underneath, and mark the shared 2s and 3 before reading the HCF and LCM off the lists.",
+      ],
+      ask: [
+        "Which primes do both numbers contain, and how many copies of each?",
+        "Why does the HCF take the lower power while the LCM takes the higher one?",
+        "If a learner writes 864, what true statement have they found, and what have they not found?",
+      ],
+      guided:
+        "Pairs build the tree for 60 and compare it with 36, then say which primes are shared and which number contributes the extra 2s and 3s.",
+      printable:
+        "A blank factor tree for 36, two columns for the prime factors of 24 and 36, and a space to write the HCF and LCM with the product that checks each one.",
+      assessment:
+        "A learner who writes 864 has found a common multiple, not the lowest. Ask which prime powers were used twice; a learner who writes 6 as the HCF has found a common factor, not the highest. The correct products must divide both originals or be divisible by both.",
+      followUp: ["Simplifying fractions with the HCF.", "Adding fractions with the LCM."],
+    },
+  },
+
   // ── MATHS · PLACE VALUE ────────────────────────────────────────────────────
   {
     conceptId: "place-value",

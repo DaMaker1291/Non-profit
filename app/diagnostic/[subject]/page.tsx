@@ -12,6 +12,8 @@ import { SUBJECT_IDS, SUBJECT_LABELS, subjectFromParam } from "@/lib/subjects";
 import { ctitle, mcName, mcCoaching } from "@/lib/content-i18n";
 import PromptText from "@/components/prompt-text";
 import MathText from "@/components/math-text";
+import CourseFirst from "@/components/course-first";
+import type { CourseField } from "@/lib/specifications";
 import { fill } from "@/lib/i18n";
 import type { DiagnosticResult, SubjectId } from "@/lib/types";
 import type { QuestionView } from "@/lib/questions";
@@ -48,6 +50,10 @@ export default function DiagnosticPage() {
    *  bare number rather than to a total the app invented. */
   const [estimate, setEstimate] = useState(0);
   const [err, setErr] = useState("");
+  /** A course the server refused to sample. Set only when the API says
+   *  `courseIncomplete`; the page then shows the same course-first card Home
+   *  uses instead of pretending a question can be served. */
+  const [courseMissing, setCourseMissing] = useState<CourseField[] | null>(null);
   const busy = useRef(false);
 
   const id = loadLocalProfileId();
@@ -66,7 +72,18 @@ export default function DiagnosticPage() {
       setErr(stepError(e));
       return;
     }
+    // A REFUSAL IS A COURSE GAP, NOT A BROKEN PAGE. The server will not start a
+    // sitting from a multi-tier qualification whose tier is unanswered, and it
+    // names the missing field. Sending the learner to the course card is the
+    // only honest next step; starting a Foundation sitting here is the bug this
+    // path exists to prevent.
+    if (body.courseIncomplete) {
+      setCourseMissing(body.missing ?? ["spec"]);
+      setQ(null);
+      return;
+    }
     if (!body.question) { setErr(t("common.error")); return; }
+    setCourseMissing(null);
     setQ(body.question);
     // An adaptive sitting has NO fixed length, so the server hands back a
     // measured estimate (it simulates the climb). The counter says "about"
@@ -419,6 +436,22 @@ export default function DiagnosticPage() {
             </Link>
           ))}
         </div>
+      </main>
+    );
+  }
+
+  // ── a course the server will not sample ───────────────────────────────────
+  // The route guard normally catches this before the page renders, but the API
+  // is the authority and a direct link can arrive without the guard. Showing the
+  // same card keeps both paths saying the same thing — and keeps the diagnostic
+  // from being the place a fallback tier quietly becomes real.
+  if (courseMissing) {
+    return (
+      <main className="container narrow" style={{ paddingTop: 44 }}>
+        <p className="eyebrow"><span className="no">!</span> {t("diag.title")} · {t(`subj.${subject}`)}</p>
+        <h1>{t(`subj.${subject}`)}</h1>
+        <p className="lead">{t("state.needsOnboarding")}</p>
+        <CourseFirst subject={subject} missing={courseMissing} />
       </main>
     );
   }

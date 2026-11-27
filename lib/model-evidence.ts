@@ -189,6 +189,28 @@ export const MODEL_EVIDENCE: readonly ModelEvidence[] = [
     ],
   },
   {
+    model: "factor-model",
+    verifiedOn: "2026-11-27",
+    viewport: "1440×900 desktop and 390×844 mobile",
+    checks: [
+      { id: "gate", what: "Loaded /learn/maths/factors-primes with no prediction chosen, then chose 72.", result: "Before the choice the model showed only the gate sentence — no tree and no factor-pair buttons. Choosing 72 marked the prediction correct, printed the reveal (72 = 2³ × 3²; 864 is common but not lowest; 12 is the HCF), and opened the tree with 2 × 18, 3 × 12, 4 × 9 and 6 × 6." },
+      { id: "build", what: "Split 36 into 4 × 9, then 4 into 2 × 2, then 9 into 3 × 3.", result: "The tree grew 36 → 4, 9 → 2, 2, 3, 3. The status read '36 = 4 × 9. Now split 4', then '4 = 2 × 2. Now split 9', then 'Every leaf is prime: 36 = 2 × 2 × 3 × 3 = 2² × 3²'." },
+      { id: "complete", what: "Read the finished tree and its summary.", result: "data-factor-tree-complete was 'yes'; every 2 and 3 leaf carried data-factor-prime='yes' while 4 and 9 stayed composite; the product read 2 × 2 × 3 × 3 and the index form 2² × 3²." },
+      { id: "compare", what: "Pressed 'Compare 24 and 36'.", result: "24 = 2³ × 3, 36 = 2² × 3², HCF = 2² × 3 = 12 and LCM = 2³ × 3² = 72; the comparison names 864 as a common multiple that is not the lowest." },
+      { id: "desktop", what: "Measured the page and controls at 1440 px.", result: "Page scrollWidth 1440; model 1074 px; 'Start again' 44 px high. The tree's nodes were 36 px high with 15 px type, so the numbers are readable without zooming." },
+      { id: "mobile", what: "Rebuilt the same 4 × 9 route at 390 px and measured the tree, page and controls.", result: "Page 390 with no sideways scroll; the tree wrapper's client and scroll widths were both 306 px, so the full tree fitted without an inner scrollbar; the model was 332 px wide; every factor-pair button was 306 × 44 px; the finished readout still showed HCF 12 and LCM 72." },
+    ],
+    screenshot: "audit/n4-factor-model-2026-11-27.png",
+    notChecked: [
+      "Only the 4 × 9 first split was built in the browser; the 6 × 6 route was not clicked, so the 'same leaves by a different route' claim is asserted by the suite, not observed in this pass.",
+      "A real screen reader was not driven; the status line's aria-live was present in the DOM but was not heard.",
+      "Keyboard activation was not exercised for the factor buttons; this pass used pointer clicks, though the controls are native buttons.",
+      "Only Chromium was used. Firefox and Safari were not tested.",
+      "The comparison is one pair, 24 and 36; three-number HCF/LCM and coprime or equal-number cases were not shown.",
+      "The mobile pass measured layout and hit sizes, not the drawing under a long alternate route or at 320 px.",
+    ],
+  },
+  {
     model: "fraction-ops-model",
     verifiedOn: "2026-11-24",
     viewport: "1280×900 desktop and 390×844 mobile",

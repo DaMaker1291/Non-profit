@@ -3542,6 +3542,47 @@ export function conceptDepth(conceptId: string): number {
   return max;
 }
 
+/** The share of a concept's NATURAL draws that reach a demanded difficulty.
+ *
+ *  `conceptDepth` answers "is one hard item possible?". That is a ceiling, not a
+ *  supply. A generator whose only A-level item appears in 2% of draws can pass a
+ *  maximum-depth test while being an unreliable source for an A-level sitting —
+ *  the serve's seed search may find it, but the diagnostic would be relying on a
+ *  lottery. This is the measured supply side: a fixed, deterministic sweep of
+ *  the generator's own draws, reported as a proportion.
+ *
+ *  Cached and pure. `minDifficulty` is rounded to three decimals for the cache
+ *  key; course targets are declared in tenths/hundredths, so this does not
+ *  collapse distinct demands.
+ */
+const REACH_SEEDS = 64;
+const reachCache = new Map<string, number>();
+
+export function conceptReachRate(conceptId: string, minDifficulty: number): number {
+  const key = `${conceptId}:${minDifficulty.toFixed(3)}`;
+  const cached = reachCache.get(key);
+  if (cached !== undefined) return cached;
+  if (!(conceptId in ALL_GENS)) {
+    reachCache.set(key, 0);
+    return 0;
+  }
+  let reached = 0;
+  for (let i = 0; i < REACH_SEEDS; i++) {
+    const q = generateQuestion(conceptId, `reach:${i}`);
+    if (q && q.difficulty + 1e-9 >= minDifficulty) reached++;
+  }
+  const rate = reached / REACH_SEEDS;
+  reachCache.set(key, rate);
+  return rate;
+}
+
+/** The minimum natural reach rate a concept needs before a diagnostic may use
+ *  it as a course-level source. One in twenty draws is deliberately lenient —
+ *  it excludes the "one rare deep item" case without demanding that every
+ *  generator be uniform — while still leaving the serve's seed search to pick
+ *  the best item. */
+export const CONCEPT_REACH_MIN_RATE = 0.05;
+
 /** The deepest question the bank can serve across `conceptIds` — the honest
  *  answer to "which demand levels can this platform measure at all?". */
 export function bankDepth(conceptIds: readonly string[]): number {

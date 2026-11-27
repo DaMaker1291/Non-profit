@@ -282,3 +282,32 @@ exports.LEARNING_STRINGS = {
         "lrn.offlineNo": "অফলাইনে পাওয়া যায় না",
     },
 };
+// ── AN ANSWER THAT WAS NOT TAKEN ──────────────────────────────────────────
+//
+// The practice surface used to have two sentences for an answer the server did
+// not accept: "you were wrong" and "saved on this device, it will be marked
+// when you reconnect". The second was printed for a 401, so a learner whose
+// connection was fine was told to wait for one. A refusal is not a save, and
+// this is the sentence that says so.
+const NOT_SAVED = {
+    en: "That answer was not marked, and it was not saved — nothing was recorded. Try it again.",
+    es: "Esa respuesta no se corrigió ni se guardó: no se registró nada. Inténtalo otra vez.",
+    fr: "Cette réponse n'a pas été corrigée et n'a pas été enregistrée — rien n'a été consigné. Réessaie.",
+    pt: "Essa resposta não foi corrigida nem guardada — nada foi registado. Tenta outra vez.",
+    ar: "لم تُصحَّح هذه الإجابة ولم تُحفَظ — لم يُسجَّل شيء. حاول مرة أخرى.",
+    sw: "Jibu hilo halikupimwa wala kuhifadhiwa — hakuna kilichorekodiwa. Jaribu tena.",
+    hi: "यह उत्तर जाँचा नहीं गया और सहेजा भी नहीं गया — कुछ भी दर्ज नहीं हुआ। फिर से कोशिश करें।",
+    id: "Jawaban itu tidak dinilai dan tidak disimpan — tidak ada yang tercatat. Coba lagi.",
+    tl: "Hindi namarkahan at hindi na-save ang sagot na iyon — walang naitala. Subukan muli.",
+    de: "Diese Antwort wurde nicht bewertet und nicht gespeichert — nichts wurde erfasst. Versuch es noch einmal.",
+    ja: "この回答は採点も保存もされていません。何も記録されていません。もう一度試してください。",
+    zh: "这道题没有批改，也没有保存——什么都没有记录。请再试一次。",
+    fa: "آن پاسخ نه تصحیح شد و نه ذخیره — چیزی ثبت نشد. دوباره تلاش کنید.",
+    ur: "یہ جواب نہ جانچا گیا اور نہ محفوظ ہوا — کچھ بھی درج نہیں ہوا۔ دوبارہ کوشش کریں۔",
+    bn: "এই উত্তরটি যাচাই বা সংরক্ষণ হয়নি — কিছুই রেকর্ড হয়নি। আবার চেষ্টা করুন।",
+};
+for (const [code, value] of Object.entries(NOT_SAVED)) {
+    const dict = exports.LEARNING_STRINGS[code];
+    if (dict && !("try.notSaved" in dict))
+        dict["try.notSaved"] = value;
+}

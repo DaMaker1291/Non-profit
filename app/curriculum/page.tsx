@@ -166,17 +166,23 @@ export default function CurriculumPage() {
   // this screen → the tier stored for this qualification → the tier their year
   // group sits → nothing, in which case the select asks and Save waits.
   const storedCourse = profile?.subjectCourses?.[subject];
-  const hasStoredCourse = Boolean(storedCourse?.spec && storedCourse?.specLevel);
+  // A STORED QUALIFICATION IS AN ANSWER EVEN WHEN ITS TIER IS NOT. Requiring
+  // both here made a learner who had chosen GCSE but no tier open this page to
+  // an EMPTY qualification select and "Still to choose: Qualification" — the
+  // opposite of the missing field the gate actually reported. The qualification
+  // is shown as chosen; only the tier is asked for.
+  const hasStoredSpec = Boolean(storedCourse?.spec);
+  const hasStoredCourse = Boolean(hasStoredSpec && storedCourse?.specLevel);
   // AN UNCHOSEN QUALIFICATION HAS TO BE EXPRESSIBLE. The select is driven by the
   // RESOLVED course, so when the fallback for this country happens to be the one
   // the learner wants, choosing it fired no `change` at all — the page went on
   // saying "still to choose: qualification" above a box that already showed it,
   // and Save stayed dead. Null until touched (or a stored course), so the empty
   // option is a prompt and picking the fallback is a real choice.
-  const needsSpec = !specId && !hasStoredCourse;
+  const needsSpec = !specId && !hasStoredSpec;
   const chosenSpec = specId
     ? (specById(specId) ?? baseChoices[0] ?? null)
-    : hasStoredCourse ? (specById(storedCourse!.spec!) ?? null) : null;
+    : hasStoredSpec ? (specById(storedCourse!.spec!) ?? null) : null;
   // ── YEAR AND TIER ARE TWO ANSWERS, AND THE LISTS COME FROM DIFFERENT PLACES ─
   //
   // The TIER options are the qualification's tiers FOR THIS SUBJECT

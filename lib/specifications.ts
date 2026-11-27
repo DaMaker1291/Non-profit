@@ -1108,6 +1108,11 @@ export interface CourseResolution {
   tiers: SpecLevel[];
   /** The tier the record answers, or null. */
   tier: SpecLevel | null;
+  /** False when the qualification declares the school years its tiers serve
+   *  and the learner's year is in none of them — a Year 9 learner on a GCSE.
+   *  Distinct from "no tier chosen": there is nothing to choose, because the
+   *  course does not cover the year. */
+  yearCovered: boolean;
   /** The tier serving uses, and why — see the doc comment above. */
   effective: SpecLevel;
   source: "chosen" | "year" | "single" | "fallback";
@@ -1184,10 +1189,22 @@ export function resolveCourse(profile: CourseFields, subject: SubjectId): Course
   const stored = c.specLevel ? tiers.find((l) => l.id === c.specLevel) ?? null : null;
   const byYear = covered && spec ? tierForYear(spec, c.grade, subject) : null;
   const answered = stored ?? byYear;
+  // ── DOES THIS QUALIFICATION EVEN COVER THIS YEAR? ─────────────────────
+  // A tier's `schoolYears` is the DECLARED link between a school year and the
+  // examination tier. Where a qualification declares years and the learner's
+  // year is in none of them, the year is not in this course: a Year 9 learner
+  // holding a GCSE is not a GCSE Foundation candidate, they are a KS3 learner
+  // with no KS3 course in the registry. Reporting that as "choose a tier" would
+  // ask them to answer a question their course does not put — and the answer
+  // they picked (Foundation) would then be attributed to a curriculum they are
+  // not sitting. The gap is therefore the QUALIFICATION, not the tier.
+  const declaredYears = [...new Set(tiers.flatMap((l) => l.schoolYears ?? []))];
+  const yearCovered = declaredYears.length === 0 || !c.grade || declaredYears.includes(c.grade);
   // A REAL CHOICE THAT HAS NOT BEEN MADE IS A GAP, not a default. One tier means
   // there is nothing to choose; an empty list means the qualification is untiered
   // for this subject and asking would be asking a question the exam does not put.
-  if (tiers.length > 1 && !answered) out.push("specLevel");
+  if (!yearCovered) out.push("spec");
+  else if (tiers.length > 1 && !answered) out.push("specLevel");
   const effective = answered ?? tiers[0] ?? spec?.levels[0] ?? INDEPENDENT.levels[0];
   const source: CourseResolution["source"] = stored
     ? "chosen"
@@ -1198,6 +1215,7 @@ export function resolveCourse(profile: CourseFields, subject: SubjectId): Course
     years: route?.grades ?? [],
     tiers,
     tier: stored,
+    yearCovered,
     effective,
     source: tiers.length > 1 && !answered ? "fallback" : source,
     gaps: out,
@@ -1210,6 +1228,78 @@ export function resolveCourse(profile: CourseFields, subject: SubjectId): Course
  *  cannot drift apart. */
 export function courseGaps(profile: CourseFields, subject: SubjectId): CourseField[] {
   return resolveCourse(profile, subject).gaps;
+}
+
+/** A course that is safe to SERVE from, or the reason it is not.
+ *
+ *  `specForProfile` deliberately keeps a deterministic fallback so a countdown
+ *  or a paper tag can always name a course. That fallback is not an answer to
+ *  "what should this learner be taught?": when a qualification has Foundation
+ *  and Higher and the learner has chosen neither, `specForProfile` returns the
+ *  first offered tier. For GCSE that is Foundation, and a Year 11 Higher learner
+ *  whose record lost its tier would then be assessed one tier down without any
+ *  surface saying so.
+ *
+ *  Pedagogical callers use THIS gate instead. It resolves the same course with
+ *  the subject in hand, refuses an incomplete one, and returns the `effective`
+ *  tier only after `resolveCourse` has confirmed there is no unanswered choice.
+ *  A one-tier qualification is complete with no tier chosen; a multi-tier one is
+ *  not. Keeping the distinction here means every caller — the diagnostic today,
+ *  any later serving surface — gets the same answer. */
+export type ServingCourse =
+  | { ok: true; active: ActiveSpec; resolution: CourseResolution }
+  | { ok: false; missing: CourseField[]; resolution: CourseResolution };
+
+/** A COURSE NAMED EXPLICITLY IN A REQUEST, validated rather than trusted.
+ *
+ *  A `?spec=` parameter is a legitimate request — a teacher opening a paper by
+ *  name, a shared link. It is not a reason to skip the rules: the qualification
+ *  must exist, must teach this subject, and (where a tier is named) must offer
+ *  that tier for this subject. A multi-tier qualification with no tier named is
+ *  refused rather than given its first level, for the same reason a learner's
+ *  record is: the first level of the GCSE is Foundation.
+ *
+ *  Unknown ids are REFUSED, never dropped back to the learner's own course. A
+ *  caller that asked for a course and silently received a different one has been
+ *  lied to about what it is holding. */
+export type ExplicitCourse =
+  | { ok: true; active: ActiveSpec }
+  | { ok: false; error: "unknown_spec" | "course_does_not_teach_subject" | "unknown_tier" | "tier_required" };
+
+export function explicitCourse(
+  specId: string | undefined,
+  levelId: string | undefined,
+  subject: SubjectId,
+): ExplicitCourse {
+  const spec = specById(specId);
+  if (!spec) return { ok: false, error: "unknown_spec" };
+  if (!coversSubject(spec, subject)) return { ok: false, error: "course_does_not_teach_subject" };
+  const tiers = tiersForSubject(spec, subject);
+  if (levelId) {
+    const level = tiers.find((l) => l.id === levelId);
+    return level ? { ok: true, active: { spec, level } } : { ok: false, error: "unknown_tier" };
+  }
+  if (tiers.length > 1) return { ok: false, error: "tier_required" };
+  return { ok: true, active: { spec, level: tiers[0] ?? spec.levels[0] } };
+}
+
+export function servingCourseFor(profile: CourseFields, subject: SubjectId): ServingCourse {
+  const resolution = resolveCourse(profile, subject);
+  if (!resolution.complete || !resolution.spec) {
+    return {
+      ok: false,
+      // `resolveCourse` names every gap. The fallback is for a caller holding a
+      // malformed record the resolver could not classify: silence there would be
+      // a silent course again, so it is reported as the missing qualification.
+      missing: resolution.gaps.length > 0 ? resolution.gaps : ["spec"],
+      resolution,
+    };
+  }
+  return {
+    ok: true,
+    active: { spec: resolution.spec, level: resolution.effective },
+    resolution,
+  };
 }
 
 /** Every DECLARED subject whose course is not yet complete, with the fields

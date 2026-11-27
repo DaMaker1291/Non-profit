@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { withLearnerState } from "@/lib/server/transaction";
 import { buildResult, certaintyTally, currentConcept, gradeAnswer, markObservedConcepts, newDiagnosticSession, nextQuestion, plannedQuestions } from "@/lib/diagnostic";
 import { serveView } from "@/lib/questions";
-import { applyTerminology, specForProfile } from "@/lib/specifications";
+import { applyTerminology, servingCourseFor } from "@/lib/specifications";
 import { EVIDENCE_SCHEMA_VERSION, answerEvidence, newEvidenceId, type Certainty, type EvidenceEvent } from "@/lib/evidence";
 import { commitAndProjectIn } from "@/lib/server/projection";
 // A store that cannot keep this write answers 503 with its reason — never a 500.
@@ -110,6 +110,24 @@ export async function POST(req: Request): Promise<NextResponse> {
         // Test-hook reveal for the E2E suite (non-production only).
         const reveal = body.reveal === true && process.env.NODE_ENV !== "production";
 
+        // A COURSE MUST BE COMPLETE BEFORE A SITTING CAN SAMPLE IT. This gate is
+        // deliberately before RESUME: a live sitting created under an incomplete
+        // fallback course must not be continued either. `servingCourseFor`
+        // resolves FOR THIS SUBJECT and refuses a multi-tier qualification with
+        // no tier chosen, so Year 11 GCSE Mathematics can no longer silently
+        // become Foundation here. The response names the missing fields instead
+        // of returning a question. A one-tier qualification still passes with no
+        // tier selection.
+        const course = servingCourseFor(state.profile, body.subject);
+        if (!course.ok) {
+          return {
+            courseIncomplete: true as const,
+            subject: body.subject,
+            missing: course.missing,
+            spec: course.resolution.spec?.id ?? null,
+          };
+        }
+
         // RESUME, DO NOT REPLACE. The live sitting is already persisted at
         // `${subject}:session`, and this action used to overwrite it
         // unconditionally — so every mount of the page started a NEW sitting.
@@ -152,6 +170,7 @@ export async function POST(req: Request): Promise<NextResponse> {
             estimate: plannedQuestions(live),
             question: q ? (reveal ? q : serveView(q, body.lang, state.profile.board)) : null,
             conceptId: currentConcept(live)?.conceptId ?? null,
+            ...(live.limitation ? { limitation: live.limitation } : {}),
           };
         }
 
@@ -160,7 +179,9 @@ export async function POST(req: Request): Promise<NextResponse> {
           wantedKind,
           // The learner's qualification drives the sampling blueprint: coverage
           // across the spec's own stage bands instead of four fixed anchors.
-          specForProfile(state.profile),
+          // The subject is explicit — using the profile without one resolved
+          // whichever course happened to belong to the learner's FIRST subject.
+          course.active,
         ) as DiagnosticSession;
         const q = nextQuestion(session);
         session.lastQ = q;
@@ -173,6 +194,7 @@ export async function POST(req: Request): Promise<NextResponse> {
           estimate: plannedQuestions(session),
           question: q ? (reveal ? q : serveView(q, body.lang, state.profile.board)) : null,
           conceptId: currentConcept(session)?.conceptId ?? null,
+          ...(session.limitation ? { limitation: session.limitation } : {}),
         };
       });
       if (!upd) return NextResponse.json({ error: "not found" }, { status: 404 });

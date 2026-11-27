@@ -3270,6 +3270,26 @@ const stubLog = process.env.OPENMIND_AI_STUB_LOG ?? "";
   ok(afterRefusals.body.profile.subjectCourses.physics.spec === "uk-alevel",
     "a refused course leaves the stored one untouched — no half-applied write");
 
+  // ── A QUALIFICATION IS NOT A TIER ──────────────────────────────────────
+  // Choosing GCSE without choosing Foundation/Higher used to be stored as
+  // Foundation (`levels[0]`), so the learner's record said they had made a
+  // choice they never made and the diagnostic could not tell. The tier must
+  // remain absent, the gap must name it, and a sitting must refuse.
+  const noTier = await newProfile({
+    handle: "gcse_no_tier", country: "GB", language: "en", grade: "Year 11",
+    subjects: ["maths"], onboarded: true,
+    subjectCourses: { maths: { spec: "uk-gcse" } },
+  });
+  const noTierId = noTier.body.profile?.id;
+  const noTierGap = (noTier.body.courseGaps ?? []).find((g) => g.subject === "maths");
+  ok(noTier.status === 200 && noTier.body.profile?.subjectCourses?.maths?.specLevel === undefined,
+    `choosing GCSE without a tier does not silently store Foundation (${noTier.status}, ${noTier.body.profile?.subjectCourses?.maths?.specLevel ?? "no tier"})`);
+  ok(noTierGap?.missing?.includes("specLevel"),
+    `and the missing tier is named as the gap (${JSON.stringify(noTierGap ?? null)})`);
+  const noTierStart = await post("/api/diagnostic", { id: noTierId, subject: "maths", action: "start", kind: "baseline" });
+  ok(noTierStart.status === 200 && noTierStart.body.courseIncomplete === true && !noTierStart.body.question,
+    `and the diagnostic refuses to sample a course with no tier (${noTierStart.status}, ${JSON.stringify(noTierStart.body.missing ?? null)})`);
+
   // ── A subject left unchosen is REPORTED, and its plan is not pretended ──
   const partial = await newProfile({
     handle: "one_course", country: "GB", language: "en", grade: "Year 11",

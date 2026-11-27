@@ -31,6 +31,34 @@ export interface ModelAssumptions {
 
 export const MODEL_ASSUMPTIONS: readonly ModelAssumptions[] = [
   {
+    model: "factor-model",
+    level: "11–16 (factors, prime factorisation and HCF/LCM, first formal treatment)",
+    assumptions: [
+      "The tree starts at 36 and every split is a pair of whole numbers greater than 1 whose product is the parent.",
+      "A leaf is finished when it is prime; 1 is never used as a split because it is not prime and does not make the tree progress.",
+      "The comparison is fixed at 24 and 36, with prime factors written in index notation.",
+      "The HCF is the product of the shared primes at the lower power; the LCM is the product of every prime at the highest power.",
+      "The check shown for two numbers is HCF × LCM = the product of the numbers, which is not claimed for three numbers.",
+    ],
+    limitations: [
+      "Only positive whole numbers are shown, so negative factors and algebraic factors are outside the model.",
+      "The comparison is one pair, 24 and 36; the model does not show three-number HCF/LCM or coprime and equal-number edge cases.",
+      "The tree is a method for prime factorisation, not a proof of uniqueness; the lesson's explanation carries that argument.",
+      "No factor pair is presented as the 'best' first split, and the model does not measure which route is shorter.",
+    ],
+    addresses: [
+      "1 is a prime factor and belongs in the tree.",
+      "The HCF is any common factor, so 6 is an acceptable answer for 24 and 36.",
+      "The LCM is the product of the two numbers, so 864 is the answer.",
+      "A factor tree must start with a particular factor pair.",
+    ],
+    couldIntroduce: [
+      "That every prime factorisation must be written with the primes in ascending order, when only the set of primes is unique.",
+      "That the HCF and LCM method is only for two numbers, because the model compares one pair.",
+      "That a longer factor tree is a better one, when the leaves are the same whatever route is taken.",
+    ],
+  },
+  {
     model: "circuit-model",
     level: "11–16 (series circuits, first quantitative treatment)",
     assumptions: [

@@ -37,6 +37,7 @@ import type {
 } from "../types";
 import type { MatchResult } from "../matcher";
 import type { QuestionView } from "../questions";
+import type { DiagnosticCoverageLimitation } from "../diagnostic";
 import type { BuiltPaper, PaperResult } from "../papers";
 import type { CourseField } from "../specifications";
 import type { EvidenceEvent, LearnerProjection } from "../evidence";
@@ -839,6 +840,15 @@ export interface DiagnosticQuestion {
   /** The question this step serves, or null when the ladder for this concept is
    *  exhausted and the sitting moves on. */
   question?: ServedQuestion | null;
+  /** TRUE when the server refused to start: the learner's course is not
+   *  complete. `missing` names the fields the course screen must collect. A
+   *  diagnostic is never started from a fallback tier. */
+  courseIncomplete?: boolean;
+  missing?: CourseField[];
+  /** Present when the course could supply fewer than the minimum number of
+   *  eligible concepts. The sitting still uses what the course HAS; it does not
+   *  borrow concepts from outside the course. */
+  limitation?: DiagnosticCoverageLimitation;
   /** The NEXT question, offered after an answer so the feedback can be read
    *  before the screen moves — the client never serves its own sequence. */
   next?: ServedQuestion | null;

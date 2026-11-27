@@ -83,8 +83,16 @@ function courseEntry(
     if (typeof level === "string" && level.length > 0) {
       if (!spec.levels.some((l) => l.id === level)) return { error: "bad_spec_level" };
       entry.specLevel = level;
-    } else if (!entry.specLevel) {
-      entry.specLevel = spec.levels[0].id;
+    } else if (entry.specLevel && !spec.levels.some((l) => l.id === entry.specLevel)) {
+      // A LOWER-DEMAND TIER IS A DECISION, NOT A DEFAULT. This used to write
+      // `spec.levels[0]` whenever no tier was named — and the first tier of
+      // GCSE Mathematics is Foundation. A client that chose only "GCSE" was
+      // therefore stored as a learner who had chosen Foundation, and the course
+      // gate could no longer tell the difference. Leaving the field absent is
+      // what lets `resolveCourse` report the real gap and send the learner to
+      // choose. A tier left over from a previous qualification is dropped for
+      // the same reason: it is not a choice about this one.
+      delete entry.specLevel;
     }
   } else if (typeof body.specLevel === "string" && body.specLevel.length > 0) {
     const spec = specById(entry.spec ?? fallbackSpec);
@@ -384,8 +392,11 @@ export async function POST(req: Request): Promise<NextResponse> {
             return NextResponse.json({ error: "bad_spec_level" }, { status: 400 });
           }
           p.specLevel = level;
-        } else {
-          p.specLevel = spec.levels[0].id;
+        } else if (p.specLevel && !spec.levels.some((l) => l.id === p.specLevel)) {
+          // Same rule on the flat legacy route: naming a qualification is not
+          // naming its tier. In particular, choosing GCSE must not silently
+          // choose Foundation, because Year 10/11 sit in both tiers.
+          delete p.specLevel;
         }
       }
     } else if (typeof body.specLevel === "string" && p.spec) {

@@ -4271,11 +4271,31 @@ exports.DEEP_GENS = {
         return {
             prompt: `A graph shows blood glucose at ${level} mg/100 ml (set point: ${setpoint}). Trace the negative-feedback sequence that restores the set point.`,
             // key = third-longest (rank 3)
-            correct: `The pancreas releases ${hormone}; glucose ${effect} toward ${setpoint}; the release then stops`,
-            wrongs: pickDistinct(`The pancreas releases ${hormone}; glucose ${effect} toward ${setpoint}; the release then stops`, [
-                `The level stays ${dir} the set point, because feedback can only slow a change and never reverses it`,
-                `The body deliberately overshoots to the opposite extreme before it corrects back again`,
-                `The set point rises to meet the new level, adapting the body's target`,
+            // THREE PHRASINGS, SO THE KEY IS SOMETIMES LONGEST, SOMETIMES MIDDLE AND
+            // SOMETIMES SHORTEST. A single fixed phrasing puts the key at the same
+            // length rank on every draw, and that rank is itself the cue: the first
+            // fix here made every key the second-longest option, and "pick a middle
+            // one" then scored 43.3%. Varying the wording (never the science) spreads
+            // the rank, which is the only honest way to move this number.
+            correct: [
+                `The pancreas releases ${hormone}; glucose ${effect} toward ${setpoint} mg/100 ml; once the set point is reached the release stops, which is what makes it feedback rather than a one-way correction`,
+                `The pancreas releases ${hormone}; glucose ${effect} toward ${setpoint} mg/100 ml; once there, the release stops`,
+                `Pancreas releases ${hormone}; glucose ${effect} to ${setpoint}`,
+            ][r.int(0, 2)],
+            // EVERY OPTION CARRIES A FIGURE, AND THE KEY IS NEITHER THE LONGEST NOR
+            // THE SHORTEST. Both halves are needed. With prose-only distractors the
+            // key was the only option containing a number, so "pick the option with a
+            // figure" found the answer; giving the distractors numbers then made the
+            // key the unique SHORTEST, and the gate caught that substitution
+            // immediately (86.7% shortest against an 82.5% baseline). The numbers
+            // below are each the subject of their misconception — the level sticking
+            // where it started, an overshoot past the set point, or the target itself
+            // moving — and the longest option is distractor one, so neither extreme
+            // identifies the answer.
+            wrongs: pickDistinct(`pancreas-${hormone}-${setpoint}`, [
+                `The level stays ${dir} the set point at ${level} mg/100 ml, because feedback can only slow a change and can never reverse it`,
+                `The body overshoots to ${level > setpoint ? level - 40 : level + 40} mg/100 ml first, then corrects back`,
+                `The set point rises to meet the new level, so the target becomes ${level} mg/100 ml instead of ${setpoint}`,
             ]),
             tags: [],
             explanation: `Negative feedback has four steps: DETECT the deviation from the set point, RELEASE the corrective hormone, COUNTERACT the deviation, SWITCH OFF when the set point returns. The switch-off is what makes it feedback rather than a one-way correction — and the set point itself never moves in these graphs.`,
@@ -5534,6 +5554,44 @@ exports.DEEP_GENS = {
             tags: ["b-half"],
             explanation: `Complete the square: x² + ${bt} ${ct2} = (x + ${h})² − ${h * h} ${ct2} = (x + ${h})² ${cs - h * h >= 0 ? "+" : "−"} ${Math.abs(cs - h * h)}. Setting it to zero gives (x + ${h})² = ${root} — the constant part moves across with its sign flipped — so x + ${h} = ±√${root} and x = ${-h} ± √${root}. Two things are easy to lose: the bracket moves across with the OPPOSITE sign (${-h}, not ${h}), and the right-hand side keeps its square root — ${root} is the number UNDER the radical, not the answer.`,
             difficulty: 0.7 + r.next() * 0.08,
+        };
+    },
+    /** Factors and multiples in a real packing or timetable decision. The base
+     *  family asks one fact at a time; this asks the learner to CHOOSE whether the
+     *  situation needs the shared factor (HCF) or the shared multiple (LCM), then
+     *  compute it. Those are the two directions learners routinely swap. */
+    "factors-primes": (r) => {
+        const gcd = (a, b) => (b === 0 ? a : gcd(b, a % b));
+        const lcm = (a, b) => (a * b) / gcd(a, b);
+        const clock = (minutesAfterNine) => {
+            const total = 9 * 60 + minutesAfterNine;
+            const h = Math.floor(total / 60);
+            const m = total % 60;
+            return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+        };
+        if (r.next() < 0.5) {
+            const [red, blue] = r.pick([[48, 60], [36, 48], [24, 36], [60, 84]]);
+            const h = gcd(red, blue);
+            const correct = String(h);
+            return {
+                prompt: `A school has ${red} red pens and ${blue} blue pens.\nThe pens are packed into identical boxes. Each box contains pens of only one colour, and every box contains the same number of pens.\nWhat is the greatest possible number of pens in each box?`,
+                correct,
+                wrongs: pickDistinct(correct, [h / 2, h * 2, red + blue, red * blue]),
+                tags: [],
+                explanation: `The number in each box must divide BOTH ${red} and ${blue}, so it is a common factor. The question asks for the GREATEST one, which is the HCF: ${h}. ${h / 2} is also a common factor, but it is not the greatest, so it would leave boxes smaller than necessary. ${red + blue} and ${red * blue} are sums and products, not common factors at all — the answer must divide each colour exactly.`,
+                difficulty: 0.66 + r.next() * 0.06,
+            };
+        }
+        const [a, b] = r.pick([[18, 24], [12, 30], [15, 20], [16, 24]]);
+        const l = lcm(a, b);
+        const correct = clock(l);
+        return {
+            prompt: `At 09:00 two bells ring together.\nOne bell rings every ${a} minutes and the other every ${b} minutes.\nWhen will they next ring together?`,
+            correct,
+            wrongs: pickDistinct(correct, [clock(a + b), clock(a * b), clock(gcd(a, b))]),
+            tags: [],
+            explanation: `They next ring together after a number of minutes that both ${a} and ${b} divide into, so the wait is the LCM of ${a} and ${b}: ${l} minutes. 09:00 plus ${l} minutes is ${correct}. Adding the intervals (${a + b} minutes) finds when each has rung once more, not when they coincide; multiplying them (${a * b} minutes) is a common multiple but not the LOWEST one.`,
+            difficulty: 0.7 + r.next() * 0.06,
         };
     },
 };

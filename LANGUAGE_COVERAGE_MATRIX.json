@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-27T20:30:46.755Z",
+  "generatedAt": "2026-11-27T22:27:27.246Z",
   "command": "npm run verify:multilingual",
   "method": "Measured from lib/i18n.ts, lib/lesson-plans.ts, lib/exact-resources.ts and lib/pilot.ts. A missing translation is reported as missing.",
   "summary": {

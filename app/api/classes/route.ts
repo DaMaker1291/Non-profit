@@ -24,7 +24,7 @@ import {
 } from "@/lib/server/store";
 import { liveRoster, memberEvidence, memberRoster, resolveMembers } from "@/lib/server/class-view";
 import { SUBJECT_IDS } from "@/lib/subjects";
-import { courseRefusal, specById } from "@/lib/specifications";
+import { courseRefusal } from "@/lib/specifications";
 import { classroomDeclared, normalizeClassroom } from "@/lib/classroom-context";
 import { getConcept } from "@/lib/genome";
 import { normalizeClassLevels } from "@/lib/right-level-serve";
@@ -185,6 +185,11 @@ interface Body {
    *  it is taught. Validated against the class's subject (lib/specifications#
    *  courseRefusal), so a course the subject is not part of is refused by name. */
   specificationId?: string | null;
+  /** The tier the class sits for that course (Foundation/Higher, Core/Extended).
+   *  Only meaningful WITH a course; validated by the learner's own resolver when
+   *  a kiosk learner inherits it, so an unknown tier becomes a named refusal
+   *  rather than a question at the wrong depth. */
+  levelId?: string | null;
   /** THE ROOM, as its teacher declared it. Normalised by lib/classroom-context
    *  and stored only if it carries a fact; `null` clears it back to undeclared. */
   classroom?: unknown;
@@ -304,6 +309,7 @@ export async function POST(req: Request): Promise<NextResponse> {
           conceptIds: (body.conceptIds ?? []).slice(0, 12),
           subject: body.subject as SubjectId | undefined,
           specificationId: course,
+          levelId: body.levelId ?? null,
           school: classText(body.school, 80),
           academicYear: classText(body.academicYear, 20),
           yearGroup: classText(body.yearGroup, 30),
@@ -542,6 +548,7 @@ export async function POST(req: Request): Promise<NextResponse> {
           }
           if (body.subject !== undefined) cls.subject = subject;
           if (body.specificationId !== undefined) cls.specificationId = body.specificationId;
+          if (body.levelId !== undefined) cls.levelId = body.levelId;
           // THE CLASSROOM, as declared. `null` clears it back to "not declared";
           // any other value is normalised and stored only if it carries a fact.
           if (body.classroom !== undefined) {
@@ -720,12 +727,19 @@ export async function POST(req: Request): Promise<NextResponse> {
           // NEVER DISCLOSED: this learner's only usable credential is the session
           // its PIN buys, which the server ends at hand-back.
           state.secret = mintUnshownSecret();
+          // THE CLASS'S COURSE, INHERITED — INCLUDING ITS TIER, AND ONLY IF THE
+          // TEACHER ACTUALLY CHOSE ONE.
+          //
+          // This used to mint `spec.levels[0].id`, which is Foundation for the
+          // GCSE. A provisioned learner was therefore enrolled at the easier
+          // tier by array order, and every question they were served was pitched
+          // there without a surface saying so. A class with no tier now leaves
+          // `specLevel` ABSENT: `servingCourseFor` refuses the course-bound
+          // serve and names the missing field, so the teacher is told what to
+          // finish instead of the learner being quietly taught the wrong tier.
           if (existing.specificationId) {
-            const spec = specById(existing.specificationId);
-            if (spec) {
-              state.profile.spec = spec.id;
-              state.profile.specLevel = spec.levels[0].id;
-            }
+            state.profile.spec = existing.specificationId;
+            if (existing.levelId) state.profile.specLevel = existing.levelId;
           }
           // The record is written BEFORE the roster row, so a refused store
           // cannot leave a member the teacher can see and nobody can sign in as.

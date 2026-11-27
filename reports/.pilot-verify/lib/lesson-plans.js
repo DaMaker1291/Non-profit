@@ -109,7 +109,7 @@ const PILOT_LESSON_PLANS = {
     // pictures.
     decimals: {
         conceptId: "decimals",
-        objective: "Read 0.45 aloud as 45 hundredths, put a list of decimals in size order, and add or multiply two of them without losing the decimal point.",
+        objective: "Read 0.45 aloud as 45 hundredths, put a list of decimals in size order, multiply two of them without losing the point, and change a recurring decimal into a fraction.",
         intuition: "Two prices on a shelf: £0.50 and £0.45. The second one has MORE digits, and the first is worth more — 50p beats 45p. That is the whole difficulty of decimals in one comparison: the digits are not the amount, their position is. A decimal continues the place-value system whole numbers already use, past a point and into tenths, hundredths and thousandths, so the column a digit sits in decides what it counts.",
         idea: [
             "Read the point as the word \"and\": 0.45 is 4 tenths and 5 hundredths, which is 45/100. Everything to the right of the point is a fraction whose denominator is a power of ten, and each step further right divides the value by ten again — tenths, then hundredths, then thousandths. A digit's position is doing exactly the work it does in 452, where the 4 means 400, except now it continues into amounts smaller than one.",
@@ -118,6 +118,8 @@ const PILOT_LESSON_PLANS = {
             "Multiplying needs a different routine, because the columns no longer have to match. Multiply the digits as if the points were not there, then count the decimal places in BOTH factors and put that many back into the answer: 3 × 2 = 6, and 0.3 and 0.2 have one place each, so the answer needs two — 0.06. That count is not a trick; tenths times tenths really is hundredths, which is the same fact as 1/10 × 1/10 = 1/100.",
             "A decimal is one quantity written in another notation, so converting costs nothing: 0.45 = 45/100 = 45%. The same number can be a price, a length, a probability or a percentage, and none of those changes its size. What does change is the precision a written decimal claims — 2.4 said to one decimal place means \"between 2.35 and 2.45\" — which is why rounding is a decision about which column matters rather than a tidy-up.",
             "Multiplying or dividing by ten shifts the digits, not the quantity: 0.45 × 10 = 4.5 and 0.45 ÷ 10 = 0.045, with the point moving one place each time because every digit has moved one column. That is the one legitimate use of \"move the point\", and saying the operation out loud — \"divide by ten\" — keeps it attached to something true.",
+            "Some divisions never reach a remainder of zero. 1 ÷ 3 gives 3 tenths and leaves 1, then the same 1 brings down a zero and gives another 3, forever: 0.333... . The ellipsis, or a dot over the 3, records a block that repeats without end, not a calculation that was left unfinished. 1/6 = 0.1666..., and 1/7 = 0.142857142857..., where the six-digit block 142857 cycles. Whether a fraction in simplest form terminates is decided by its denominator: a terminating decimal is a fraction over 10, 100, 1000, ..., and those denominators are built only from 2s and 5s. So 3/8 terminates (0.375), while 5/12 recurs (0.41666...) because 12 = 2² × 3 and no power of ten is divisible by 3.",
+            "A repeating decimal can be turned back into a fraction by subtracting away its tail. For x = 0.272727..., multiply by 100 to move the point past one whole block: 100x = 27.272727... . Subtracting x removes the identical tails and leaves 99x = 27, so x = 27/99 = 3/11. If only part of the decimal repeats, shift by the length of the repeating section first: for 0.41666..., 100x = 41.666... and 10x = 4.1666..., so 90x = 37.5 and x = 5/12. The same argument shows 0.999... = 1: 10x = 9.999..., so 9x = 9. A decimal that repeats is still a rational number — going on forever does not mean having no fraction.",
         ],
         traps: [
             {
@@ -132,8 +134,16 @@ const PILOT_LESSON_PLANS = {
                 move: "\"0.3 + 0.4 = 7, because 3 + 4 = 7.\"",
                 why: "Dropping the points multiplied both numbers by ten, so the answer is ten times too big. Three tenths plus four tenths is seven tenths, 0.7. Write the numbers one under the other with the points in a column: the digits you are adding are then the ones in the same place value.",
             },
+            {
+                move: "\"0.999... is less than 1, because it starts with 0 and never gets there.\"",
+                why: "The notation names one number, not a process that stops just short. Let x = 0.999...; then 10x = 9.999..., and subtracting gives 9x = 9, so x = 1. There is no number between them. The 0 before the point describes the first digit, not a value below 1.",
+            },
+            {
+                move: "\"0.333... is only an approximation of 1/3.\"",
+                why: "The ellipsis means the 3s continue without end, which is exactly 1/3. Dividing 1 by 3 leaves remainder 1 at every step, so the digit 3 repeats forever. Rounding to 0.33 would be an approximation, but the recurring decimal is exact.",
+            },
         ],
-        usedFor: "Percentages (0.45 is 45%), measurement to a stated precision, ratio and standard form all read decimals, and rounding an answer to one decimal place is a judgement about which column the question cares about.",
+        usedFor: "Percentages (0.45 is 45%), measurement to a stated precision, ratio and standard form all read decimals, and rounding an answer to one decimal place is a judgement about which column the question cares about. Recurring decimals also decide whether a fraction can be written exactly as a terminating decimal, which matters in measurement and in algebra.",
         review: "unreviewed",
         // THE WORKED-ON-SCREEN ROUTE. This plan deliberately draws no static figure
         // because the figure vocabulary has no place-value table; a real video is
@@ -173,6 +183,16 @@ const PILOT_LESSON_PLANS = {
                 move: "\"3/4 + 1/4 = 4/8.\"",
                 why: "Adding the bottoms together changes the size of every piece in the answer, so the addition is no longer about the same wholes. Quarters and quarters are the same size, so the tops simply add: 3/4 + 1/4 = 1. (Different bottoms are next concept, and they need a common denominator first.)",
             },
+            // FROM AN INSPECTED LESSON, NOT INVENTED: Oak's fractions video asks which is
+            // larger, 1/5 or 3/5, and answers it with 1/5 of a long bar beside 3/5 of a
+            // short one (07:00 in `oak-fractions-numbers-video`). The larger fraction has
+            // the smaller piece unless the whole is the same, and this model cannot show
+            // that because its whole is fixed at 1 — so the trap is taught in prose here
+            // and recorded in the model's limitations rather than pretended away.
+            {
+                move: "\"3/5 is bigger than 1/5, so 3/5 of anything is bigger than 1/5 of anything.\"",
+                why: "That holds only while both fractions are taken from the SAME whole. 3/5 of a short bar can be a shorter piece than 1/5 of a long one — cut two bars of different lengths and check. A fraction describes a share of a particular whole, so the first question is always what the whole is; a comparison that never names its whole is not yet a comparison.",
+            },
         ],
         usedFor: "Percentages and decimals are fractions in another notation, ratio compares two of them, and probability is one: the chance of a six is 1/6, which is a fraction before it is ever a percentage.",
         review: "unreviewed",
@@ -195,7 +215,11 @@ const PILOT_LESSON_PLANS = {
                 ],
             },
         ],
-        interactive: "fraction-model",
+        // THE LINE, NOT THE BAR. The research on this concept found that part-whole
+        // shading did not predict fewer whole-number ordering errors once number-line
+        // estimation was controlled (lib/learning-research.ts), so the authored plan
+        // names the model that teaches a position. The bar is still inside it.
+        interactive: "fraction-line-model",
         // THE PICTURE THE IDEA NEEDS. "A bigger bottom means smaller pieces" is a
         // claim about SHAPE — the same circle, cut more ways — so the drawing shows
         // three quarters of one whole and the caption says what to notice: four of
@@ -251,6 +275,53 @@ const PILOT_LESSON_PLANS = {
             caption: "Two thirds, cut into sixths: the same shaded amount is four of the six equal slices, because cutting each third in half doubles the count and halves the size. So 2/3 = 4/6 — and now 5/6 can be added to it directly, because both are counted in sixths.",
         },
     },
+    "factors-primes": {
+        conceptId: "factors-primes",
+        objective: "Decide whether a number is a factor or a multiple, write a whole number as a product of primes, and use the prime factorisations to find the HCF and LCM of two numbers.",
+        intuition: "A tiler has 36 identical square tiles and arranges them as a rectangle with no gaps. She can make 1 row of 36, 2 rows of 18, 3 rows of 12, 4 rows of 9, or 6 rows of 6. Nothing about the tiles changed; each arrangement is a factor pair. Turn the same multiplication around and 36 is a multiple of 6 — the two words describe the two directions of one fact.",
+        idea: [
+            "A factor of a number divides it exactly, leaving no remainder. The factors of 36 are 1, 2, 3, 4, 6, 9, 12, 18 and 36. They come in pairs because a multiplication fact and a division fact say the same thing: 4 × 9 = 36, so 4 and 9 are both factors. The pair 6 × 6 appears once because the two factors are the same. A multiple of 6 is made by multiplying 6 by a whole number: 6, 12, 18, 24, 30, and so on. 36 is a multiple of 6; 6 is a factor of 36. The relationship has a direction, and swapping the words changes the truth.",
+            "A prime number has exactly two different factors: 1 and itself. 2, 3, 5, 7, 11 and 13 are prime. 1 is not prime because it has only one factor, not two. 4 is not prime because 2 × 2 = 4 gives it a third factor. 2 is the only even prime, since every larger even number is divisible by 2. These are not labels to memorise: they are consequences of how many exact divisions a number allows.",
+            "Prime factorisation breaks a number into factors until every factor is prime. For 36, split into 4 × 9, then 4 into 2 × 2 and 9 into 3 × 3, giving 2 × 2 × 3 × 3. A different first split, 6 × 6, ends at the same four primes because 6 = 2 × 3. The order changes; the set of primes does not. Index notation counts repeats: 2 × 2 × 3 × 3 = 2² × 3². A factorisation is finished only when no composite factor is left, so 2 × 2 × 9 is not finished.",
+            "The uniqueness of prime factorisation is the reason the method is reliable, not a separate fact to chant. If the same number had two genuinely different prime products, dividing out the primes they share would leave two different products of primes with no common factor — impossible, because a prime cannot be built by multiplying other primes. That is why every factor tree for 36 ends at two 2s and two 3s, whatever the first split.",
+            "The HCF is the largest number dividing both numbers. Write both as prime products and take the shared primes at the LOWER power: 24 = 2³ × 3 and 36 = 2² × 3², so HCF = 2² × 3 = 12. The LCM is the smallest number both divide into. It needs every prime present at its HIGHEST power: 2³ × 3² = 72. The product 24 × 36 = 864 is also a common multiple, but it counts the shared primes twice and is not the lowest. For two numbers, HCF × LCM = the product of the numbers, which is a useful check.",
+            "A context tells you which one is wanted. Identical groups or boxes use the HCF: the group size must divide both quantities, and 'greatest' asks for the highest such divisor. Repeated events that next coincide use the LCM: the waiting time must be a multiple of both intervals, and 'next' asks for the lowest such multiple. In both cases check the answer against the definition. An HCF must divide both originals and cannot exceed either; an LCM must be at least as large as both and both must divide it.",
+        ],
+        traps: [
+            {
+                move: "\"1 is prime because only 1 divides it.\"",
+                why: "A prime needs exactly two DIFFERENT factors, 1 and the number itself. For 1 those are the same factor, so it has one factor, not two. Counting 1 as prime also destroys uniqueness: 36 could be 2² × 3² or 1 × 2² × 3² or 1 × 1 × 2² × 3², and there would be no single prime factorisation. The primes start at 2.",
+            },
+            {
+                move: "\"9 is a multiple of 36 because 36 is bigger.\"",
+                why: "A multiple of 36 is 36 times a whole number, so it is at least 36: 36, 72, 108, and so on. 9 is a FACTOR of 36, because 9 × 4 = 36. The direction matters: 9 divides 36, so 9 is the factor and 36 is the multiple of 9 — not the other way round.",
+            },
+            {
+                move: "\"The HCF of 24 and 36 is 6 because 6 is a common factor.\"",
+                why: "6 does divide both, but the question asks for the HIGHEST common factor. 12 also divides both (24 ÷ 12 = 2, 36 ÷ 12 = 3), and 12 > 6, so 6 cannot be the highest. Stopping at the first common factor is a search that has not finished. The prime-factor method gives 2² × 3 = 12 and makes the highest power explicit.",
+            },
+            {
+                move: "\"The LCM of 24 and 36 is 24 × 36 = 864.\"",
+                why: "864 is a common multiple, since both numbers divide it, but it is not the LOWEST. The product counts the shared primes twice. Taking each prime at its highest power gives 2³ × 3² = 72, and 72 ÷ 24 = 3 and 72 ÷ 36 = 2. The product is an upper bound, not the answer to 'lowest'.",
+            },
+        ],
+        usedFor: "Simplifying fractions uses the HCF of the numerator and denominator; adding fractions uses the LCM of the denominators. Ratio, probability, algebra with integer factors and every later factorising skill depend on seeing a number as a product of primes.",
+        review: "unreviewed",
+        provenance: "pilot",
+        terms: [
+            { term: "factor", meaning: "A whole number that divides another exactly, with no remainder." },
+            { term: "multiple", meaning: "The result of multiplying a number by a whole number." },
+            { term: "prime", meaning: "A whole number greater than 1 with exactly two different factors: 1 and itself." },
+            { term: "HCF", meaning: "Highest common factor: the largest number that divides two or more numbers exactly." },
+            { term: "LCM", meaning: "Lowest common multiple: the smallest number that two or more numbers divide into exactly." },
+            { term: "prime factorisation", meaning: "A number written as a product in which every factor is prime." },
+        ],
+        recap: [
+            "A factor divides; a multiple is made by multiplying. The direction is the difference.",
+            "A prime has exactly two different factors, and 1 is not prime.",
+            "The HCF takes shared primes at lower powers; the LCM takes every prime at its highest power.",
+        ],
+    },
     percentages: {
         conceptId: "percentages",
         objective: "Find a percentage of an amount, work out a percentage change, and explain why a 20% rise followed by a 20% fall does not return to where you started.",
@@ -296,13 +367,15 @@ const PILOT_LESSON_PLANS = {
     },
     negatives: {
         conceptId: "negatives",
-        objective: "Read, compare and calculate with numbers below zero — and know which way the answer goes.",
+        objective: "Read, compare and calculate with numbers below zero, including negative fractions, and know which way the answer goes.",
         intuition: "An underground car park already uses this idea. You are parked on level −2 and you drive up four floors. You do not arrive at 5: you arrive at 3, because you started below street level and passing zero changes nothing about the counting. Every rule about negatives is that one picture — a number line where zero is not a wall you stop at, but a line you can walk straight past.",
         idea: [
             "A negative number is an amount below zero. −4 sits the same distance from zero as 4 does, on the other side, which is why the sign is the only thing separating them: the distance of −4 from zero is 4, exactly as it is for 4. The sign says direction, not size.",
             "Adding and subtracting are moves along the line. Adding a negative moves left: 6 + (−4) = 2. Subtracting a negative needs a second look, because it takes away a leftward move, which leaves you further right: 5 − (−3) = 5 + 3 = 8. You do not have to memorise that. 5 − (−3) asks \"what number added to −3 gives 5?\", and only 8 does.",
             "Multiplying is repeated addition, so signs follow the moves. (−3) × 4 is four jumps of three to the left: −12. (−3) × (−4) reverses direction twice — taking away four debts of 3 leaves you 12 better off — so the answer is positive. One negative gives a negative answer; two negatives give a positive one.",
             "Comparing catches people out because the line runs the other way from the numbers: −2 is greater than −5, even though 5 is greater than 2. Rightwards is larger. That single fact is also why an inequality flips sign the moment you multiply or divide by a negative.",
+            "A fraction can sit below zero on the same line. −2/3 is two thirds of a step to the left, and −3/4 is three quarters of a step to the left. Write both over 12: −8/12 and −9/12. Since −9/12 is further left, −3/4 is smaller. The negative sign changes the side of zero, not the way fractions are compared.",
+            "The four operations keep the same sign rules. Find a common denominator before adding or subtracting: −2/3 + 1/4 = −8/12 + 3/12 = −5/12. For multiplication and division, decide the sign first and then work with the sizes: −3/4 ÷ 2/5 = −(3/4 × 5/2) = −15/8. Dividing by a fraction multiplies by its reciprocal, and one negative value makes the quotient negative.",
         ],
         traps: [
             {
@@ -317,8 +390,16 @@ const PILOT_LESSON_PLANS = {
                 move: "Working out (−2) × (−3) as −6.",
                 why: "Both signs reverse the direction, so the result points back to the positive side. Test it against the rule you already trust: (−2) × 3 = −6, so (−2) × (−3) must be the opposite of that, which is 6.",
             },
+            {
+                move: "Working out −2/3 + 1/4 as −1/7 by adding the tops and the bottoms.",
+                why: "Thirds and quarters are different-sized pieces, so their numerators cannot be added directly. Rewrite both over 12 first: −8/12 + 3/12 = −5/12. Adding the denominators invents a unit that neither fraction uses.",
+            },
+            {
+                move: "Changing −3/4 ÷ 2/5 into −3/4 × 2/5.",
+                why: "Dividing by two fifths asks how many two-fifths fit, so the second fraction is inverted: −3/4 × 5/2 = −15/8. Multiplying by 2/5 instead would make the result smaller and would reverse the operation.",
+            },
         ],
-        usedFor: "Coordinates, gradients and inequalities all stand on this: a point below the axis, a line falling to the right, or any inequality you multiply by −1.",
+        usedFor: "Coordinates, gradients and inequalities all stand on this: a point below the axis, a line falling to the right, or any inequality you multiply by −1. Negative fractions carry the same reading into ratio, probability and algebraic fractions.",
         review: "unreviewed",
         // THE ADVANCED ROUTE. A learner whose evidence shows mastery of the moves is
         // handed the same picture as an ALGEBRA (numbers are positions, operations are
@@ -333,6 +414,7 @@ const PILOT_LESSON_PLANS = {
                     "Treat every number as a POSITION on the line and every operation as a transformation, and the sign rules stop being rules to remember. Adding a number slides the whole line; multiplying by −1 reflects it through zero; subtracting b is adding the reflection of b. That is the whole algebra, and 5 − (−3) = 8 is one sentence in it: reflect −3 to 3, then slide right by 3.",
                     "This framing answers what the default route can only assert. Why is (−2) × (−3) positive? Multiplication by a negative is a reflection through zero, and reflecting twice returns you to where you began — two half-turns make a full turn. The product of two negatives is positive because the two reversals cancel, not because \"two minuses make a plus\" is something to chant.",
                     "Two results worth deriving now, because both are used later. Distance between two numbers is |a − b|, so the distance from −4 to 3 is 7, and the midpoint is their mean, (−4 + 3)/2 = −0.5 — check on the line that −0.5 is equally far from −4 and from 3. Then the inequality flip follows from the same picture: multiplying by −1 MIRRORS the line, so every point that was to the left is now to the right, and a \"less than\" becomes a \"greater than\" because the order reversed, not because of a separate rule.",
+                    "Fractions are positions on the same line, so none of this depends on the values being whole numbers. −2/3 is the point two thirds of the way from 0 to −1, and −3/4 is three quarters of the way; a common denominator turns both into counts of the same-sized step, which is why −9/12 is further left than −8/12. The sign rules are transformations, not integer rules: multiplying two negative fractions reflects twice, so the product is positive, and dividing by 2/5 multiplies by 5/2 whether the values are fractions or integers.",
                 ],
             },
         ],
@@ -1127,6 +1209,10 @@ const PILOT_LESSON_PLANS = {
             "In a parallel circuit the components are connected across the same two points, so the potential difference is the same across each branch. The currents add to the total, and the total resistance is found from 1/R = 1/R₁ + 1/R₂ + … . The total resistance is less than the smallest branch resistance, because the extra branch gives charge another path.",
             "Electrical power is the rate of energy transfer: P = VI = I²R = V²/R. A resistor converts electrical energy to heat, which is the heating effect used in a filament lamp, a kettle and a fuse. The same power can be delivered at a lower current by using a higher voltage, which is why electricity is transmitted at high voltage and low current: less energy is lost as heat in the cables.",
         ],
+        // THE MODEL THE PROSE CANNOT REPLACE. Every sentence below is true and a
+        // learner who believes current is "used up" reads them and keeps the belief;
+        // the two ammeters on the model's own loop are what make it visible.
+        interactive: "circuit-model",
         terms: [
             { term: "current", meaning: "The rate of flow of electric charge, measured in amperes; I = Q/t." },
             { term: "potential difference", meaning: "The energy transferred per unit charge between two points, measured in volts." },

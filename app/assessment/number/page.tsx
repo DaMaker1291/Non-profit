@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function NumberCheckpointPage() {
   const checkpoint = numberCheckpointView();
   return (
-    <main className="wrap">
+    <main className="container page">
       <NumberCheckpoint checkpoint={checkpoint} />
     </main>
   );

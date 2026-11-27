@@ -1262,6 +1262,16 @@ export interface ClassRoster {
    *  (lib/server/assignment-view#assignableConcepts) and the week's plan
    *  (lib/teacher-plan) are both drawn from it. */
   specificationId?: string | null;
+  /** THE TIER THIS CLASS SITS, for its declared subject and course.
+   *
+   *  Separate from `specificationId` because a qualification is not a course: a
+   *  GCSE class is Foundation or Higher, and that choice must be the TEACHER'S.
+   *  It used to be minted for provisioned learners as `spec.levels[0]` —
+   *  Foundation for the GCSE — so a class taught Higher was enrolled at
+   *  Foundation by an array index. Absent means the teacher has not finished
+   *  configuring the class; assignments and kiosk practice then refuse and name
+   *  the missing choice rather than guessing one. */
+  levelId?: string | null;
   /** Work the teacher has set for the class. It lives on the roster because it
    *  IS class state, not a parallel store — and every number the teacher later
    *  reads about a member's progress is derived from that member's own evidence

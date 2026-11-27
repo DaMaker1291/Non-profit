@@ -842,5 +842,20 @@ export function blueprintConcepts(
       }
     }
   }
-  return top.length >= Math.min(3, total) ? top : fallback;
+  // A FALLBACK MAY ONLY ADD CONCEPTS THE COURSE ACTUALLY CONTAINS. The old
+  // line returned the caller's anchor list verbatim whenever the blueprint was
+  // narrow, which is how a qualification whose coverage could not fill three
+  // concepts still received anchors from the rest of the subject — the exact
+  // membership loss the diagnostic's own sampler was trying to prevent. The
+  // fallback is now intersected with `eligiblePool` (already course-filtered
+  // and `servable`) and merged into the picks rather than replacing them.
+  const minimum = Math.min(3, total);
+  if (top.length >= minimum) return top;
+  const allowed = new Set(eligiblePool);
+  const merged = [...top];
+  for (const id of fallback) {
+    if (merged.length >= total) break;
+    if (allowed.has(id) && servable(id) && !merged.includes(id)) merged.push(id);
+  }
+  return merged;
 }

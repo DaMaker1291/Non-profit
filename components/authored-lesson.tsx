@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { AuthoredLesson } from "@/lib/lesson-contract";
 import { AssessmentBlock } from "./authored-assessment";
 import { LessonFigure } from "./lesson-figure";
+import AttemptFirst from "./attempt-first";
 
 // THE AUTHORED LESSON, RENDERED.
 //
@@ -62,12 +63,12 @@ export function AuthoredLessonReading({
             idea to look at first — it is not this lesson failing you.
           </p>
           {lesson.priorKnowledge.check.map((check) => (
-            <details key={check.id} className="authored-check" style={{ marginTop: 10 }}>
-              <summary className="reading">{check.question}</summary>
-              <p className="reading lesson-text small muted" style={{ marginTop: 8 }}>
-                {check.answer}
-              </p>
-            </details>
+            <div key={check.id} style={{ marginTop: 10 }}>
+              {/* AN ATTEMPT BEFORE THE ANSWER. This was a disclosure, so the
+                  check could be read instead of tried. See
+                  components/attempt-first.tsx for why it records nothing. */}
+              <AttemptFirst id={check.id} prompt={check.question} answer={check.answer} />
+            </div>
           ))}
         </section>
       )}
@@ -118,19 +119,18 @@ export function AuthoredLessonReading({
           <p className="eyebrow" style={{ margin: 0 }}>Let&rsquo;s do these together</p>
           {lesson.guidedPractice.map((item, index) => (
             <div key={item.id} style={{ marginTop: 14 }}>
-              <p className="reading" style={{ margin: 0 }}>
-                <strong>{index + 1}.</strong> <span style={{ whiteSpace: "pre-wrap" }}>{item.prompt}</span>
-              </p>
-              <details className="authored-hint" style={{ marginTop: 8 }}>
-                <summary className="reading small">A hint, not the answer</summary>
-                <p className="reading lesson-text small" style={{ marginTop: 6 }}>{item.hint}</p>
-              </details>
-              <details className="authored-answer" style={{ marginTop: 6 }}>
-                <summary className="reading small">Check your answer</summary>
-                <p className="reading lesson-text small" style={{ marginTop: 6 }}>{item.answer}</p>
-                <p className="reading small muted" style={{ marginTop: 4 }}>{item.feedback.correct}</p>
-                <p className="reading small muted" style={{ marginTop: 4 }}>{item.feedback.incorrect}</p>
-              </details>
+              {/* GUIDED PRACTICE IS DONE, NOT DISCLOSED. The hint stays opt-in
+                  and the answer waits for a typed attempt. */}
+              <AttemptFirst
+                id={item.id}
+                prompt={`${index + 1}. ${item.prompt}`}
+                hint={item.hint}
+                answer={item.answer}
+                correct={item.feedback.correct}
+                incorrect={item.feedback.incorrect}
+                checkLabel="Check my answer"
+                answerLabel="The answer"
+              />
             </div>
           ))}
         </section>

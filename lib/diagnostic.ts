@@ -7,7 +7,7 @@ import {
 import { coverageOf, difficultyFor, type ActiveSpec } from "./specifications";
 import { blueprintConcepts } from "./question-bank";
 import { DIAG_RELEASE_EVIDENCE } from "./mastery";
-import { conceptDepth, difficultyBandFor, generateQuestion, generateQuestionAt, hasGenerator, isVariableGen } from "./questions";
+import { CONCEPT_REACH_MIN_RATE, conceptDepth, conceptReachRate, difficultyBandFor, generateQuestion, generateQuestionAt, hasGenerator, isVariableGen } from "./questions";
 import type { ConceptScore, ConceptProgress, DiagnosticResult, PathStep, ProfileState, Question, SubjectId } from "./types";
 // FOUR rungs, one per band the bank can actually produce: recall, application,
 // multi-step, and data-and-graphs. The ladder used to stop at multi-step
@@ -143,6 +143,22 @@ export interface LadderState {
   openedAt?: number;
 }
 
+/** An honest statement that a sitting could not fill its sample from the
+ *  learner's own course. It is recorded on the session rather than repaired by
+ *  borrowing concepts from elsewhere: "we only have two eligible concepts" is a
+ *  fact about coverage, not a reason to ask a Year 11 learner a primary
+ *  question. */
+export interface DiagnosticCoverageLimitation {
+  kind: "insufficient_eligible_concepts";
+  subject: SubjectId;
+  courseId: string | null;
+  levelId: string | null;
+  /** The smallest sample a diagnostic needs to be worth starting. */
+  required: number;
+  available: number;
+  reason: string;
+}
+
 export interface DiagnosticSession {
   subject: SubjectId;
   /** benchmark run type — fixed anchors (baseline/retest) vs random probe */
@@ -156,6 +172,12 @@ export interface DiagnosticSession {
    *  declared course (`openingStageFor`). Zero when no course is declared, so
    *  an anonymous probe keeps the old floor-to-top ladder unchanged. */
   openStage?: number;
+  /** The concepts the learner's own course contains, when a course was
+   *  supplied. Kept on the session so later reads (the unprobed coverage rows in
+   *  `buildResult`) cannot drift back to the whole subject. */
+  courseConceptIds?: string[];
+  /** Present only when the course could not supply the minimum sample. */
+  limitation?: DiagnosticCoverageLimitation;
   /** Every probe actually answered, in order, with the difficulty served and
    *  whether it was right. The per-concept ladder cannot answer "can they
    *  APPLY but not interpret data?" — that question needs the individual
@@ -203,16 +225,45 @@ export function newDiagnosticSession(
   // genuinely weak at their course's level, and it does so from their own
   // answers instead of from a foundation concept the coverage happened to
   // contain.
+  // A ONE-BAND ALLOWANCE WAS STILL A BELOW-LEVEL SAMPLE. `declaredBand - 1`
+  // let a GCSE Higher course (band 4) sample a concept whose whole generator
+  // tops out in band 3 — e.g. negatives at 0.45 — so a fourth of the sitting
+  // was application-level work even though every question it could produce was
+  // below the course's demand. The concept must be able to REACH the declared
+  // band, not merely sit one rung beneath it. Remediation still exists: the
+  // ladder's own descent and the teaching loop handle a learner who fails at
+  // their course's level, using evidence rather than a pre-emptive easy item.
   const canPlaceThem = (id: string) =>
-    hasGenerator(id) && isVariableGen(id) && difficultyBandFor(conceptDepth(id)) >= declaredBand - 1;
+    hasGenerator(id) && isVariableGen(id) &&
+    difficultyBandFor(conceptDepth(id)) >= declaredBand &&
+    // …and it must actually PRODUCE that demand often enough to be a source,
+    // not merely own one exceptional item. A ceiling with a 2% reach rate is a
+    // lottery dressed as capability; the measured supply is what the sitting
+    // can rely on. Course-less probes have no declared demand to test.
+    (declared === null || conceptReachRate(id, declared) >= CONCEPT_REACH_MIN_RATE);
   // Benchmark runs walk the subject's FIXED anchor concepts (audit P0-B), in
   // curriculum order, so every baseline/retest pair measures the same skills.
   // Quick probes keep the old behaviour: a random spread across the spine.
   // Constant (designed-item) generators are excluded either way: the
   // diagnostic must always vary.
+  // THE COURSE'S OWN CONCEPTS, and the only pool a course-bearing sitting may
+  // draw from. This set is used by the probe path, the blueprint top-up and the
+  // unprobed coverage rows in `buildResult`; there is no later path back to the
+  // whole subject.
+  const courseConceptIds = active
+    ? coverageOf(active).filter((c) => c.subject === subject).map((c) => c.id)
+    : null;
+  const courseSet = courseConceptIds ? new Set(courseConceptIds) : null;
+  const eligible = (id: string) => canPlaceThem(id) && (!courseSet || courseSet.has(id));
+  const MIN_SAMPLE = 3;
   let chosen: string[];
   if (kind === "probe") {
-    const withGen = pool.filter((c) => canPlaceThem(c.id));
+    // A probe is still a diagnostic. It used to sample the whole SUBJECT with
+    // only a depth filter, so a quick sitting for a GCSE learner could draw a
+    // concept the course does not contain. The course restriction now applies
+    // to all sitting kinds; only a genuinely course-less session (no `active`)
+    // may sample the subject.
+    const withGen = pool.filter((c) => eligible(c.id));
     const pickStage = (stage: number) => {
       const band = withGen.filter((c) => c.stage === stage);
       return band.length ? band[Math.floor(Math.random() * band.length)] : withGen[Math.floor(Math.random() * withGen.length)];
@@ -226,21 +277,50 @@ export function newDiagnosticSession(
     for (const c of withGen) {
       if (chosen.length >= 4) break;
       if (!chosen.includes(c.id)) chosen.push(c.id);
-    }    } else {
-      const anchors = benchmarkAnchors(subject);
-      chosen = active
-        // `conceptDepth` guarantees the sample can actually climb the ladder:
-        // without it a course whose sample happens to contain only low-ceiling
-        // generators can never measure the multi-step band (see question-bank).
-        ? blueprintConcepts(active, subject, canPlaceThem, anchors, anchors.length || 4, conceptDepth)
-        : anchors;
-      // The filter can empty a narrow qualification's blueprint; fall back to
-      // its own coverage rather than to concepts the course does not contain.
-      if (active && chosen.length < 3) {
-        chosen = coverageOf(active).filter((c) => c.subject === subject && canPlaceThem(c.id)).slice(0, 4).map((c) => c.id);
-      }
-      if (chosen.length < 3) chosen = pool.filter((c) => hasGenerator(c.id) && isVariableGen(c.id)).slice(0, 4).map((c) => c.id);
     }
+  } else {
+    const anchors = benchmarkAnchors(subject);
+    chosen = active
+      // `conceptDepth` guarantees the sample can actually climb the ladder:
+      // without it a course whose sample happens to contain only low-ceiling
+      // generators can never measure the multi-step band (see question-bank).
+      ? blueprintConcepts(active, subject, canPlaceThem, anchors, anchors.length || 4, conceptDepth)
+      : anchors;
+    if (active) {
+      // `blueprintConcepts` is now course-safe itself, but this filter is the
+      // local guarantee: a change to its fallback must not be able to put an
+      // out-of-course concept into a sitting.
+      chosen = chosen.filter((id) => eligible(id));
+      // TOP UP ONLY FROM THE COURSE. The old final fallback replaced the whole
+      // sample with the subject's first four generators as soon as the course
+      // could not supply three concepts, silently discarding both membership
+      // and demand. A short course now gets the eligible concepts it actually
+      // has, and a named limitation below.
+      if (chosen.length < 4) {
+        for (const c of coverageOf(active)) {
+          if (c.subject !== subject || !eligible(c.id) || chosen.includes(c.id)) continue;
+          chosen.push(c.id);
+          if (chosen.length >= 4) break;
+        }
+      }
+    } else if (chosen.length < MIN_SAMPLE) {
+      // No course was supplied, so there is no membership to preserve. The
+      // subject's own eligible generators are the honest pool for a course-less
+      // probe; depth eligibility still applies.
+      chosen = pool.filter((c) => canPlaceThem(c.id)).slice(0, 4).map((c) => c.id);
+    }
+  }
+  const limitation: DiagnosticCoverageLimitation | undefined = chosen.length < MIN_SAMPLE
+    ? {
+        kind: "insufficient_eligible_concepts",
+        subject,
+        courseId: active?.spec.id ?? null,
+        levelId: active?.level.id ?? null,
+        required: MIN_SAMPLE,
+        available: chosen.length,
+        reason: "The course has fewer than three concepts whose generators can reach the learner's declared demand. No concept from outside the course was substituted.",
+      }
+    : undefined;
   // DEEPEST FIRST. The order a sitting serves its sample is a product
   // decision, not a detail: ascending order meant a Year 11 GCSE Higher
   // learner's FIRST question was always the shallowest concept in their whole
@@ -261,6 +341,8 @@ export function newDiagnosticSession(
     subject,
     kind,
     openStage,
+    ...(courseConceptIds ? { courseConceptIds } : {}),
+    ...(limitation ? { limitation } : {}),
     concepts: sorted.map((id) => ({ conceptId: id, stage: 0, askedThisStage: 0, correctThisStage: 0, missedThisStage: false, done: false, asked: 0, correct: 0, usedSeeds: [], servedDifficulty: [] })),
     order: 0,
     wrongTags: [],
@@ -698,8 +780,14 @@ export function buildResult(s: DiagnosticSession): DiagnosticResult {
   // prior (0.2) that the learner model treats as inference, never as
   // observation. `probedConcepts` is the boundary between the two.
   const probed = new Set(scores.map((x) => x.conceptId));
+  // The unprobed rows are still COURSE rows when the sitting has a course. The
+  // old pool was the whole subject, so a GCSE report could carry inferred rows
+  // for concepts the qualification does not contain. They are not observations
+  // either way (`asked: 0`), but membership is not a measurement claim and must
+  // not be borrowed from another course.
+  const courseSet = s.courseConceptIds ? new Set(s.courseConceptIds) : null;
   const extras: ConceptScore[] = bySubject(s.subject)
-    .filter((c) => !probed.has(c.id) && hasGenerator(c.id) && isVariableGen(c.id))
+    .filter((c) => !probed.has(c.id) && hasGenerator(c.id) && isVariableGen(c.id) && (!courseSet || courseSet.has(c.id)))
     .slice(0, 8)
     .map((c) => ({ conceptId: c.id, correct: 0, mastery: 0.2, asked: 0 }));
   const all = [...scores, ...extras];
