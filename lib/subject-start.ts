@@ -1,6 +1,6 @@
 import { getConcept } from "./genome";
 import { planFor } from "./lesson-plans";
-import { coverageOf, type ActiveSpec } from "./specifications";
+import { coverageOf, startConceptFor, type ActiveSpec } from "./specifications";
 import type { Concept, SubjectId } from "./types";
 
 /**
@@ -129,9 +129,12 @@ export function chooseSubjectStart(
     if (prerequisite) return { conceptId: prerequisite, reason: "prerequisite" };
   }
 
-  // No safe hint: take the earliest lesson in canonical order whose in-course
-  // prerequisites are themselves available. `coverageOf` preserves genome
-  // order, so this is the course's own beginning, not an arbitrary first hit.
-  const first = course.find((c) => lessonReady(c.id, allowed, subject));
+  // No safe hint: take the course's OPENING idea, then the earliest lesson in
+  // canonical order whose in-course prerequisites are themselves available.
+  // `startConceptFor` keeps Higher from opening on foundational arithmetic it
+  // contains only for remediation; `coverageOf` preserves genome order.
+  const opening = startConceptFor(active, subject)?.id;
+  const first = course.find((c) => c.id === opening && lessonReady(c.id, allowed, subject)) ??
+    course.find((c) => lessonReady(c.id, allowed, subject));
   return first ? { conceptId: first.id, reason: "first" } : { conceptId: null, reason: "none" };
 }

@@ -9,9 +9,8 @@ import path from "path";
 // database: a deployment that copied its data directory and left the key behind
 // would sign everyone out, and one that restored it without the records would
 // validate tokens for accounts that are about to be recreated with the same ids.
-import {
-  DATA_DIR, ensureProfileSecretFor, getProfile, hashPassword, makeSalt, normaliseEmail,
-  publicProfileState, resolveKioskSession, saveProfile,
+import { DATA_DIR, hashPassword, makeSalt, mintProfileSecret, normaliseEmail,
+  publicProfileState, resolveKioskSession,
 } from "./store";
 import type { Account, AccountRole, ProfileState, PublicAccount } from "../types";
 // THE BACKEND, NOT A FILE. Accounts live on the storage port (lib/server/storage.ts)
@@ -469,14 +468,19 @@ export async function authorisedProfile(
   const account = await accountFromRequest(req);
   const id = profileId ?? account?.profileId ?? null;
   if (!id) return null;
-  const state = await getProfile(id);
+  // THROUGH THE STORAGE PORT, not the file backend's own reader. This is the
+  // door every learner-facing route authorises through, and on a deployment
+  // configured for Postgres the file store never received the record — so
+  // reading it there answered "no such learner" for a learner who had just
+  // signed up, while their evidence sat in the database.
+  const state = await activeStorage().getProfile(id);
   if (!state) return null;
   if (account && account.profileId === id) return state;
   if (!state.secret) {
     // Legacy migration: the first writer's token becomes the credential.
     if (secret && secret.length >= 16 && secret.length <= 128) {
       state.secret = secret;
-      await saveProfile(state);
+      await activeStorage().saveProfile(state);
       return state;
     }
     return null;
@@ -503,8 +507,30 @@ export interface SessionPayload {
 }
 
 export async function sessionPayload(account: Account): Promise<SessionPayload | null> {
-  const state = await getProfile(account.profileId);
+  const state = await activeStorage().getProfile(account.profileId);
   if (!state) return null;
   const secret = await ensureProfileSecretFor(state);
   return { account: publicAccount(account), profile: publicProfileState(state), secret };
+}
+
+/**
+ * Give a profile its capability secret on first need, through the configured
+ * backend.
+ *
+ * THE SAME RULE AS THE FILE STORE'S `ensureProfileSecretFor`, which this used to
+ * call: an existing secret is returned untouched (rotating it here would sign
+ * every other device out), and a profile without one gets a fresh 256-bit
+ * capability that is PERSISTED before it is returned — a secret handed to a
+ * client but not stored is a credential that works for exactly one request.
+ *
+ * It lives here rather than in `store.ts` because it is the sign-in path's
+ * concern, and because the file helper wrote a file. `mintProfileSecret` is
+ * pure crypto (re-exported by the store), so nothing about this depends on
+ * which backend is selected.
+ */
+async function ensureProfileSecretFor(state: ProfileState): Promise<string> {
+  if (state.secret) return state.secret;
+  state.secret = mintProfileSecret();
+  await activeStorage().saveProfile(state);
+  return state.secret;
 }

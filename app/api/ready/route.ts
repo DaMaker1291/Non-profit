@@ -12,6 +12,7 @@ import { envReport, ephemeralHost, storeReadiness } from "@/lib/env";
 // MEASUREMENT of persistence available from inside a process, reported beside
 // the declaration and never instead of it.
 import { recordBoot } from "@/lib/server/boot-log";
+import { databaseHealth, recordDatabaseBoot } from "@/lib/server/pg";
 import { CONCEPTS } from "@/lib/genome";
 import { SPECIFICATIONS } from "@/lib/specifications";
 import { APP_VERSION, deploymentDeclared, deploymentId } from "@/lib/version";
@@ -47,6 +48,13 @@ import { APP_VERSION, deploymentDeclared, deploymentId } from "@/lib/version";
  */
 export async function GET(): Promise<NextResponse> {
   const report = envReport(process.env);
+  // WHICH BACKEND — asked ONCE, before the storage check, because the check
+  // itself is different. A database deployment has no directory to probe, and
+  // probing one would CREATE it: the filesystem side effect a Postgres
+  // deployment must not have. `storeReadiness` is the same function the write
+  // path enforces, so readiness and the write gate cannot disagree.
+  const store = storeReadiness(process.env);
+  const databaseBacked = store.kind === "postgres";
 
   // 1. Storage: a real write, a real read-back, and a real unlink. Asking
   //    `access()` proves less — a read-only mount passes a permissions check and
@@ -61,6 +69,22 @@ export async function GET(): Promise<NextResponse> {
   //    found it exposed an absolute filesystem layout, and an operator can read
   //    their own configuration instead.
   const data = await (async (): Promise<{ ok: boolean; code: string; error?: string }> => {
+    // A DATABASE IS PROBED BY ASKING IT, and the two answers are kept apart on
+    // purpose: UNREACHABLE is not an empty schema, and a schema that has not had
+    // its migrations run is not a database that is down — the first is an outage,
+    // the second is one command away from working.
+    if (databaseBacked) {
+      const health = await databaseHealth(process.env, { fresh: true });
+      return {
+        ok: health.reachable && health.schemaVersion !== null,
+        code: !health.reachable
+          ? "database_unreachable"
+          : health.schemaVersion === null
+            ? "database_schema_missing"
+            : "reachable",
+        ...(health.error ? { error: health.error } : {}),
+      };
+    }
     const probe = path.join(DATA_DIR, `.ready-${process.pid}-${Date.now().toString(36)}`);
     try {
       await fs.mkdir(DATA_DIR, { recursive: true });
@@ -116,7 +140,6 @@ export async function GET(): Promise<NextResponse> {
   //
   // The proof of a declared-durable store is the restart drill, which is named
   // in `persistence.evidence` rather than implied by a green tick here.
-  const store = storeReadiness(process.env);
   // The host this process believes it is on, from the markers the platform sets
   // (lib/env.ts). It is reported because it is the FACT BEHIND `durability`: a
   // reader who sees `durability:"ephemeral"` and `mode:"accepted-ephemeral"`
@@ -124,7 +147,12 @@ export async function GET(): Promise<NextResponse> {
   // reader who sees `""` knows the question never arose (a laptop, a school
   // server). Naming the reason is the difference between a verdict and a riddle.
   const host = ephemeralHost(process.env);
-  const boots = recordBoot(DATA_DIR, process.env);
+  // THE MEASUREMENT IS THE BACKEND'S OWN: a directory record for the file store,
+  // a row for a database. Neither deployment writes the other's file, which is
+  // what keeps a Postgres instance's data directory empty.
+  const boots = databaseBacked
+    ? await recordDatabaseBoot(deploymentId(process.env))
+    : recordBoot(DATA_DIR, process.env);
 
   const checks = { data, config, content };
   // WRITES ARE PART OF BEING READY. A deployment that has refused learner-data

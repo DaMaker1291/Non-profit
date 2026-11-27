@@ -1,10 +1,10 @@
 {
   "note": "Per-concept record of what has been verified, and how. structure = four value-distinct options, no float noise, a non-empty explanation, a sane difficulty. explanationKey = the explanation states its own key (every draw). promptDerived = a matcher re-derives the answer from the prompt for this concept (see scripts/verify-questions.mjs). humanReviewed = a qualified person has examined the items; empty, because none has.",
   "samplesPerConcept": 300,
-  "draws": 40500,
+  "draws": 40800,
   "layers": {
-    "structure": 135,
-    "explanationKey": 135,
+    "structure": 136,
+    "explanationKey": 136,
     "promptDerived": [
       "circle-area-arc",
       "completing-square",
@@ -64,6 +64,7 @@
       "equations-stoich",
       "equilibria",
       "evolution",
+      "factors-primes",
       "financial-maths",
       "forces-basics",
       "fraction-ops",
@@ -165,6 +166,10 @@
       "humanReviewed": false
     },
     "division": {
+      "promptDerived": false,
+      "humanReviewed": false
+    },
+    "factors-primes": {
       "promptDerived": false,
       "humanReviewed": false
     },

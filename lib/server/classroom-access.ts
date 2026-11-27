@@ -11,7 +11,9 @@
 import { authorisedProfile } from "./auth";
 import { canAdminister, teacherAccountIdOf, teacherCaller } from "./authority";
 import { handleOf, isMemberOf } from "./class-membership";
-import { getClass } from "./store";
+// Through the port: a class is a record like any other, and the configured
+// backend is the one that holds it.
+import { activeStorage } from "./storage-file";
 import type { ClassRoster, ProfileState } from "../types";
 
 export type ClassroomAccess =
@@ -33,7 +35,7 @@ export async function resolveClassroomAccess(
   secret: string | null,
 ): Promise<ClassroomAccess> {
   if (!clsId) return { ok: false, status: 400, error: "missing class" };
-  const cls = await getClass(clsId);
+  const cls = await activeStorage().getClass(clsId);
   if (!cls) return { ok: false, status: 404, error: "not found" };
 
   // The cookie is the teacher credential. A learner's capability is not, and

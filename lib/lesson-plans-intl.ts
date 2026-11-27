@@ -95,6 +95,14 @@ export const PLAN_TRANSLATIONS: Readonly<Record<string, Readonly<Record<string, 
           move: "« 3/4 + 1/4 = 4/8. »",
           why: "Additionner les dénominateurs change la taille de chaque morceau dans la réponse : l'addition ne porte donc plus sur les mêmes touts. Des quarts et des quarts ont la même taille, donc les numérateurs s'ajoutent simplement : 3/4 + 1/4 = 1. (Les dénominateurs différents viennent à la notion suivante, et il faut d'abord un dénominateur commun.)",
         },
+        // The fourth trap is translated because a plan may not be served half in
+        // one language: `gapsFor` refuses a translation whose traps do not match
+        // the English one for one, so adding to the English plan without this
+        // would silently withdraw the French lesson.
+        {
+          move: "« 3/5 est plus grande que 1/5, donc 3/5 de n'importe quoi est plus grand que 1/5 de n'importe quoi. »",
+          why: "Cela n'est vrai que si les deux fractions sont prises dans le MÊME tout. 3/5 d'une tablette courte peut être un morceau plus court que 1/5 d'une tablette longue — coupez deux tablettes de longueurs différentes et vérifiez. Une fraction décrit une part d'un tout précis, donc la première question est toujours : quel est le tout ? Une comparaison qui ne nomme jamais son tout n'est pas encore une comparaison.",
+        },
       ],
       usedFor:
         "Les pourcentages et les décimaux sont des fractions écrites autrement, le ratio en compare deux, et la probabilité en est une : la chance d'obtenir un six est 1/6, une fraction avant d'être un pourcentage.",

@@ -1274,6 +1274,16 @@ const PRIMARY_ARITHMETIC: readonly string[] = [
   "rounding",
 ];
 
+/** Specifications whose HIGHER tier still examines basic and additional
+ *  Foundation content. AQA GCSE Mathematics 8300 says all content can be
+ *  assessed on Higher papers and expects Higher candidates to be confident with
+ *  basic Foundation content (specification, subject content). Removing these
+ *  concepts from Higher was a CURRICULUM error, not a difficulty decision: the
+ *  generator ceilings still mean a Higher learner is not handed a harder
+ *  addition item merely because the concept is available. Availability and
+ *  question demand are separate facts (see lib/content-ceiling.ts). */
+const HIGHER_INCLUDES_PRIMARY = new Set(["uk-gcse"]);
+
 /** Is this tier above the foundation tier? Derived from the TIERS ORDER rather
  *  than a hand-written set of level ids, so a new level cannot be added with
  *  the wrong behaviour by being forgotten from a list. */
@@ -1292,8 +1302,13 @@ function tierTeachesPrimaryArithmetic(tier: TierId): boolean {
  * in `include` is what a board does when it genuinely examines it, and naming
  * it in `exclude` always wins.
  */
-function primaryArithmeticExcluded(level: SpecLevel, conceptId: string, explicitlyIncluded: boolean): boolean {
+function primaryArithmeticExcluded(spec: Specification, level: SpecLevel, conceptId: string, explicitlyIncluded: boolean): boolean {
   if (explicitlyIncluded) return false;
+  // AQA GCSE Higher is the named exception: the board examines this content at
+  // both tiers, so excluding it would make the course narrower than the
+  // specification. The demand question is answered by the bank's depth, not by
+  // hiding a required concept.
+  if (level.tier === "higher" && HIGHER_INCLUDES_PRIMARY.has(spec.id)) return false;
   return !tierTeachesPrimaryArithmetic(level.tier) && PRIMARY_ARITHMETIC.includes(conceptId);
 }
 
@@ -1309,6 +1324,19 @@ function windowFor(spec: Specification, level: SpecLevel, subject: SubjectId): S
 
 /** Genome concepts this specification contains at this level. Resolution is
  *  against the real genome, so an id that does not exist cannot be claimed. */
+/** Where an unplaced learner should BEGIN this course. This is deliberately
+ *  not `coverageOf()[0]`: a Higher course may CONTAIN foundational arithmetic
+ *  for remediation and still must not OPEN on it. An unplaced Year 10 Higher
+ *  learner belongs at fractions; Foundation really does begin at place value.
+ *  The course's coverage remains the authority for what is available, and a
+ *  Higher course made only of foundational concepts still returns its first
+ *  one rather than nothing. */
+export function startConceptFor(active: ActiveSpec, subject?: SubjectId): Concept | undefined {
+  const covered = coverageOf(active).filter((c) => !subject || c.subject === subject);
+  if (active.level.tier !== "higher") return covered[0];
+  return covered.find((c) => !PRIMARY_ARITHMETIC.includes(c.id)) ?? covered[0];
+}
+
 export function coverageOf(active: ActiveSpec): Concept[] {
   const { spec, level } = active;
   const include = new Set(level.include ?? []);
@@ -1321,7 +1349,7 @@ export function coverageOf(active: ActiveSpec): Concept[] {
       const inWindow = c.stage >= win[0] && c.stage <= win[1];
       const named = include.has(c.id);
       if (exclude.has(c.id)) continue;
-      if (primaryArithmeticExcluded(level, c.id, named)) continue;
+      if (primaryArithmeticExcluded(spec, level, c.id, named)) continue;
       if (inWindow || named) out.push(c);
     }
   }
@@ -1365,7 +1393,7 @@ export function inSpecification(active: ActiveSpec, conceptId: string): boolean 
   // must agree, or a course that omits `addition` from its map would still
   // answer "yes, that is in your course" for it.
   const named = active.level.include?.includes(conceptId) ?? false;
-  if (primaryArithmeticExcluded(active.level, conceptId, named)) return false;
+  if (primaryArithmeticExcluded(active.spec, active.level, conceptId, named)) return false;
   return (c.stage >= win[0] && c.stage <= win[1]) || named;
 }
 

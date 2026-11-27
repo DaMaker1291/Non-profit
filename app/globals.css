@@ -3182,7 +3182,249 @@ html.low-power .card { box-shadow: none; }
 .fraction-model .fm-on { fill: var(--accent); }
 .fraction-model .fm-off { fill: var(--accent-soft); stroke: var(--accent-line); stroke-width: 1; }
 .fraction-model label { display: grid; gap: 4px; }
+
+/* The circuit model. Same shape as the fraction bar on purpose: a card with a
+   drawing, a spoken readout and native buttons, so a lesson can gain a model
+   without gaining a new visual language. No images and no animation: the
+   drawing is SVG primitives, which is what makes it usable at 2G. */
+/* Semantic tokens only (the suite refuses an appearance primitive in a component
+   rule): `--accent` is the product's attention colour, `--text-soft` a reading
+   tone. A theme can retarget both without touching this block. */
+/* THE MODEL FRAME: objective, prediction, interaction, limits — in that order on
+   every modelled concept. The prediction is a block of its own on the tinted
+   surface because it is the one part a learner must do BEFORE the controls; the
+   limits are a disclosure so a caveat list does not become three screens under
+   every drawing. */
+.model-shell {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  margin: 22px 0;
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+.model-objective { font-size: 19px; line-height: 1.35; margin: 0; letter-spacing: -0.01em; }
+.model-predict { display: grid; gap: 8px; padding: 12px 14px; border-radius: 12px; background: var(--accent-soft); }
+.model-predict-q { margin: 0; font-size: 14px; }
+.model-predict-options { display: flex; flex-wrap: wrap; gap: 8px; }
+.model-predict-options .btn { flex: 1 1 auto; justify-content: center; }
+.model-predict-options .btn.is-on { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+.model-predict-verdict { margin: 0; }
+.model-slot > * { margin-top: 0; }
+/* THE GATE. Shown in place of the model until a prediction is committed: dashed
+   rather than solid so it reads as "not yet" rather than as a broken card, and
+   small enough that the question above stays the thing the eye lands on. */
+.model-gate {
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  padding: 14px 16px;
+  background: var(--surface);
+  color: var(--muted);
+}
+/* TWO SHAPES OF PREDICTION. The describe box is a real text field, so it has to
+   look like one and still sit inside the tinted prediction panel; the confidence
+   buttons are smaller than the options on purpose — they are optional, and making
+   them the same weight would read as a second question that must be answered. */
+.model-describe { display: grid; gap: 6px; }
+.model-describe-box {
+  width: 100%;
+  min-height: 72px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+  resize: vertical;
+}
+.model-describe-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.model-confidence { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.model-confidence .btn.is-on { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+.model-lookfor { margin: 0; padding-left: 18px; display: grid; gap: 2px; }
+.model-calibration {
+  margin: 0;
+  padding: 6px 10px;
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  background: var(--surface);
+}
+.model-apply { margin: 0; }
+.model-limits { border-top: 1px solid var(--line); padding-top: 10px; }
+.model-limits summary { cursor: pointer; font-weight: 600; }
+
+/* THE SEARCH MODEL, IN FOUR STEPS. The target was fourteen buttons wrapping
+   across four rows above the drawing; it is one select, and each step is a
+   labelled block so "what do I do first" has an answer on the card. */
+.search-model .sm-step { display: grid; gap: 8px; }
+.search-model .sm-step + .sm-step { border-top: 1px solid var(--line); padding-top: 10px; }
+.search-model .sm-step-label { margin: 0; font-weight: 650; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+.search-model .sm-step-n {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--surface);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+.search-model .sm-scroll { overflow-x: auto; }
+.search-model .sm-scroll svg { min-width: 340px; }
+.search-model .sm-target-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.search-model .sm-select {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: inherit;
+  font: inherit;
+}
+/* The LABELS ARE DRAWN IN THE SVG'S OWN UNITS, so 12 units at this scale lands
+   at 17 px — bigger than the 28 px cells beside it and bigger than the body text
+   reading it. The circuit model's label rule is scoped to `.circuit-model`, which
+   is why the search model had none: measured in the browser at 1280 px, the row's
+   labels were the largest type on the card and the last one ran out of the
+   viewBox and was cut off mid-sentence. */
+.search-model .cm-label { font-size: 10px; }
+.search-model .sm-digit { font-size: 9px; }
+.search-model .sm-states { margin: 0; padding-left: 18px; display: grid; gap: 2px; }
+.search-model .sm-final { margin: 0; padding: 8px 10px; border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 6px; }
+/* THE INSTRUCTION SEQUENCE, KEPT ON SCREEN. The Oak segment holds its five lines
+   still for the whole demonstration and emphasises the executing one, so the
+   algorithm is read as a state rather than remembered as a list. Two lists side by
+   side because the comparison IS the lesson; they stack on a phone. The highlighted
+   row is marked by a left rule and weight, not by colour alone, so it survives a
+   greyscale print and a colour-vision difference. */
+.search-model .sm-inst-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.search-model .sm-inst { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 2px; }
+.search-model .sm-inst li {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 6px;
+  align-items: start;
+  padding: 3px 6px;
+  border-left: 2px solid transparent;
+  border-radius: 4px;
+  font-size: 12.5px;
+  line-height: 1.3;
+  color: var(--muted);
+}
+.search-model .sm-inst li[data-done="yes"] { color: var(--text); }
+.search-model .sm-inst li[data-current="yes"] {
+  border-left-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--text);
+  font-weight: 600;
+}
+.search-model .sm-inst-n { font-family: var(--mono); font-size: 11px; color: var(--accent-ink); }
+.search-model .sm-inst-note { margin: 2px 0 0; }
+.search-model .sm-current { fill: none; stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 3 2; }
+@media (max-width: 640px) {
+  .search-model .sm-inst-pair { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+  .model-shell { padding: 12px; }
+  .model-objective { font-size: 17px; }
+  .model-predict-options .btn { flex: 1 1 100%; }
+  .search-model .sm-target-row > * { flex: 1 1 100%; }
+}
+/* A SLIDER IS A TOUCH TARGET TOO. Measured at 390 px the fraction line's two
+   range inputs were 16 px tall — less than half the buttons beside them — and the
+   earlier browser pass for that model had only measured the buttons. The track is
+   drawn in the middle of a 44 px box, so the thumb is unchanged and the thing you
+   can hit is not. */
+.model-card input[type="range"],
+.model-shell input[type="range"] { height: 44px; }
+.model-card { display: grid; gap: 8px; padding: 16px; border: 1px solid var(--line); border-radius: var(--radius-card); }
+.model-card svg { width: 100%; max-width: 480px; height: auto; }
+.circuit-model { display: grid; gap: 8px; padding: 16px; border: 1px solid var(--line); border-radius: var(--radius-card); }
+.atom-model .am-shell { fill: none; stroke: var(--line); stroke-width: 1; }
+.atom-model .am-electron { fill: var(--accent); }
+.atom-model .am-proton { fill: var(--accent); }
+.atom-model .am-neutron { fill: var(--accent-soft); stroke: var(--accent-line); stroke-width: 1; }
+.cell-model .clm-wall { fill: none; stroke: var(--accent); stroke-width: 2.5; }
+.cell-model .clm-membrane { fill: none; stroke: var(--line); stroke-width: 2; }
+.cell-model .clm-part { fill: var(--accent-soft); stroke: var(--accent-line); stroke-width: 1.5; }
+.cell-model .clm-nucleolus { fill: var(--accent); }
+.cell-model .clm-fold { fill: none; stroke: var(--accent-line); stroke-width: 1.5; }
+.cell-model .clm-chloroplast { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+.cell-model .clm-ribosome { fill: var(--accent); }
+.search-model .sm-cell { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+.search-model .sm-cell-looked { fill: var(--accent-soft); stroke: var(--accent-line); }
+.search-model .sm-cell-window { fill: var(--accent-soft); stroke: var(--accent-line); }
+.search-model .sm-cell-mid { fill: var(--accent); stroke: var(--accent); }
+.search-model .sm-cell-found { fill: var(--accent); stroke: var(--accent); }
+.search-model .sm-digit { font-size: 11px; fill: var(--text-soft); font-family: var(--mono); }
+.number-line-model .nl-axis { stroke: var(--line); stroke-width: 2.5; stroke-linecap: round; }
+.number-line-model .nl-tick { stroke: var(--line); stroke-width: 1.5; }
+.number-line-model .nl-zero { stroke: var(--accent-line); stroke-width: 2; }
+.number-line-model .nl-marker { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+.search-model .sm-cell-mid + .sm-digit, .search-model .sm-cell-found + .sm-digit { fill: var(--surface); }
+.model-card .cm-controls .btn.is-on { background: var(--accent); color: var(--surface); }
+.circuit-model svg { width: 100%; max-width: 480px; height: auto; }
+.circuit-model .cm-wire { stroke: var(--line); stroke-width: 2.5; fill: none; stroke-linejoin: round; }
+.circuit-model .cm-cell .cm-cell-long, .circuit-model .cm-cell .cm-cell-short { stroke: var(--accent); stroke-width: 3; stroke-linecap: round; }
+.circuit-model .cm-switch .cm-terminal { fill: var(--accent); }
+.circuit-model .cm-switch .cm-switch-arm { stroke: var(--accent); stroke-width: 3; stroke-linecap: round; }
+.circuit-model .cm-lamp-face { fill: var(--surface); }
+.circuit-model .cm-filament { stroke: var(--accent); stroke-width: 1.6; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.circuit-model .cm-glow { fill: var(--accent); }
+.circuit-model .cm-bulb-ring { stroke: var(--accent); stroke-width: 1.6; fill: none; }
+.circuit-model .cm-arrow { fill: var(--accent); }
+.circuit-model .cm-label { font-size: 12px; fill: var(--text-soft); font-family: var(--mono); }
+.circuit-model .cm-terminal-sign { font-size: 13px; font-weight: 700; fill: var(--accent-ink); font-family: var(--mono); }
+.circuit-model .cm-convention-label { font-size: 10px; }
+.circuit-model .cm-convention { border-top: 1px solid var(--line); padding-top: 8px; }
+/* A DISCLOSURE IS A CONTROL. Measured at 390 px the summary was a 22 px target —
+   half the 44 px the buttons beside it clear — so it gets the same box without
+   changing how it looks. */
+.circuit-model .cm-convention summary {
+  cursor: pointer;
+  font-weight: 600;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+.circuit-model .cm-controls { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 480px) {
+  .circuit-model { padding: 12px; }
+  .circuit-model .cm-controls .btn { flex: 1 1 45%; }
+}
 .fraction-model input[type="range"] { width: 100%; accent-color: var(--accent); }
+
+/* The fraction line and the fraction sum. Same card language again: a drawing, a
+   spoken sentence and native controls. The colours mean the SAME thing in both
+   models — solid accent is the quantity being counted, the soft fill is the rest
+   of the whole, the line token is a division or a size rule — so a learner does
+   not have to learn a second visual grammar for the second fraction lesson. */
+.fraction-line-model .fl-on { fill: var(--accent); }
+.fraction-line-model .fl-off { fill: var(--accent-soft); stroke: var(--accent-line); stroke-width: 1; }
+.fraction-line-model .fl-axis { stroke: var(--line); stroke-width: 2.5; stroke-linecap: round; }
+.fraction-line-model .fl-tick { stroke: var(--line); stroke-width: 1.5; }
+.fraction-line-model .fl-half { stroke: var(--accent-line); stroke-width: 2; }
+.fraction-line-model .fl-marker { fill: var(--accent); stroke: var(--surface); stroke-width: 2; }
+.fraction-line-model input[type="range"] { width: 100%; accent-color: var(--accent); }
+.fraction-line-model label { display: grid; gap: 4px; }
+.fraction-ops-model .fo-off { fill: var(--accent-soft); stroke: var(--accent-line); stroke-width: 1; }
+.fraction-ops-model .fo-left { fill: var(--accent); }
+/* The second fraction needs to look SHADED, not bordered. `--accent-line` is a
+   pale rule colour and made 1/3 read as an empty bar beside 1/2 — found by looking
+   at the screenshot. A mid-opacity accent keeps the two fractions distinguishable
+   without introducing a new palette token. */
+.fraction-ops-model .fo-right { fill: var(--accent); fill-opacity: 0.55; }
+.fraction-ops-model .fo-sum { fill: var(--accent); }
+.fraction-ops-model .fo-wrong { fill: none; stroke: var(--line); stroke-width: 2; stroke-dasharray: 5 3; }
+.fraction-ops-model .fo-scale { stroke: var(--line); stroke-width: 1.5; }
+.fraction-ops-model .fo-guide { stroke: var(--accent); stroke-width: 1; }
+@media (max-width: 520px) {
+  .fraction-line-model,
+  .fraction-ops-model { padding: 12px; }
+  .fraction-line-model .cm-controls .btn,
+  .fraction-ops-model .cm-controls .btn { flex: 1 1 45%; }
+}
 @media (max-width: 520px) {
   .fraction-model { padding: 12px; }
 }

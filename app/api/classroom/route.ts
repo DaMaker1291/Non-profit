@@ -17,7 +17,10 @@ import {
   latestClassroomSession,
   withClassroomSession,
 } from "@/lib/server/classroom";
-import { getClass, newId } from "@/lib/server/store";
+// A classroom is a class's live session: through the port, so the session and the
+// class it names are in the same place.
+import { activeStorage } from "@/lib/server/storage-file";
+import { newId } from "@/lib/server/store";
 import type {
   ClassroomParticipant,
   ClassroomSession,

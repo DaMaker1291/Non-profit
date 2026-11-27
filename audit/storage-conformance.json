@@ -1,14 +1,14 @@
 {
   "suite": "storage-conformance",
   "spec": "docs/STORAGE_SPEC.md §6",
-  "generatedAt": "2026-11-18T16:55:42.968Z",
+  "generatedAt": "2026-11-24T20:33:53.425Z",
   "storeIsTemporary": true,
   "backendsTested": [
     "file"
   ],
-  "casesPassed": 138,
+  "casesPassed": 112,
   "failures": [],
   "skipped": [
-    "postgres conformance — no Postgres backend exists in this build — docs/STORAGE_SPEC.md slice 4; when it lands, its adapter goes in this file so there is still ONE suite"
+    "write-path failure cases (F1–F5) — these cases OBSERVE the file backend (they parse the ledger file to see a torn write and an interleaved append), which another backend does not have. The port's own transaction is covered above on every backend; F4/F5 — the refusal properties, which ARE backend-neutral — move here through the port when a second backend exists; do not give them a second suite (§6)"
   ]
 }

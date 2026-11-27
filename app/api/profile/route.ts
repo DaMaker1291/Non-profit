@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
+// The record is read and written through the STORAGE PORT (below) rather than
+// through the file backend: this route is how a learner's own record is saved and
+// erased, and on a Postgres deployment the file is not where it lives. The
+// remaining imports here are pure helpers — a state constructor, the public view,
+// a capability mint, and the kiosk session lookup.
 import {
-  deleteKioskSessionsFor, getProfile, mintProfileSecret, newProfileState, publicProfileState, resolveKioskSession,
-  saveProfile,
+  deleteKioskSessionsFor, mintProfileSecret, newProfileState, publicProfileState, resolveKioskSession,
 } from "@/lib/server/store";
 // THE ERASURE IS ONE WORKFLOW, shared with the restore path — see
 // lib/server/erasure.ts for why it is a sequence rather than three calls from
@@ -129,7 +133,7 @@ async function authorize(
   if (!state.secret) {
     if (secret.length < 16 || secret.length > 128) return false;
     state.secret = secret;
-    await saveProfile(state);
+    await activeStorage().saveProfile(state);
     return true;
   }
   if (secret.length > 0 && secret === state.secret) return true;
@@ -143,7 +147,7 @@ export async function GET(req: Request): Promise<NextResponse> {
   const account = await accountFromRequest(req);
   const id = searchParams.get("id") ?? account?.profileId ?? null;
   if (!id) return NextResponse.json({ error: "missing id" }, { status: 400 });
-  const state = await getProfile(id);
+  const state = await activeStorage().getProfile(id);
   if (!state) return NextResponse.json({ error: "not found" }, { status: 404 });
   if (!(await authorize(req, state, searchParams.get("secret")))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -176,7 +180,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     // Load existing, or create. A signed-in learner writing without an id is
     // writing to their own profile — an account is never profile-less.
     const requestedId = body.id ?? account?.profileId;
-    let state: ProfileState | null = requestedId ? await getProfile(requestedId) : null;
+    let state: ProfileState | null = requestedId ? await activeStorage().getProfile(requestedId) : null;
     const isNew = !state;
     if (!state) {
       const seedSecret = typeof body.secret === "string" && body.secret.length >= 16 && body.secret.length <= 128
@@ -196,7 +200,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       // it) so the creating device still holds the credential its next write
       // needs.
       state.secret = seedSecret ?? mintProfileSecret();
-      await saveProfile(state);
+      await activeStorage().saveProfile(state);
     } else if (!(await authorize(req, state, body.secret))) {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
@@ -484,7 +488,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     // leaves the stamp absent and the app can say so.
     if (body.onboarded === true && !p.onboardedAt) p.onboardedAt = Date.now();
 
-    await saveProfile(state);
+    await activeStorage().saveProfile(state);
     // What this learner's courses still have NOT decided, named field by field,
     // so a surface can refuse to personalise rather than silently falling back to
     // a qualification nobody chose. DERIVED — computed from the profile on every
@@ -522,7 +526,7 @@ export async function DELETE(req: Request): Promise<NextResponse> {
   const account = await accountFromRequest(req);
   const id = searchParams.get("id") ?? account?.profileId ?? null;
   if (!id) return NextResponse.json({ error: "missing id" }, { status: 400 });
-  const state = await getProfile(id);
+  const state = await activeStorage().getProfile(id);
   if (!state) return NextResponse.json({ error: "not found" }, { status: 404 });
   if (!(await authorize(req, state, searchParams.get("secret")))) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });

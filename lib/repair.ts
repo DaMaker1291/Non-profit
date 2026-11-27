@@ -30,12 +30,15 @@
 //                    turns a repair into evidence.
 //
 // HONESTY ABOUT ATTRIBUTION, which is a design decision and not a caveat. The
-// bank tags an ITEM with the misconception it discriminates (`misconceptionTags`,
-// one id per item); it does not tag each distractor, so the product cannot say
-// "you chose the option that adds the denominators" — only "this question was
-// built to catch this slip". The card therefore says what it knows: this is the
-// slip the question was watching for. It never claims to have watched the
-// learner's specific option.
+// bank tags an ITEM with the misconceptions it can discriminate
+// (`misconceptionTags`) AND, where the family authored them, one belief per wrong
+// option (`choiceMisconceptionTags`, aligned through the shuffle as
+// `choiceMisconceptions`). The grader uses the chosen option's belief when that
+// map exists, and records nothing when the option is an unauthored near-miss. So
+// the card can say "the option you chose is the one that adds the denominators"
+// only when the family actually authored that option; otherwise it falls back to
+// "this question was built to catch this slip" and never invents a cause from a
+// final answer alone.
 //
 // REVIEW STATE IS PART OF THE CONTENT (`plan.reviewed` / `plan.unreviewed` are
 // reused on screen), because a repair written by the team and never read by a
@@ -481,6 +484,167 @@ export const REPAIRS: Readonly<Record<string, RepairPlan>> = {
       },
     ],
     check: "Simplify √50, √72 and √27 unaided and square each answer back to the number you started with; then work out √9 + √16 and √(9 + 16) and say which one is 7 and which is 5.",
+    review: "unreviewed",
+  },
+
+  "add-carry-drop@addition": {
+    misconceptionId: "add-carry-drop",
+    conceptId: "addition",
+    reveals:
+      "The ones column reached ten or more, but the ten it made was not moved into the tens column. The ones digit was written and the extra ten disappeared, so the answer is exactly ten too small.",
+    contrasts: [
+      {
+        works: "52 + 41 = 93",
+        worksNote:
+          "The ones digits make 2 + 1 = 3, which is below ten, so there is no ten to carry. The tens add to 9 and the answer is 93. This is the case where adding the columns separately is enough.",
+        fails: "56 + 45 = 101, not 91",
+        failsNote:
+          "The ones digits make 6 + 5 = 11. That is one ten and one one: write the 1 in the ones column and carry the ten above the tens column. 91 records only the ones digit of 11 and loses the ten, so it is exactly ten too small.",
+        difference:
+          "Whether the ones total reaches ten. Below ten, no new ten exists; at ten or above, the extra ten has to be added to the tens column.",
+        move:
+          "Add the ones first. If the total is ten or more, write its ones digit and carry the ten above the next column, then add that carried ten with the tens.",
+      },
+    ],
+    check: "Complete four additions unaided where the ones digits overflow, write the carried ten above the columns each time, and check every answer by estimating to the nearest ten.",
+    review: "unreviewed",
+  },
+
+  "sub-borrow-unrepaid@subtraction": {
+    misconceptionId: "sub-borrow-unrepaid",
+    conceptId: "subtraction",
+    reveals:
+      "A ten was borrowed from the tens column to make the ones subtraction possible, but the tens column was not reduced by that ten. The borrowed ten was spent in the ones column and counted again in the tens, so the answer is ten too large.",
+    contrasts: [
+      {
+        works: "63 − 21 = 42",
+        worksNote:
+          "The ones digit 3 is at least 1, so nothing has to be borrowed. The ones subtract to 2 and the tens to 4, giving 42, and adding back 42 + 21 gives 63.",
+        fails: "63 − 28 = 35, not 45",
+        failsNote:
+          "The ones digit 3 is smaller than 8, so one ten is borrowed: 63 becomes 5 tens and 13 ones. Then 13 − 8 = 5 and 5 − 2 = 3, giving 35. The answer 45 subtracts the tens from the unreduced 6, counting the borrowed ten twice.",
+        difference:
+          "Whether a ten was borrowed. If it was, the tens column of the top number must lose one before the tens are subtracted.",
+        move:
+          "Mark the borrow on the top number: cross out the tens digit and write one less, then put the borrowed ten beside the ones digit. Subtract the columns only after that change is written down.",
+      },
+    ],
+    check: "Complete four subtractions unaided where a borrow is needed, write the reduced tens digit each time, and check every answer by adding it back to the number being taken away.",
+    review: "unreviewed",
+  },
+
+  "mul-as-add@multiplication": {
+    misconceptionId: "mul-as-add",
+    conceptId: "multiplication",
+    reveals:
+      "The multiplication sign was read as a request to combine the two numbers once, so the numbers were added. Multiplication asks for a number of EQUAL GROUPS; adding the factors gives one group of each instead.",
+    contrasts: [
+      {
+        works: "6 + 7 = 13",
+        worksNote:
+          "This is a correct addition: one group of six joined to one group of seven. The question mark is the plus sign, and only one of each group is being combined.",
+        fails: "6 × 7 = 42, not 13",
+        failsNote:
+          "The multiplication sign asks for six groups of seven, not one six and one seven. Six sevens are 7 + 7 + 7 + 7 + 7 + 7 = 42. The answer 13 has combined the factors once each, which is a different question.",
+        difference:
+          "What the sign asks for: a plus joins one group of each, while a times repeats one group the number of times given by the other.",
+        move:
+          "Say the multiplication aloud as 'six groups of seven' before calculating, then add seven six times or use a known table fact and check it is much larger than 6 + 7.",
+      },
+    ],
+    check: "Answer four multiplication facts unaided, write each as a repeated-addition sentence first, and check each product is at least as large as either factor repeated.",
+    review: "unreviewed",
+  },
+
+  "div-as-subtract@division": {
+    misconceptionId: "div-as-subtract",
+    conceptId: "division",
+    reveals:
+      "The division sign was read as a subtraction, so one group was taken away instead of counting how many groups fit. Subtraction removes a single amount; division counts how many copies of the divisor make the dividend.",
+    contrasts: [
+      {
+        works: "72 − 9 = 63",
+        worksNote:
+          "This is correct subtraction: one group of nine is removed from 72, leaving 63. It answers 'what is left after taking away nine once?'",
+        fails: "72 ÷ 9 = 8, not 63",
+        failsNote:
+          "Division asks how many groups of nine fit into 72. Nine times eight is 72, so eight groups fit. 63 is what remains after removing only one group, which is the subtraction question, not the division one.",
+        difference:
+          "Whether one group is removed or the number of groups is counted. Subtraction leaves a remainder; division returns the count of equal groups.",
+        move:
+          "Turn the division into a missing-factor question: 'nine times what makes 72?' Count or recall the multiplication fact, then check the product returns the dividend.",
+      },
+    ],
+    check: "Answer four divisions unaided by rewriting each as a missing multiplication fact, then multiply the quotient by the divisor to check it returns the dividend.",
+    review: "unreviewed",
+  },
+
+  "place-value-face@place-value": {
+    misconceptionId: "place-value-face",
+    conceptId: "place-value",
+    reveals:
+      "The digit was read as the amount it names on its own, without its column. A digit's value is the digit multiplied by the column it stands in, so the same digit means different amounts in different positions.",
+    contrasts: [
+      {
+        works: "In 452, the ones digit is 2, so it is worth 2",
+        worksNote:
+          "The 2 stands in the ones column, where the column value is 1, so 2 × 1 = 2. Here the face value and the place value happen to be the same, which is why the column still has to be named.",
+        fails: "In 452, the 5 is worth 50, not 5",
+        failsNote:
+          "The 5 stands in the tens column, so it means five tens: 5 × 10 = 50. Reading it as 5 ignores the column and makes the number 50 smaller than it is.",
+        difference:
+          "Which column the digit stands in. The ones column is worth 1 each, the tens column 10 each, the hundreds column 100 each.",
+        move:
+          "Write H, T and O above the columns before reading a digit, then multiply the digit by that column's value and say the amount in words.",
+      },
+    ],
+    check: "For four three-digit numbers unaided, write the column headings, state the value of a named digit, and check by expanding the number as hundreds plus tens plus ones.",
+    review: "unreviewed",
+  },
+
+  "frac-of-amount@fractions": {
+    misconceptionId: "frac-of-amount",
+    conceptId: "fractions",
+    reveals:
+      "The denominator was used and the numerator was ignored, so one equal part was found when the question asked for several. The numerator counts how many of the equal parts to take.",
+    contrasts: [
+      {
+        works: "1/5 of 25 = 5",
+        worksNote:
+          "The numerator is 1, so exactly one of the five equal parts is wanted. 25 split into five parts gives 5 each, and one part is 5. Here stopping after the division is correct.",
+        fails: "3/5 of 25 = 15, not 5",
+        failsNote:
+          "The denominator 5 says each part is 5, but the numerator 3 says take three of those parts: 3 × 5 = 15. Stopping at 5 answers 1/5 of 25, a different fraction.",
+        difference:
+          "The numerator. A numerator of 1 means one part; a numerator of 3 means three of the same parts, so the division result must be multiplied by 3.",
+        move:
+          "Divide the amount by the denominator to find one part, then multiply by the numerator and check the answer is the right side of half.",
+      },
+    ],
+    check: "Find 2/3 of 18, 3/4 of 20 and 5/8 of 32 unaided, writing the one-part value beside each, then check each answer by dividing it back by the numerator.",
+    review: "unreviewed",
+  },
+
+  "factor-direction@factors-primes": {
+    misconceptionId: "factor-direction",
+    conceptId: "factors-primes",
+    reveals:
+      "A multiple and a factor were read as the same relationship, so a number made by multiplying was treated as a number that divides. The two words describe opposite directions of one multiplication fact, and the direction is the whole answer.",
+    contrasts: [
+      {
+        works: "9 is a factor of 36 because 9 × 4 = 36",
+        worksNote:
+          "The factor is the number being multiplied, and it divides 36 exactly with no remainder. A factor can never be larger than the number it divides.",
+        fails: "9 is a multiple of 36 because 36 is bigger",
+        failsNote:
+          "A multiple of 36 is made by multiplying 36: 36, 72, 108, and so on, all at least 36. 9 is smaller than 36, so it cannot be a multiple of it. 9 is the factor; 36 is a multiple of 9.",
+        difference:
+          "Which number is being multiplied. In 9 × 4 = 36, 9 is the factor and 36 is the multiple of 9. In 36 × 2 = 72, 72 is a multiple of 36.",
+        move:
+          "Say the multiplication fact aloud with both names before choosing: 'nine times four makes thirty-six, so nine is a factor of thirty-six and thirty-six is a multiple of nine.'",
+      },
+    ],
+    check: "Sort six numbers into factors of 36 and multiples of 36 without help, and write the multiplication fact that proves each placement.",
     review: "unreviewed",
   },
 };

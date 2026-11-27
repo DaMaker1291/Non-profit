@@ -27,6 +27,7 @@ const ALIASES: Record<string, string[]> = {
   negatives: ["negative", "minus number", "below zero", "minus times", "two negatives", "debt"],
   fractions: ["fraction", "numerator", "denominator", "quarter", "half of", "equivalent fractions", "simplest form"],
   "fraction-ops": ["add fractions", "subtract fractions", "multiply fractions", "divide by a fraction", "flip the fraction", "common denominator", "different denominators", "unlike denominators", "same denominator"],
+  "factors-primes": ["factor", "factors", "multiple", "multiples", "prime", "prime number", "prime factor", "prime factorisation", "prime factorization", "factor tree", "hcf", "highest common factor", "gcd", "greatest common divisor", "lcm", "lowest common multiple", "least common multiple"],
   decimals: ["decimal", "decimal point", "tenths", "hundredths"],
   percentages: ["percent", "percentage", "per cent", "%", "discount", "interest rate", "vat", "increase by", "decrease by"],
   ratio: ["ratio", "share in the ratio", "simplify the ratio", "parts"],

@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { getProfile } from "@/lib/server/store";
+// Through the STORAGE PORT: this route reads a learner's record, and a Postgres
+// deployment keeps that record in the database rather than in the JSON file the
+// file backend's own `getProfile` would open.
+import { activeStorage } from "@/lib/server/storage-file";
 import { checkPresentedSecret, classroomSessionFor } from "@/lib/server/capability";
 import { readEvidence } from "@/lib/server/evidence";
 import { isDeviceReported, orderEvents, projectLearner, type AnswerSubmitted } from "@/lib/evidence";
@@ -26,7 +29,7 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     const id = url.searchParams.get("id") ?? "";
     const secret = url.searchParams.get("secret");
-    const state = await getProfile(id);
+    const state = await activeStorage().getProfile(id);
     if (!state) return NextResponse.json({ error: "not_found" }, { status: 404 });
     // The ONE capability rule (lib/server/capability.ts): the learner's own
     // secret, or the classroom session their PIN bought for THIS learner. It was

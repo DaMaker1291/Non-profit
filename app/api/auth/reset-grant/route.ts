@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { accountFromRequest, accountOwningProfile, grantResetCode } from "@/lib/server/auth";
 import { isMemberOf, isTeacherOf } from "@/lib/server/class-membership";
-import { getProfile, listClasses } from "@/lib/server/store";
+// Recovery reads the learner and the classes they own from the CONFIGURED backend:
+// a grant that restores an account but not its classes restores half an account.
+import { activeStorage } from "@/lib/server/storage-file";
 import { readBody, str } from "../_shared";
 
 /**
@@ -38,11 +40,11 @@ export async function POST(req: Request): Promise<NextResponse> {
   const learnerId = str(body.learnerId).trim();
   if (!learnerId) return NextResponse.json({ error: "missing_learner" }, { status: 400 });
 
-  const teacher = await getProfile(account.profileId);
-  const learner = await getProfile(learnerId);
+  const teacher = await activeStorage().getProfile(account.profileId);
+  const learner = await activeStorage().getProfile(learnerId);
   if (!teacher || !learner) return NextResponse.json({ error: "not_your_learner" }, { status: 403 });
 
-  const classes = await listClasses();
+  const classes = await activeStorage().listClasses();
   const teaches = classes.some((cls) => isTeacherOf(cls, teacher) && isMemberOf(cls, learner));
   if (!teaches) return NextResponse.json({ error: "not_your_learner" }, { status: 403 });
 

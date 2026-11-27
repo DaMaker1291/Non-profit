@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
+// THE CLASS AND THE LEARNER COME FROM THE CONFIGURED BACKEND. This is the door a
+// supervised classroom signs in through, and it read the class list and the
+// learner record from the file store: on Postgres a PIN sign-in found no class to
+// join and no learner to admit, which is the whole feature failing at the place a
+// teacher would first notice.
+import { activeStorage } from "@/lib/server/storage-file";
 import {
-  createKioskSession, deleteKioskSessionsFor, getProfile, kioskPinHash, listClasses, publicProfileState,
-  updateClassById,
+  createKioskSession, deleteKioskSessionsFor, kioskPinHash, publicProfileState,
 } from "@/lib/server/store";
 import { storeWriteRefusal } from "@/lib/server/write-refusal";
 import { getSessionTtlMs, hashEquals, kioskLimitKey, KIOSK_PIN_POLICY } from "@/lib/server/kiosk";
@@ -54,7 +59,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       return NextResponse.json({ error: "bad_request" }, { status: 400 });
     }
 
-    const cls = (await listClasses()).find((c) => (classId ? c.id === classId : (c.joinCode ?? "").toUpperCase() === code));
+    const cls = (await activeStorage().listClasses()).find((c) => (classId ? c.id === classId : (c.joinCode ?? "").toUpperCase() === code));
     if (!cls) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
     // The member's id, from the SAME binding the roster uses (a handle is a
@@ -76,7 +81,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     if (!hashEquals(kioskPinHash(pin, credential.salt), credential.hash)) {
       // The failure is recorded on the CLASS so it survives a restart, and the
       // lockout is set when the budget is spent. `hit` above already counted it.
-      await updateClassById(cls.id, (c) => {
+      await activeStorage().updateClassById(cls.id, (c) => {
         const row = c.kiosk?.[learnerId];
         if (!row) return { failed: true as const };
         row.failed = (row.failed ?? 0) + 1;
@@ -86,7 +91,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       return NextResponse.json({ error: "unauthorized" }, { status: 401 });
     }
 
-    const state = await getProfile(learnerId);
+    const state = await activeStorage().getProfile(learnerId);
     if (!state) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
     // A NEW SESSION REPLACES THE OLD ONES FOR THIS LEARNER. Two live tokens for
@@ -99,7 +104,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     // The success clears the failure count, in the same update that nothing else
     // needs — and it is best-effort: a store that refused this write must not
     // turn a correct PIN into a failed sign-in.
-    await updateClassById(cls.id, (c) => {
+    await activeStorage().updateClassById(cls.id, (c) => {
       const row = c.kiosk?.[learnerId];
       if (row) {
         delete row.failed;

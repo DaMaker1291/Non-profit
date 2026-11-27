@@ -1,6 +1,6 @@
 # OpenMind multilingual readiness
 
-Generated 2026-11-23 by `npm run verify:multilingual`.
+Generated 2026-11-27 by `npm run verify:multilingual`.
 
 This report distinguishes interface translation from translated and reviewed teaching. It does not count an unverified link as a usable resource.
 
@@ -9,7 +9,7 @@ This report distinguishes interface translation from translated and reviewed tea
 
 - Interface languages: **15** (ar, ur, fa are RTL).
 - Complete translated lesson pairs: **1** (fractions/fr).
-- Concepts with a complete plan in any non-English language: **1** of 135.
+- Concepts with a complete plan in any non-English language: **1** of 136.
 - Translations with a human linguistic or subject review record: **0**.
 - Complete plans with subject review: **0**.
 - Questions, assessment instructions and marking feedback: **English only**.

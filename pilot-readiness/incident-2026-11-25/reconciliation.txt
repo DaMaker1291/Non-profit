@@ -1,0 +1,78 @@
+
+RECONCILIATION — incident 2026-11-25T21:15:00.000Z
+  store:  /Users/shaurjeshbasu/Downloads/NON PROFIT/.openmind-data
+  backup: /tmp/openmind-incident-20261125T220920/backups
+
+SURVIVORS (1)
+  unchanged stu_mub5fkj8lg2plm7a0a             ui_check     2026-09-21T11:15:32.660Z
+
+DELETED PROFILES — PRE-EXISTING (6)  ← these predate the test run
+  prof_ea7b5f6d17b44179b6996e7365b724e6 MGHFV,G      2026-11-07T12:33:24.622Z  events=0 practice=1 masteries=0 papers=0 diagnostics=1
+  prof_f4ab2fc9231b4d95a200db9e46bf1963 myrsmrxhf    2026-11-07T22:07:52.652Z  events=0 practice=1 masteries=0 papers=0 diagnostics=0
+  prof_eba5cc12131c4f809a58c6e2946350b4 sync_learner 2026-11-13T00:14:30.571Z  events=0 practice=0 masteries=0 papers=0 diagnostics=0
+  prof_576b08ec64da443e993aba800685cd65 sync_learner 2026-11-13T14:47:02.775Z  events=0 practice=0 masteries=0 papers=0 diagnostics=0
+  prof_682ce0c874b6495fa0ad5289ff1531aa sync_learner 2026-11-13T14:58:10.737Z  events=0 practice=0 masteries=0 papers=0 diagnostics=0
+  prof_e4983efec56e4f82a5e85a74b8779764 ddddddd      2026-11-19T16:55:28.694Z  events=0 practice=0 masteries=0 papers=0 diagnostics=0
+
+DELETED PROFILES — INCIDENT WINDOW (25)
+  prof_45898ea43007495091a4f49667f5cf9e amina_k                2026-11-25T21:15:32.609Z  events=0 practice=0 masteries=0 papers=0 diagnostics=3
+  prof_2bab3cdc897d4d2981572e739214b5d4 loop_e2e               2026-11-25T21:15:36.926Z  events=0 practice=1 masteries=0 papers=0 diagnostics=0
+  prof_9c84ae88ceaa4ecda27c1584bc07c45b e2e_struggler          2026-11-25T21:15:37.597Z  events=0 practice=1 masteries=0 papers=0 diagnostics=0
+  prof_0293aeb37c964807a5052108570f564d e2e_untouched          2026-11-25T21:15:37.660Z  events=0 practice=1 masteries=0 papers=0 diagnostics=0
+  prof_823f3c1301bc4e8099846590435bf2c1 diag_only_e2e          2026-11-25T21:15:38.136Z  events=0 practice=0 masteries=0 papers=0 diagnostics=1
+  prof_17acc28550244bfebbe388ee1f93fdb1 proof_http             2026-11-25T21:15:38.419Z  events=0 practice=0 masteries=0 papers=0 diagnostics=2
+  prof_0678ec07c69b4465a39c87d86a9a9d04 cls_teacher_e2e        2026-11-25T21:15:39.778Z  events=0 practice=0 masteries=0 papers=0 diagnostics=0
+  prof_cc219b468ef5410ba3c3551decbd012b bk_2009                2026-11-25T21:15:40.073Z  events=0 practice=0 masteries=0 papers=0 diagnostics=0
+  prof_577b46ae03284132bfcaa553143fb884 stranger_p             2026-11-25T21:15:40.191Z  events=0 practice=0 masteries=0 papers=0 diagnostics=0
+  prof_fd98376e4f3a47bcab27e2b029fc0fb8 anon                   2026-11-25T21:15:40.281Z  events=0 practice=0 masteries=0 papers=0 diagnostics=0
+  prof_d5ac5d8b2b07465e911de05ccd6f2367 phys_teacher_e2e       2026-11-25T21:15:40.503Z  events=0 practice=0 masteries=0 papers=0 diagnostics=0
+  prof_aa22816f38b5401fa41bfdae7d23b165 phys_kid_e2e           2026-11-25T21:15:40.612Z  events=0 practice=0 masteries=0 papers=0 diagnostics=0
+  prof_d324bd3c15844d77853edac0821da45e phys_quiet_e2e         2026-11-25T21:15:40.771Z  events=0 practice=0 masteries=0 papers=0 diagnostics=0
+  prof_7db67eca034647b3a0e06d7a5d0cb431 names_teacher_e2e      2026-11-25T21:15:40.989Z  events=0 practice=0 masteries=0 papers=0 diagnostics=0
+  prof_369dfd981bb94eaab800830a5a80007b Alex                   2026-11-25T21:15:41.075Z  events=0 practice=0 masteries=0 papers=0 diagnostics=0
+  prof_652b61f8b7664380b42fcee5119e7c20 Alex                   2026-11-25T21:15:41.082Z  events=0 practice=0 masteries=0 papers=0 diagnostics=0
+  prof_b2eec9d8b34547e5a1bca95d578e0861 Alex                   2026-11-25T21:15:41.089Z  events=0 practice=0 masteries=0 papers=0 diagnostics=0
+  prof_2024284f37ee4604b9bbf13d5574f87b next_lang_ar_e2e       2026-11-25T21:15:41.303Z  events=0 practice=0 masteries=0 papers=0 diagnostics=0
+  prof_e33b500e702c4f92a55be3b971ac0010 micro_p                2026-11-25T21:15:41.684Z  events=0 practice=0 masteries=0 papers=0 diagnostics=0
+  prof_5083f0ed6d6f48d1922b58e0c6f25a09 micro_c                2026-11-25T21:15:41.796Z  events=0 practice=0 masteries=0 papers=0 diagnostics=0
+  prof_e804d0444450401181111f06bd72d2e3 starter_e2e            2026-11-25T21:15:41.850Z  events=0 practice=1 masteries=0 papers=0 diagnostics=0
+  prof_c3d9c3d2b027417fb0db067f67fe7b30 starter_e2e_ok         2026-11-25T21:15:41.906Z  events=0 practice=1 masteries=0 papers=0 diagnostics=0
+  prof_be8ab750b1f94c3cac112424c8d632ac attrib_hint_e2e        2026-11-25T21:15:41.950Z  events=0 practice=0 masteries=0 papers=0 diagnostics=0
+  prof_4e402eec85ff429d9dd8bd4fbdd4cde9 attrib_transfer_e2e    2026-11-25T21:15:41.996Z  events=0 practice=2 masteries=0 papers=0 diagnostics=0
+  prof_4bcc50c9e13e4767b632b34009497722 paper_e2e              2026-11-25T21:15:42.237Z  events=0 practice=0 masteries=0 papers=0 diagnostics=0
+
+ACCOUNTS (5)
+  kept    pre-existing    acc_mub5fknqrwq92g                   owner=stu_mub5fkj8lg2plm7a0a
+  deleted pre-existing    acc_eda416b859f3497f96b44f4f8978c8d6 owner=prof_e4983efec56e4f82a5e85a74b8779764
+  deleted incident-window acc_79ea8bb0e838477f9224a97c7b4bb4d0 owner=prof_0678ec07c69b4465a39c87d86a9a9d04
+  deleted incident-window acc_d2ddcb5ff8694967bb972ff063d6ccc1 owner=prof_d5ac5d8b2b07465e911de05ccd6f2367
+  deleted incident-window acc_857659ffcad24c1b93d5d5f841c1787e owner=prof_7db67eca034647b3a0e06d7a5d0cb431
+
+PAPERS REMOVED (1)
+  incident-window pap_1m5hasqw3k7cu                  2026-11-25T21:15:42.457Z  owner=-  GCSE Mathematics — Higher Paper 1 (non-calculator)
+
+CLASSES REMOVED (5)
+  incident-window cls_a765664215da4033b17fb6fd6e0edbac 2026-11-25T21:15:40.049Z  owner=-  Class 9A — Mathematics
+  incident-window cls_eb33d8e31f3a48b1b0f34ba351452b90 2026-11-25T21:15:40.606Z  owner=-  Year 11 Physics
+  incident-window cls_3a15401ae6a84e6ca47b836684a82c40 2026-11-25T21:15:40.952Z  owner=-  Declared physics
+  incident-window cls_14bfe31c01454474ab1b05cfc2cb082b 2026-11-25T21:15:40.976Z  owner=-  No subject declared
+  incident-window cls_83a1e3133d684c36a8b5cac51cdbf8df 2026-11-25T21:15:41.070Z  owner=-  Year 10 Maths
+
+ROOMS REMOVED (2)
+  incident-window room_79a6edc0ce784dadbaf31df0d9956671 2026-11-25T21:15:39.414Z  owner=amina_k  GCSE Physics
+  incident-window room_ec1b39e33be64103b51a345326098df0 2026-11-25T21:15:39.670Z  owner=zuri  GCSE Physics (fork)
+
+PERSONAL PAPERS REMOVED (0)
+
+EVIDENCE LEDGERS
+  now: 0   backed up: no
+  The old cleanup deleted every ledger in .openmind-data/evidence/ with rmSync and made no copy. Their COUNT can be reconstructed from its log; their CONTENTS cannot. This is the one deletion in the incident that is not recoverable from the preserved backup.
+
+FAILURES (0)
+  none — every survivor is byte-identical, and no store record is absent from the backup
+
+RECONCILIATION: 1 survivor(s) unchanged; 6 pre-existing profile(s) and 1 pre-existing account(s) deleted; 25 incident-window profile(s) deleted; 1 paper(s), 5 class(es), 2 room(s) removed; ledgers unrecoverable.
+
+VERDICT: the cleanup was NOT limited to test-created records. 7 record(s) that predate the incident were deleted; they are recoverable byte-for-byte from the preserved backup, and none has been restored.
+
+  machine-readable record: /tmp/openmind-incident-20261125T220920/reconciliation.json

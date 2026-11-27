@@ -192,6 +192,7 @@ function numericRaw(num: NumericGen, r: Rng): ReturnType<RawGen> {
       prompt: item.prompt,
       correct,
       wrongs: item.wrongs.map((w) => String(w)),
+      choiceMisconceptionTags: item.choiceMisconceptionTags,
       tags: item.tags,
       explanation: item.explanation,
       difficulty: item.difficulty,
@@ -239,6 +240,12 @@ type RawGen = (r: Rng) => {
    *  wrong option can narrow the answer down, and a learner who reads it before
    *  choosing has been given a hint they did not ask for. */
   wrongNotes?: string[];
+  /** ONE MISCONCEPTION PER WRONG OPTION, aligned with `wrongs`. An empty slot
+   *  means this distractor is a slip or a near-miss, not evidence of a belief —
+   *  the grader must not name a misconception from it. The item-level `tags`
+   *  remain the union used for retrieval and targeting; they are not permission
+   *  to diagnose every wrong choice as the same belief. */
+  choiceMisconceptionTags?: string[][];
   tags: string[];
   explanation: string;
   difficulty: number;
@@ -287,29 +294,72 @@ const MATHS_GENS: Record<string, RawGen> = {
         String(value + 1),        // arithmetic slip
         String(value > 10 ? value / 10 : value * 10 + 1), // one place short
       ],
-      tags: [], explanation: `${n} = ${h * 100} + ${t * 10} + ${o}, so the ${pos} digit contributes ${value}.`,
+      wrongNotes: [
+        `You read the digit as ${digit}, but its value depends on its column. The ${pos} digit in ${n} is worth ${digit} × ${pos === "hundreds" ? "100" : pos === "tens" ? "10" : "1"} = ${value}.`,
+        `You moved the ${pos} digit one column too far left: ${value} × 10 = ${value * 10}. The ${pos} column itself is worth ${value}.`,
+        `This is one more than the digit's value. Count the column, not the digit: the ${pos} column is worth ${value}.`,
+        value > 10
+          ? `You moved the ${pos} digit one column right: ${value} ÷ 10 = ${value / 10}. ${n} has ${h} hundreds, ${t} tens and ${o} ones, so the ${pos} digit is worth ${value}.`
+          : `You moved the ${pos} digit to a larger column and added one. ${n} has ${h} hundreds, ${t} tens and ${o} ones, so the ${pos} digit is worth ${value}.`,
+      ],
+      // The first option is the digit's face value, which is the belief itself —
+      // EXCEPT in the ones column, where the face value IS the answer. There it
+      // must not be tagged, or the dedupe associates the belief with the correct
+      // option and every right answer "confirms" a misconception. A wrong answer
+      // of `value + 1` is a counting slip, not evidence of that belief, so its
+      // slot is deliberately blank.
+      choiceMisconceptionTags: digit !== value
+        ? [["place-value-face"], [], [], []]
+        : [[], [], [], []],
+      tags: digit !== value ? ["place-value-face"] : [], explanation: `${n} = ${h * 100} + ${t * 10} + ${o}, so the ${pos} digit contributes ${value}.`,
       difficulty: 0.1,
     };
   },
   "addition": (r) => {
-    const a = r.int(24, 98), b = r.int(17, 89);
+    // A CARRY IS THE POINT. If the ones digits sum below ten, losing ten is not
+    // a dropped carry and the tagged option would diagnose a move the question
+    // never required. Redraw until the ones column actually carries.
+    let a = r.int(24, 98), b = r.int(17, 89);
+    for (let tries = 0; tries < 20 && (a % 10) + (b % 10) < 10; tries++) {
+      a = r.int(24, 98);
+      b = r.int(17, 89);
+    }
     const s = a + b;
     return {
       prompt: `Work out ${a} + ${b}.`,
       correct: String(s),
       wrongs: [String(s - 10), String(s + 1), String(a + b - (a % 10) + (b % 10))] as [string, string, string],
-      tags: [], explanation: `Line up place value and add the columns: ${a} + ${b} = ${s}. Check: ${s} − ${a} = ${b} ✓.`,
+      wrongNotes: [
+        `This is ten less than the correct total, so a carry was dropped. Add the ones first: ${a % 10} + ${b % 10} = ${(a % 10) + (b % 10)}, which carries a ten into the next column.`,
+        `This is one more than the correct total. Re-add the ones digits, then the tens, and carry only when the ones total reaches 10 or more.`,
+        `This is not the total of ${a} and ${b}. Line up the columns — ones under ones, tens under tens — and carry the ten made by the ones column. ${a} + ${b} = ${s}.`,
+      ],
+      choiceMisconceptionTags: [["add-carry-drop"], [], []],
+      tags: ["add-carry-drop"], explanation: `Line up place value and add the columns: ${a} + ${b} = ${s}. Check: ${s} − ${a} = ${b} ✓.`,
       difficulty: 0.08,
     };
   },
   "subtraction": (r) => {
-    const a = r.int(50, 99), b = r.int(12, 49);
+    // A BORROW IS THE POINT. If the ones digit of the larger number is already
+    // at least the ones digit being taken away, `difference + 10` is not an
+    // unrepaid borrow and must not be diagnosed as one.
+    let a = r.int(50, 99), b = r.int(12, 49);
+    for (let tries = 0; tries < 20 && (a % 10) >= (b % 10); tries++) {
+      a = r.int(50, 99);
+      b = r.int(12, 49);
+    }
     const d = a - b;
     return {
       prompt: `Work out ${a} − ${b}.`,
       correct: String(d),
       wrongs: [String(d + 10), String(d - 1), String(b - a + a)] as [string, string, string],
-      tags: [], explanation: `${a} − ${b} = ${d}. Check by adding back: ${d} + ${b} = ${a} ✓.`,
+      wrongNotes: [
+        `This is ten more than the correct difference, so a borrow was not repaid. After borrowing a ten, the next column loses one.`,
+        `This is one less than the correct difference. Check the ones column, then add the difference back to ${b} to see whether it gives ${a}.`,
+        `This is ${b}, the number being taken away, not the difference. Subtraction asks what is left after removing ${b} from ${a}.`,
+      ],
+      choiceMisconceptionTags: [["sub-borrow-unrepaid"], [], []],
+      tags: ["sub-borrow-unrepaid"], explanation: `${a} − ${b} = ${d}. Check by adding back: ${d} + ${b} = ${a} ✓.`,
       difficulty: 0.1,
     };
   },
@@ -319,8 +369,14 @@ const MATHS_GENS: Record<string, RawGen> = {
     return {
       prompt: `Work out ${a} × ${b}.`,
       correct: String(p),
-      wrongs: [String(p + a), String(p - b), String(a * b + a + b)] as [string, string, string],
-      tags: [], explanation: `${a} × ${b} = ${a} lots of ${b} = ${p}. (Split it: (${a - 1 > 0 ? a - 1 : a}) × ${b} + 1 × ${b}.)`,
+      wrongs: [String(p + a), String(p - b), String(a + b)] as [string, string, string],
+      wrongNotes: [
+        `This is one extra group of ${a}: ${p} + ${a}. ${a} × ${b} means exactly ${a} groups of ${b}, not ${a} groups plus another ${a}.`,
+        `This is one group of ${b} short: ${p} − ${b}. Count the groups again — there are ${a} of them, each worth ${b}.`,
+        `You added the two numbers instead of multiplying them: ${a} + ${b}. ${a} × ${b} means ${a} equal groups of ${b}, so the total is ${p}.`,
+      ],
+      choiceMisconceptionTags: [[], [], ["mul-as-add"]],
+      tags: ["mul-as-add"], explanation: `${a} × ${b} = ${a} lots of ${b} = ${p}. (Split it: (${a - 1 > 0 ? a - 1 : a}) × ${b} + 1 × ${b}.)`,
       difficulty: 0.12,
     };
   },
@@ -331,9 +387,142 @@ const MATHS_GENS: Record<string, RawGen> = {
       prompt: `Work out ${a} ÷ ${b}.`,
       correct: String(q),
       wrongs: [String(q + 1), String(q - 1), String(a - b)] as [string, string, string],
-      tags: [], explanation: `${b} × ${q} = ${a}, so ${a} ÷ ${b} = ${q}. Division undoes multiplication.`,
+      wrongNotes: [
+        `This is one group too many. ${b} × ${q + 1} = ${b * (q + 1)}, which is more than ${a}; only ${q} groups of ${b} fit exactly.`,
+        `This is one group too few. ${b} × ${q - 1} = ${b * (q - 1)}, which leaves ${a - b * (q - 1)} unshared; there are ${q} groups.`,
+        `This is ${a} − ${b}, a subtraction. Division asks how many groups of ${b} fit into ${a}: ${b} × ${q} = ${a}, so the answer is ${q}.`,
+      ],
+      choiceMisconceptionTags: [[], [], ["div-as-subtract"]],
+      tags: ["div-as-subtract"], explanation: `${b} × ${q} = ${a}, so ${a} ÷ ${b} = ${q}. Division undoes multiplication.`,
       difficulty: 0.12,
     };
+  },
+  // Factors, multiples and primes are four different questions wearing one
+  // topic label. Each branch asks exactly one of them, so a wrong option can
+  // diagnose a direction error rather than a generic "factor mistake".
+  "factors-primes": (r) => {
+    const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
+    const lcm = (a: number, b: number): number => (a * b) / gcd(a, b);
+    // A RELATIONSHIP QUESTION, not another number to compute. Every wrong
+    // statement reverses factor and multiple (or makes a multiple into a factor),
+    // so a wrong choice is evidence of the direction belief itself rather than a
+    // slip in arithmetic. That is why the ITEM can carry the tag: every wrong
+    // option discriminates the same belief. It appears in 40% of the base draws
+    // so the repair is reachable in a short practice session, not only in a
+    // large sweep.
+    const directionItem = () => ({
+      prompt: "Which statement is true?",
+      correct: "9 is a factor of 36, because 9 × 4 = 36.",
+      wrongs: [
+        "36 is a factor of 9, because 9 × 4 = 36.",
+        "9 is a multiple of 36, because 36 is larger than 9.",
+        "72 is a factor of 36, because 36 × 2 = 72.",
+      ] as [string, string, string],
+      tags: ["factor-direction"],
+      choiceMisconceptionTags: [["factor-direction"], ["factor-direction"], ["factor-direction"]],
+      wrongNotes: [
+        "This reverses the relationship. 9 × 4 = 36 makes 9 the factor and 36 the multiple of 9; 36 cannot be a factor of 9 because 36 is larger than 9.",
+        "A multiple of 36 is made by multiplying 36, so it is at least 36: 36, 72, 108, … 9 is smaller than 36, so it is a factor of 36, not a multiple.",
+        "72 is a multiple of 36, not a factor. A factor divides the number exactly and cannot be larger than the number it divides.",
+      ],
+      explanation:
+        "9 is a factor of 36, because 9 × 4 = 36. 36 is a multiple of 9. The other statements reverse that direction, make the smaller number a multiple, or call a larger multiple a factor.",
+      difficulty: 0.44,
+    });
+    if (r.next() < 0.5) return directionItem();
+    const kind = r.int(1, 5);
+    if (kind === 1) {
+      const n = r.pick([24, 36, 48] as const);
+      const factor = n === 36 ? 12 : n === 24 ? 8 : 16;
+      const multiple = n * 2;
+      const near = n === 36 ? 10 : n === 24 ? 9 : 18;
+      const near2 = n === 36 ? 16 : n === 24 ? 10 : 20;
+      return {
+        prompt: `Which of these is a factor of ${n}?`,
+        correct: String(factor),
+        wrongs: [String(multiple), String(near), String(near2)] as [string, string, string],
+        // The doubled number is a MULTIPLE, so choosing it is evidence of a
+        // direction error rather than carelessness. The other two simply fail
+        // to divide exactly and carry no misconception claim.
+        choiceMisconceptionTags: [["factor-direction"], [], []],
+        wrongNotes: [
+          `${multiple} = ${n} × 2, so it is a multiple of ${n}, not a factor. A factor divides ${n} exactly and cannot be larger than ${n}.`,
+          `${near} does not divide ${n} exactly: ${n} ÷ ${near} leaves remainder ${n % near}. A factor must divide with no remainder.`,
+          `${near2} does not divide ${n} exactly: ${n} ÷ ${near2} leaves remainder ${n % near2}. A factor must divide with no remainder.`,
+        ],
+        tags: [],
+        explanation: `A factor divides ${n} exactly. ${factor} × ${n / factor} = ${n}, with no remainder. ${multiple} is the opposite relationship — it is a multiple of ${n}, made by multiplying.`,
+        difficulty: 0.3,
+      };
+    }
+    if (kind === 2) {
+      const base = r.pick([6, 7, 8, 9] as const);
+      const k = r.int(4, 9);
+      const correct = base * k;
+      const factor = base === 6 ? 3 : base === 7 ? 1 : base === 8 ? 2 : 3;
+      return {
+        prompt: `Which of these is a multiple of ${base}?`,
+        correct: String(correct),
+        wrongs: [String(factor), String(correct + 1), String(correct - 2)] as [string, string, string],
+        choiceMisconceptionTags: [["factor-direction"], [], []],
+        wrongNotes: [
+          `${factor} is a factor of ${base}: ${factor} × ${base / factor} = ${base}. A multiple of ${base} is made by multiplying ${base}, so it is at least ${base}.`,
+          `${correct + 1} is not a multiple of ${base}: ${correct + 1} ÷ ${base} leaves remainder 1. Start from ${correct} and add another group of ${base} to reach ${correct + base}.`,
+          `${correct - 2} is not a multiple of ${base}: ${correct - 2} ÷ ${base} leaves remainder ${base - 2}. The multiple just below ${correct} is ${correct - base}.`,
+        ],
+        tags: [],
+        explanation: `A multiple of ${base} is ${base} × a whole number. ${base} × ${k} = ${correct}, so ${correct} is a multiple. ${factor} is a factor of ${base}, not a multiple of it.`,
+        difficulty: 0.34,
+      };
+    }
+    if (kind === 3) {
+      const [a, b] = r.pick([[12, 18], [18, 24], [20, 30], [24, 36]] as const);
+      const h = gcd(a, b);
+      return {
+        prompt: `Work out the highest common factor (HCF) of ${a} and ${b}.`,
+        correct: String(h),
+        wrongs: [String(h / 2), String(a * b), String(h * 2)] as [string, string, string],
+        tags: [],
+        explanation: `List the factors the two numbers share and take the largest. ${a} and ${b} are both divisible by ${h}, and no larger number divides both. The product ${a * b} is a common multiple, not a common factor.`,
+        difficulty: 0.38,
+      };
+    }
+    if (kind === 4) {
+      const [a, b] = r.pick([[6, 8], [8, 12], [9, 12], [10, 15]] as const);
+      const l = lcm(a, b);
+      const h = gcd(a, b);
+      return {
+        prompt: `Work out the lowest common multiple (LCM) of ${a} and ${b}.`,
+        correct: String(l),
+        wrongs: [String(h), String(a * b), String(l + a)] as [string, string, string],
+        choiceMisconceptionTags: [["factor-direction"], [], []],
+        wrongNotes: [
+          `${h} is the highest common FACTOR of ${a} and ${b}, not a multiple of either. An LCM must be at least as large as both numbers.`,
+          `${a * b} is a common multiple, but it counts the shared primes twice. The LOWEST common multiple is ${l}; check ${l} ÷ ${a} = ${l / a} and ${l} ÷ ${b} = ${l / b}.`,
+          `${l + a} is a multiple of ${a} alone. Check the other number too: ${l + a} ÷ ${b} leaves remainder ${(l + a) % b}, so it is not a common multiple.`,
+        ],
+        tags: [],
+        explanation: `The LCM is the smallest number both ${a} and ${b} divide into. ${l} ÷ ${a} = ${l / a} and ${l} ÷ ${b} = ${l / b}, both whole numbers. The product ${a * b} is a common multiple, but it is not the LOWEST one.`,
+        difficulty: 0.4,
+      };
+    }
+    if (kind === 5) {
+      const n = r.pick([24, 36, 40] as const);
+      const factors = n === 24 ? "2 × 2 × 2 × 3" : n === 36 ? "2 × 2 × 3 × 3" : "2 × 2 × 2 × 5";
+      return {
+        prompt: `Which of these is the prime factorisation of ${n}?`,
+        correct: factors,
+        wrongs: n === 24
+          ? ["2 × 2 × 6", "3 × 8", "2 × 12"]
+          : n === 36
+            ? ["2 × 2 × 9", "3 × 12", "4 × 9"]
+            : ["2 × 2 × 10", "4 × 10", "5 × 8"],
+        tags: [],
+        explanation: `Every factor in a prime factorisation must be prime. ${n} = ${factors}; the other options still contain a composite number such as 6, 9, 10 or 12, so the breakdown is not finished.`,
+        difficulty: 0.42,
+      };
+    }
+    return directionItem();
   },
   "negatives": (r) => {
     const kind = r.int(1, 3);
@@ -440,7 +629,11 @@ const MATHS_GENS: Record<string, RawGen> = {
         prompt: `A year group has ${amount} students. ${n}/${d} of them walk to school. How many walk?`,
         correct: String(ans),
         wrongs: [String(k), String(amount - ans), String(ans + n)] as [string, string, string],
-        tags: [], explanation: `Divide by the denominator, multiply by the numerator: ${amount} ÷ ${d} = ${k} per part, then ${k} × ${n} = ${ans}. Check it is sensible — ${n}/${d} is ${n * 2 > d ? "more" : "less"} than half, so the answer must be ${n * 2 > d ? "more" : "less"} than ${amount / 2}.`,
+        // `k` is one part, not n parts: the learner divided by the denominator
+        // and stopped. The complement and the one-part-too-many answer are
+        // slips with no authored belief, so they carry no tag.
+        choiceMisconceptionTags: [["frac-of-amount"], [], []],
+        tags: ["frac-of-amount"], explanation: `Divide by the denominator, multiply by the numerator: ${amount} ÷ ${d} = ${k} per part, then ${k} × ${n} = ${ans}. Check it is sensible — ${n}/${d} is ${n * 2 > d ? "more" : "less"} than half, so the answer must be ${n * 2 > d ? "more" : "less"} than ${amount / 2}.`,
         difficulty: 0.4,
       };
     }
@@ -2982,9 +3175,12 @@ export function generateQuestion(conceptId: string, seed: string): Question | nu
   // A WRONG OPTION'S OWN EXPLANATION, carried beside the option text rather than
   // by its position: the push above drops duplicates, so an index would slide.
   const noteFor = new Map<string, string>();
+  const misconceptionFor = new Map<string, string>();
   for (const [i, w] of q.wrongs.entries()) {
     const note = q.wrongNotes?.[i];
     if (note) noteFor.set(optionValueKey(w) ?? `raw:${w}`, note);
+    const tag = q.choiceMisconceptionTags?.[i]?.[0];
+    if (tag) misconceptionFor.set(optionValueKey(w) ?? `raw:${w}`, tag);
   }
   for (const w of q.wrongs) push(w);
 
@@ -3077,6 +3273,12 @@ export function generateQuestion(conceptId: string, seed: string): Question | nu
     // shuffle, so the client can ask by the index the learner picked.
     choiceNotes: noteFor.size > 0
       ? choices.map((c) => noteFor.get(optionValueKey(c) ?? `raw:${c}`) ?? "")
+      : undefined,
+    // Aligned with the SHUFFLED choices, so the server can attribute a named
+    // belief to the option the learner actually chose. Empty where the option is
+    // a slip, a near-miss or a padded distractor.
+    choiceMisconceptions: misconceptionFor.size > 0
+      ? choices.map((c) => misconceptionFor.get(optionValueKey(c) ?? `raw:${c}`) ?? "")
       : undefined,
     // A numeric draw says so, and carries the number the typed answer is marked
     // against plus the tolerance the ITEM declares. `choiceValues` reads the
@@ -3271,7 +3473,7 @@ const SKILL_RANK: Record<string, number> = { recall: 0, application: 1, multi_st
  *  the point of the architecture — leaking the answer would make "practice"
  *  a multiple-choice cheat sheet, and the tags are the grader's own
  *  discriminators, not learner-facing data. */
-export type QuestionView = Omit<Question, "answer" | "explanation" | "misconceptionTags" | "answerValue" | "answerFraction" | "answerPair" | "choiceValues">;
+export type QuestionView = Omit<Question, "answer" | "explanation" | "misconceptionTags" | "answerValue" | "answerFraction" | "answerPair" | "choiceValues" | "choiceMisconceptions">;
 
 /** Strip grader-only fields. When a language is supplied, maths command-stem
  *  prompts are localized ("Work out" → "Calcula" …) — bodies keep their
@@ -3283,7 +3485,7 @@ export function serveView(q: Question, lang?: string, board?: BoardId): Question
   // `tolerance.unit` — the box needs to know it is grammatically wrong to the
   // 14th decimal. `choiceValues` is stripped too: it is the same four numbers
   // the visible options already state.
-  const { answer: _a, explanation: _e, misconceptionTags: _m, answerValue: _v, answerFraction: _af, answerPair: _ap, choiceValues: _cv, choiceNotes: _cn, ...view } = q;
+  const { answer: _a, explanation: _e, misconceptionTags: _m, answerValue: _v, answerFraction: _af, answerPair: _ap, choiceValues: _cv, choiceNotes: _cn, choiceMisconceptions: _cm, ...view } = q;
   if (lang && lang !== "en") {
     view.prompt = localizeStem(view.prompt, lang);
   } else if (board) {

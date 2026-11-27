@@ -6,7 +6,9 @@ import { authorizeLearner } from "@/lib/server/capability";
 import { incompleteSubjects } from "@/lib/specifications";
 import { ctitle } from "@/lib/content-i18n";
 import { translator } from "@/lib/i18n";
-import { listClasses } from "@/lib/server/store";
+// What to do next is decided from the learner's classes; those live on the
+// configured backend.
+import { activeStorage } from "@/lib/server/storage-file";
 import { adjustActions, rungForHandle } from "@/lib/right-level-serve";
 import type { RungLevel } from "@/lib/right-level";
 
@@ -57,7 +59,7 @@ export async function GET(req: Request): Promise<NextResponse> {
   // placement at all leaves the decision exactly as it was.
   let rung: RungLevel | null = null;
   try {
-    const classes = await listClasses();
+    const classes = await activeStorage().listClasses();
     for (const cls of classes) {
       if (!cls.levels) continue;
       const handle = Object.entries(cls.membersById ?? {}).find(([, learnerId]) => learnerId === id)?.[0];

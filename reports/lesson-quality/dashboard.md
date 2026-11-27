@@ -1,16 +1,16 @@
 # OpenMind lesson-quality dashboard
 
-Generated 2026-11-13T23:13:36.580Z. Structural comparison of every authored openmind.lesson/1.0 lesson. Counts are read from the lessons; no quality score is invented and no learning outcome is claimed.
+Generated 2026-11-26T21:18:42.149Z. Structural comparison of every authored openmind.lesson/1.0 lesson. Counts are read from the lessons; no quality score is invented and no learning outcome is claimed.
 
 ## Totals
 
 - Authored lessons: **135**
-- Teaching words: **199781**
-- Worked steps that state why: **1056 / 1056**
-- Misconceptions with a correction and contrast: **390 / 390**
+- Teaching words: **200298**
+- Worked steps that state why: **1059 / 1059**
+- Misconceptions with a correction and contrast: **391 / 391**
 - Drawn lesson figures: **5** across 477 representation blocks
-- Gradable assessment items: **279**; constructed responses: **172**; explicitly unscored reflections: **1**
-- Transfer tasks: **135**; spaced retrieval prompts: **423**
+- Gradable assessment items: **280**; constructed responses: **172**; explicitly unscored reflections: **1**
+- Transfer tasks: **135**; spaced retrieval prompts: **424**
 - Accessibility needs with an authored alternative: **503**
 - Subject-teacher reviewed: **0**
 - Learner-tested: **0**
@@ -74,7 +74,7 @@ Generated 2026-11-13T23:13:36.580Z. Structural comparison of every authored open
 | evolution | biology | draft | 2870 | 16 | 4 | 0 | 2 | 8/8 | 4 | 2 | 2 | 0 | 1 | 4 | 4 | 0 | 0 |
 | financial-maths | maths | draft | 823 | 6 | 3 | 0 | 2 | 6/6 | 2 | 2 | 1 | 0 | 1 | 3 | 3 | 0 | 0 |
 | forces-basics | physics | draft | 1382 | 8 | 4 | 0 | 2 | 6/6 | 3 | 1 | 2 | 0 | 1 | 3 | 4 | 0 | 0 |
-| fraction-ops | maths | draft | 1058 | 6 | 3 | 0 | 2 | 6/6 | 2 | 1 | 1 | 0 | 1 | 3 | 3 | 0 | 0 |
+| fraction-ops | maths | draft | 1575 | 9 | 3 | 0 | 3 | 9/9 | 3 | 2 | 1 | 0 | 1 | 4 | 3 | 0 | 0 |
 | fractions | maths | draft | 1268 | 7 | 3 | 0 | 2 | 6/6 | 3 | 1 | 3 | 0 | 1 | 3 | 4 | 0 | 0 |
 | functions | maths | draft | 1702 | 15 | 4 | 0 | 3 | 12/12 | 4 | 2 | 1 | 0 | 1 | 3 | 5 | 0 | 0 |
 | functions-code | computing | draft | 1308 | 8 | 4 | 0 | 2 | 8/8 | 3 | 3 | 2 | 0 | 1 | 3 | 4 | 0 | 0 |

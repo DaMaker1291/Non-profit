@@ -10,7 +10,10 @@
 
 import { PROJECTION_VERSION } from "../evidence";
 import { decisionContext, type DecisionContext } from "../decision";
-import { getProfile } from "./store";
+// The decision engine reads the learner's record to recommend a next step, so it
+// asks the CONFIGURED backend. Reading the file store gave every Postgres learner
+// the same answer: "no record, no recommendation".
+import { activeStorage } from "./storage-file";
 import { readEvidence } from "./evidence";
 import { unprojectableShare } from "./projection";
 
@@ -27,7 +30,7 @@ import { unprojectableShare } from "./projection";
  * already have.
  */
 export async function decisionContextFor(learnerId: string): Promise<DecisionContext | null> {
-  const state = await getProfile(learnerId);
+  const state = await activeStorage().getProfile(learnerId);
   if (!state) return null;
   const share = unprojectableShare(state);
   return decisionContext(

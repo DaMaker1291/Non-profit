@@ -5686,4 +5686,43 @@ export const DEEP_GENS: Record<string, DeepGen> = {
       difficulty: 0.7 + r.next() * 0.08,
     };
   },
+
+  /** Factors and multiples in a real packing or timetable decision. The base
+   *  family asks one fact at a time; this asks the learner to CHOOSE whether the
+   *  situation needs the shared factor (HCF) or the shared multiple (LCM), then
+   *  compute it. Those are the two directions learners routinely swap. */
+  "factors-primes": (r) => {
+    const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
+    const lcm = (a: number, b: number): number => (a * b) / gcd(a, b);
+    const clock = (minutesAfterNine: number): string => {
+      const total = 9 * 60 + minutesAfterNine;
+      const h = Math.floor(total / 60);
+      const m = total % 60;
+      return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+    };
+    if (r.next() < 0.5) {
+      const [red, blue] = r.pick([[48, 60], [36, 48], [24, 36], [60, 84]] as const);
+      const h = gcd(red, blue);
+      const correct = String(h);
+      return {
+        prompt: `A school has ${red} red pens and ${blue} blue pens.\nThe pens are packed into identical boxes. Each box contains pens of only one colour, and every box contains the same number of pens.\nWhat is the greatest possible number of pens in each box?`,
+        correct,
+        wrongs: pickDistinct(correct, [h / 2, h * 2, red + blue, red * blue]),
+        tags: [],
+        explanation: `The number in each box must divide BOTH ${red} and ${blue}, so it is a common factor. The question asks for the GREATEST one, which is the HCF: ${h}. ${h / 2} is also a common factor, but it is not the greatest, so it would leave boxes smaller than necessary. ${red + blue} and ${red * blue} are sums and products, not common factors at all — the answer must divide each colour exactly.`,
+        difficulty: 0.66 + r.next() * 0.06,
+      };
+    }
+    const [a, b] = r.pick([[18, 24], [12, 30], [15, 20], [16, 24]] as const);
+    const l = lcm(a, b);
+    const correct = clock(l);
+    return {
+      prompt: `At 09:00 two bells ring together.\nOne bell rings every ${a} minutes and the other every ${b} minutes.\nWhen will they next ring together?`,
+      correct,
+      wrongs: pickDistinct(correct, [clock(a + b), clock(a * b), clock(gcd(a, b))]),
+      tags: [],
+      explanation: `They next ring together after a number of minutes that both ${a} and ${b} divide into, so the wait is the LCM of ${a} and ${b}: ${l} minutes. 09:00 plus ${l} minutes is ${correct}. Adding the intervals (${a + b} minutes) finds when each has rung once more, not when they coincide; multiplying them (${a * b} minutes) is a common multiple but not the LOWEST one.`,
+      difficulty: 0.7 + r.next() * 0.06,
+    };
+  },
 };

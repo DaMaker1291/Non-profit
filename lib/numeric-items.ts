@@ -38,6 +38,10 @@ export interface NumericItem {
    *  number in the source and a display string on the page, and forcing every
    *  family to wrap it in String() would only add noise. */
   wrongs: Array<string | number>;
+  /** One belief per wrong option, aligned with `wrongs`; `[]` where the option
+   *  is a slip or a near-miss. The item-level `tags` are the union for retrieval,
+   *  not permission to diagnose every wrong choice as the same belief. */
+  choiceMisconceptionTags?: string[][];
   tags: string[];
   explanation: string;
   difficulty: number;

@@ -289,6 +289,70 @@ export async function withLockedTransaction<T>(
   }
 }
 
+/**
+ * THE DATABASE'S OWN RECORD THAT THIS PROCESS OPENED IT.
+ *
+ * The file store measures survival by writing `boots.json` INTO the directory it
+ * is measuring (`lib/server/boot-log.ts`). A database deployment has no such
+ * directory, and creating one so that a file can report on a store that lives
+ * elsewhere would be the same class of mistake as falling back to JSON: a write
+ * to the filesystem on a deployment that never declared one. `store_boots`
+ * (db/migrations/0006_learner_identity.up.sql) is the same measurement in the
+ * only place it means anything, and `/api/ready` reports it as
+ * `persistence.measured` exactly as it reports the file store's.
+ *
+ * Recorded ONCE per process: a polled readiness route must not inflate the
+ * number it is reporting. Never throws — an unrecordable boot is "not
+ * measurable", which is what the caller reports, and readiness must not fail
+ * because a diagnostic could not write.
+ */
+export interface StoreBootRecord {
+  boots: number;
+  firstSeenAt: number;
+  survivedDeployments: number;
+  deployment: string;
+}
+
+let bootRecorded: StoreBootRecord | null = null;
+
+export async function recordDatabaseBoot(
+  deployment: string,
+  now = Date.now(),
+): Promise<StoreBootRecord | null> {
+  if (bootRecorded) return bootRecorded;
+  const named = deployment.trim() || "postgres";
+  try {
+    await pgQuery(
+      `insert into store_boots (backend, deployment, booted_at_ms) values ('postgres', $1, $2)`,
+      [named, now],
+    );
+    const rows = await pgQuery<{ boots: string; first: string | null; deployments: string }>(
+      `select count(*)::text as boots,
+              min(booted_at_ms)::text as first,
+              count(distinct deployment)::text as deployments
+         from store_boots`,
+    );
+    const row = rows[0] ?? {};
+    bootRecorded = {
+      boots: Number(row.boots ?? 0),
+      firstSeenAt: Number(row.first ?? now),
+      // A store that has seen MORE THAN ONE deployment is a store that outlived
+      // a release — the only positive evidence of persistence obtainable from
+      // inside a process, and deliberately weak (see boot-log.ts).
+      survivedDeployments: Math.max(0, Number(row.deployments ?? 1) - 1),
+      deployment: named,
+    };
+    return bootRecorded;
+  } catch {
+    return null;
+  }
+}
+
+/** For tests: forget which boot this process has already recorded. */
+export function resetDatabaseBoot(): void {
+  bootRecorded = null;
+}
+
 /** Run one statement outside an explicit transaction (single-statement writes
  *  and reads). Connection failures arrive as `DatabaseUnavailableError`. */
 export async function pgQuery<R extends Record<string, unknown>>(

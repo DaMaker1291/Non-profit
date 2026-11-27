@@ -35,7 +35,12 @@
 // answers `class_has_no_teacher_account` — the honest answer, because inventing
 // an owner is how the capability became authority in the first place.
 import { accountFromRequest } from "./auth";
-import { accountOwningProfile, getProfile } from "./store";
+// The CONFIGURED backend, not the file one: a teacher's profile and the account
+// that owns it are learner records, and a Postgres deployment keeps them in the
+// database. Reading the file here answered `teacher_profile_missing` for a teacher
+// who had just signed up — measured by the application smoke test, which is the
+// only place this shows up (the file backend answers correctly by construction).
+import { activeStorage } from "./storage-file";
 import { isClassAdministrator } from "./class-membership";
 import type { Account, ClassRoster, ProfileState } from "../types";
 
@@ -72,7 +77,7 @@ export async function teacherCaller(req: Request): Promise<TeacherCaller | Denia
   if (!account) return { ok: false, status: 401, error: "teacher_account_required" };
   if (!isTeachingRole(account.role)) return { ok: false, status: 403, error: "teacher_role_required" };
   if (!account.profileId) return { ok: false, status: 409, error: "teacher_profile_missing" };
-  const profile = await getProfile(account.profileId);
+  const profile = await activeStorage().getProfile(account.profileId);
   if (!profile) return { ok: false, status: 409, error: "teacher_profile_missing" };
   return { ok: true, account, profile, profileId: account.profileId };
 }
@@ -83,7 +88,7 @@ export async function teacherCaller(req: Request): Promise<TeacherCaller | Denia
 export async function teacherAccountIdOf(cls: ClassRoster): Promise<string | null> {
   if (cls.teacherAccountId) return cls.teacherAccountId;
   if (!cls.ownerId) return null;
-  const account = await accountOwningProfile(cls.ownerId);
+  const account = await activeStorage().accountOwningProfile(cls.ownerId);
   return account?.id ?? null;
 }
 
@@ -116,7 +121,7 @@ export async function teacherOfClass(req: Request, cls: ClassRoster): Promise<Te
 export async function teachingAccountOf(req: Request): Promise<{ id: string; profile: ProfileState } | null> {
   const account = await accountFromRequest(req);
   if (!account || !isTeachingRole(account.role) || !account.profileId) return null;
-  const profile = await getProfile(account.profileId);
+  const profile = await activeStorage().getProfile(account.profileId);
   if (!profile) return null;
   return { id: account.id, profile };
 }

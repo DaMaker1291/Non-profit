@@ -1,0 +1,3148 @@
+{
+  "schemaVersion": 2,
+  "auditId": "aqa-gcse-maths-8300",
+  "openMindSpecId": "uk-gcse",
+  "pathwayId": "gb-national",
+  "subject": "maths",
+  "qualification": {
+    "board": "AQA",
+    "name": "GCSE Mathematics",
+    "code": "8300",
+    "tiers": [
+      {
+        "id": "foundation",
+        "name": "Foundation tier",
+        "grades": "1–5"
+      },
+      {
+        "id": "higher",
+        "name": "Higher tier",
+        "grades": "4–9"
+      }
+    ],
+    "specificationVersion": "1.1, September 2026",
+    "firstTeaching": "2015",
+    "firstExamination": "June 2017",
+    "linear": true,
+    "allPapersSameSeries": true
+  },
+  "source": {
+    "publisher": "AQA",
+    "title": "GCSE Mathematics 8300 specification",
+    "url": "https://www.aqa.org.uk/subjects/mathematics/gcse/mathematics-8300/specification",
+    "subjectContentUrl": "https://www.aqa.org.uk/subjects/mathematics/gcse/mathematics-8300/specification/subject-content",
+    "schemeOfAssessmentUrl": "https://www.aqa.org.uk/subjects/mathematics/gcse/mathematics-8300/specification/scheme-of-assessment",
+    "pdfUrl": "https://cdn.sanity.io/files/p28bar15/green/85a92f2f959e9e0d0350e6cfea08c94d9bf1d369.pdf",
+    "retrieved": "2026-11-26",
+    "note": "Read from the official AQA pages on 2026-11-26. Reference statements below are paraphrased for audit use; no AQA paper or mark scheme is included."
+  },
+  "papers": [
+    {
+      "id": "paper-1",
+      "name": "Paper 1",
+      "calculator": "non-calculator",
+      "durationMinutes": 90,
+      "marks": 80,
+      "weightPercent": 33.33
+    },
+    {
+      "id": "paper-2",
+      "name": "Paper 2",
+      "calculator": "calculator",
+      "durationMinutes": 90,
+      "marks": 80,
+      "weightPercent": 33.33
+    },
+    {
+      "id": "paper-3",
+      "name": "Paper 3",
+      "calculator": "calculator",
+      "durationMinutes": 90,
+      "marks": 80,
+      "weightPercent": 33.34
+    }
+  ],
+  "assessmentObjectives": {
+    "foundation": [
+      {
+        "id": "AO1",
+        "name": "Use and apply standard techniques",
+        "weightPercent": 50,
+        "range": [
+          40,
+          60
+        ]
+      },
+      {
+        "id": "AO2",
+        "name": "Reason, interpret and communicate mathematically",
+        "weightPercent": 25,
+        "range": [
+          15,
+          35
+        ]
+      },
+      {
+        "id": "AO3",
+        "name": "Solve problems within mathematics and in other contexts",
+        "weightPercent": 25,
+        "range": [
+          15,
+          35
+        ]
+      }
+    ],
+    "higher": [
+      {
+        "id": "AO1",
+        "name": "Use and apply standard techniques",
+        "weightPercent": 40,
+        "range": [
+          30,
+          50
+        ]
+      },
+      {
+        "id": "AO2",
+        "name": "Reason, interpret and communicate mathematically",
+        "weightPercent": 30,
+        "range": [
+          20,
+          40
+        ]
+      },
+      {
+        "id": "AO3",
+        "name": "Solve problems within mathematics and in other contexts",
+        "weightPercent": 30,
+        "range": [
+          20,
+          40
+        ]
+      }
+    ]
+  },
+  "topicWeightings": {
+    "foundation": {
+      "number": 25,
+      "algebra": 20,
+      "ratio": 25,
+      "geometry": 15,
+      "probabilityAndStatistics": 15
+    },
+    "higher": {
+      "number": 15,
+      "algebra": 30,
+      "ratio": 20,
+      "geometry": 20,
+      "probabilityAndStatistics": 15
+    }
+  },
+  "domains": [
+    {
+      "id": "number",
+      "name": "Number",
+      "referencePrefix": "N",
+      "references": 16
+    },
+    {
+      "id": "algebra",
+      "name": "Algebra",
+      "referencePrefix": "A",
+      "references": 25
+    },
+    {
+      "id": "ratio",
+      "name": "Ratio, proportion and rates of change",
+      "referencePrefix": "R",
+      "references": 16
+    },
+    {
+      "id": "geometry",
+      "name": "Geometry and measures",
+      "referencePrefix": "G",
+      "references": 25
+    },
+    {
+      "id": "probability",
+      "name": "Probability",
+      "referencePrefix": "P",
+      "references": 9
+    },
+    {
+      "id": "statistics",
+      "name": "Statistics",
+      "referencePrefix": "S",
+      "references": 6
+    }
+  ],
+  "inventory": {
+    "status": "partial",
+    "scope": "Number — all 16 references",
+    "references": [
+      "N1",
+      "N2",
+      "N3",
+      "N4",
+      "N5",
+      "N6",
+      "N7",
+      "N8",
+      "N9",
+      "N10",
+      "N11",
+      "N12",
+      "N13",
+      "N14",
+      "N15",
+      "N16"
+    ],
+    "objectiveCount": 35,
+    "note": "AQA publishes 97 reference statements across six domains. This file inventories all 16 Number references and decomposes them into 35 independently assessable objectives. The decomposition is OpenMind's audit structure, not AQA's sub-numbering, and no teacher has reviewed it. The ladder records what exists, not what the product claims: mapped → content authored → teaching sequence complete → assessment complete → educator reviewed → learner tested → mastery demonstrated."
+  },
+  "objectives": [
+    {
+      "id": "N1-order-mixed",
+      "reference": "N1",
+      "derivation": "split",
+      "statement": "Order positive and negative integers, decimals and fractions.",
+      "tier": "both",
+      "concepts": [
+        "fractions",
+        "decimals",
+        "negatives"
+      ],
+      "prerequisites": [],
+      "ladder": {
+        "mapped": true,
+        "content": "complete",
+        "sequence": true,
+        "assessment": false,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/maths-fractions.ts",
+          "lib/lessons/authored/decimals.ts",
+          "lib/lessons/authored/negatives.ts"
+        ],
+        "sequence": [
+          "lib/lessons/authored/maths-fractions.ts",
+          "lib/lessons/authored/decimals.ts",
+          "lib/lessons/authored/negatives.ts"
+        ],
+        "assessment": []
+      },
+      "assessment": {
+        "examStyleItems": 0,
+        "authoredStructured": false,
+        "marks": null,
+        "commandWord": null,
+        "markScheme": null,
+        "note": "No AQA-style item."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "No AQA-style assessment; no learner evidence.",
+      "authoredLesson": {
+        "concepts": [
+          "fractions",
+          "decimals",
+          "negatives"
+        ],
+        "lessons": [
+          "lib/lessons/authored/maths-fractions.ts",
+          "lib/lessons/authored/decimals.ts",
+          "lib/lessons/authored/negatives.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "full",
+        "note": "The listed authored lessons contain all eleven contract parts and are judged to cover this objective. No AQA-style assessment exists."
+      }
+    },
+    {
+      "id": "N1-symbols",
+      "reference": "N1",
+      "derivation": "split",
+      "statement": "Use =, ≠, <, >, ≤, ≥ correctly.",
+      "tier": "both",
+      "concepts": [
+        "fractions",
+        "decimals"
+      ],
+      "prerequisites": [
+        "N1-order-mixed"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "partial",
+        "sequence": false,
+        "assessment": false,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/maths-fractions.ts",
+          "lib/lessons/authored/decimals.ts"
+        ],
+        "sequence": [],
+        "assessment": []
+      },
+      "assessment": {
+        "examStyleItems": 0,
+        "authoredStructured": false,
+        "marks": null,
+        "commandWord": null,
+        "markScheme": null,
+        "note": "No AQA-style item."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "Comparison symbols are used in prose, not assessed as a separate skill.",
+      "authoredLesson": {
+        "concepts": [
+          "fractions",
+          "decimals"
+        ],
+        "lessons": [
+          "lib/lessons/authored/maths-fractions.ts",
+          "lib/lessons/authored/decimals.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "partial",
+        "note": "At least one listed authored lesson exists, but the bundle does not cover the whole objective. It is teaching evidence, not a complete sequence."
+      }
+    },
+    {
+      "id": "N2-integers",
+      "reference": "N2",
+      "derivation": "split",
+      "statement": "Apply the four operations, including formal written methods, to positive and negative integers.",
+      "tier": "both",
+      "concepts": [
+        "addition",
+        "subtraction",
+        "multiplication",
+        "division",
+        "negatives"
+      ],
+      "prerequisites": [
+        "N1-symbols"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "partial",
+        "sequence": false,
+        "assessment": false,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/addition.ts",
+          "lib/lessons/authored/subtraction.ts",
+          "lib/lessons/authored/multiplication.ts",
+          "lib/lessons/authored/division.ts",
+          "lib/lessons/authored/negatives.ts"
+        ],
+        "sequence": [],
+        "assessment": []
+      },
+      "assessment": {
+        "examStyleItems": 0,
+        "authoredStructured": false,
+        "marks": null,
+        "commandWord": null,
+        "markScheme": null,
+        "note": "No AQA-style item."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "Multiplication has a sequence; addition, subtraction and division do not. All four concepts are excluded from Higher, where AQA can assess N2.",
+      "authoredLesson": {
+        "concepts": [
+          "addition",
+          "subtraction",
+          "multiplication",
+          "division",
+          "negatives"
+        ],
+        "lessons": [
+          "lib/lessons/authored/addition.ts",
+          "lib/lessons/authored/subtraction.ts",
+          "lib/lessons/authored/multiplication.ts",
+          "lib/lessons/authored/division.ts",
+          "lib/lessons/authored/negatives.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "partial",
+        "note": "At least one listed authored lesson exists, but the bundle does not cover the whole objective. It is teaching evidence, not a complete sequence."
+      }
+    },
+    {
+      "id": "N2-decimals",
+      "reference": "N2",
+      "derivation": "split",
+      "statement": "Apply the four operations to decimals, using place value.",
+      "tier": "both",
+      "concepts": [
+        "decimals",
+        "place-value"
+      ],
+      "prerequisites": [
+        "N1-order-mixed"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "partial",
+        "sequence": false,
+        "assessment": false,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/decimals.ts",
+          "lib/lessons/authored/place-value.ts"
+        ],
+        "sequence": [],
+        "assessment": []
+      },
+      "assessment": {
+        "examStyleItems": 0,
+        "authoredStructured": false,
+        "marks": null,
+        "commandWord": null,
+        "markScheme": null,
+        "note": "No AQA-style item."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "The decimals lesson covers place value, conversion and multiplication; addition, subtraction and division of decimals are not taught. Higher excludes place-value.",
+      "authoredLesson": {
+        "concepts": [
+          "decimals",
+          "place-value"
+        ],
+        "lessons": [
+          "lib/lessons/authored/decimals.ts",
+          "lib/lessons/authored/place-value.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "partial",
+        "note": "At least one listed authored lesson exists, but the bundle does not cover the whole objective. It is teaching evidence, not a complete sequence."
+      }
+    },
+    {
+      "id": "N2-fractions",
+      "reference": "N2",
+      "derivation": "split",
+      "statement": "Apply the four operations to proper and improper fractions.",
+      "tier": "both",
+      "concepts": [
+        "fraction-ops"
+      ],
+      "prerequisites": [
+        "N1-order-mixed"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "complete",
+        "sequence": true,
+        "assessment": true,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/fraction-ops.ts"
+        ],
+        "sequence": [
+          "lib/lessons/authored/fraction-ops.ts"
+        ],
+        "assessment": [
+          "lib/lessons/authored/fraction-ops.ts"
+        ]
+      },
+      "assessment": {
+        "examStyleItems": 4,
+        "authoredStructured": true,
+        "marks": 9,
+        "commandWord": "Work out",
+        "markScheme": "lib/lessons/authored/fraction-ops.ts#a1, #a3, #a4 and #a5 — 9 marks total: 1 for the addition in a1; 1 for the mixed-number subtraction in a3; 2 for converting and multiplying in a5; 3 for the division method and quotient in a4; 2 for the whole-batch interpretation and 5/12 kg remainder in a4.",
+        "requirements": [
+          {
+            "id": "N2-add",
+            "statement": "Add proper and improper fractions, including different denominators.",
+            "covered": true,
+            "items": [
+              "lib/lessons/authored/fraction-ops.ts#a1"
+            ],
+            "questionType": "short-answer",
+            "difficulty": "uncalibrated",
+            "tier": "both",
+            "marks": 1
+          },
+          {
+            "id": "N2-subtract",
+            "statement": "Subtract proper and improper fractions, including different denominators.",
+            "covered": true,
+            "items": [
+              "lib/lessons/authored/fraction-ops.ts#a3"
+            ],
+            "questionType": "short-answer",
+            "difficulty": "uncalibrated",
+            "tier": "both",
+            "marks": 1
+          },
+          {
+            "id": "N2-multiply",
+            "statement": "Multiply proper and improper fractions.",
+            "covered": true,
+            "items": [
+              "lib/lessons/authored/fraction-ops.ts#a5"
+            ],
+            "questionType": "structured",
+            "difficulty": "uncalibrated",
+            "tier": "both",
+            "marks": 2
+          },
+          {
+            "id": "N2-divide",
+            "statement": "Divide a mixed number by a proper fraction and express the quotient as a mixed number.",
+            "covered": true,
+            "items": [
+              "lib/lessons/authored/fraction-ops.ts#a4"
+            ],
+            "questionType": "structured",
+            "commandWord": "Work out",
+            "difficulty": "uncalibrated",
+            "tier": "both",
+            "marks": 3
+          },
+          {
+            "id": "N2-context",
+            "statement": "Interpret a fractional quotient in context: state the whole batches and the mass left over.",
+            "covered": true,
+            "items": [
+              "lib/lessons/authored/fraction-ops.ts#a4"
+            ],
+            "questionType": "structured",
+            "commandWord": "Work out",
+            "difficulty": "uncalibrated",
+            "tier": "both",
+            "marks": 2
+          }
+        ],
+        "note": "Four original AQA-style items cover all five published operation requirements: addition (a1), subtraction (a3), multiplication (a5), division (a4), and the interpretation of a quotient in context (a4). Each requirement is assessed by at least one item, but no item has been educator-reviewed or learner-tested, and the difficulty is uncalibrated."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "All five published operation requirements now have an assessment item; no educator review and no learner evidence.",
+      "authoredLesson": {
+        "concepts": [
+          "fraction-ops"
+        ],
+        "lessons": [
+          "lib/lessons/authored/fraction-ops.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "full",
+        "note": "fraction-ops contains the eleven contract parts and explicitly teaches improper fractions, mixed numbers, conversion and the four operations. Its assessment items a1, a3, a4 and a5 cover all five operation requirements; they remain unreviewed and untested."
+      }
+    },
+    {
+      "id": "N2-mixed",
+      "reference": "N2",
+      "derivation": "split",
+      "statement": "Apply the four operations to mixed numbers.",
+      "tier": "both",
+      "concepts": [
+        "fraction-ops"
+      ],
+      "prerequisites": [
+        "N2-fractions"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "complete",
+        "sequence": true,
+        "assessment": false,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/fraction-ops.ts"
+        ],
+        "sequence": [
+          "lib/lessons/authored/fraction-ops.ts"
+        ],
+        "assessment": []
+      },
+      "assessment": {
+        "examStyleItems": 0,
+        "authoredStructured": false,
+        "marks": null,
+        "commandWord": null,
+        "markScheme": null,
+        "note": "No AQA-style item."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "No AQA-style assessment; no learner evidence.",
+      "authoredLesson": {
+        "concepts": [
+          "fraction-ops"
+        ],
+        "lessons": [
+          "lib/lessons/authored/fraction-ops.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "full",
+        "note": "fraction-ops now contains the eleven contract parts and explicitly teaches improper fractions, mixed numbers, conversion and the four operations. No AQA-style assessment exists."
+      }
+    },
+    {
+      "id": "N2-negatives",
+      "reference": "N2",
+      "derivation": "split",
+      "statement": "Apply the four operations to positive and negative values, including fractions.",
+      "tier": "both",
+      "concepts": [
+        "negatives"
+      ],
+      "prerequisites": [
+        "N1-order-mixed"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "complete",
+        "sequence": true,
+        "assessment": true,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/negatives.ts"
+        ],
+        "sequence": [
+          "lib/lessons/authored/negatives.ts"
+        ],
+        "assessment": [
+          "lib/lessons/authored/negatives.ts"
+        ]
+      },
+      "assessment": {
+        "examStyleItems": 3,
+        "authoredStructured": true,
+        "marks": 8,
+        "commandWord": "Work out",
+        "markScheme": "lib/lessons/authored/negatives.ts#assessment",
+        "requirements": [
+          {
+            "id": "N2-negative-fractions-add-subtract",
+            "statement": "Add and subtract negative fractions after writing them with a common denominator.",
+            "covered": true,
+            "items": ["lib/lessons/authored/negatives.ts#a3"],
+            "questionType": "structured",
+            "difficulty": "uncalibrated",
+            "tier": "both",
+            "marks": 3
+          },
+          {
+            "id": "N2-negative-fractions-multiply-divide",
+            "statement": "Multiply and divide negative fractions, deciding the sign before calculating.",
+            "covered": true,
+            "items": ["lib/lessons/authored/negatives.ts#a4"],
+            "questionType": "structured",
+            "difficulty": "uncalibrated",
+            "tier": "both",
+            "marks": 3
+          },
+          {
+            "id": "N2-negative-fractions-order",
+            "statement": "Order negative fractions by position, using a common denominator to compare them.",
+            "covered": true,
+            "items": ["lib/lessons/authored/negatives.ts#a5"],
+            "questionType": "constructed-response",
+            "difficulty": "uncalibrated",
+            "tier": "both",
+            "marks": 2
+          }
+        ],
+        "note": "Three authored items, eight marks; a3 and a4 are structured for partial credit and a5 is a self-marked constructed response."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "The lesson now teaches negative fractions and all three assessment requirements have items. It has not been reviewed by a teacher or tested with learners; the Higher tier still needs a separate check that the concept is offered at the demand that tier expects.",
+      "authoredLesson": {
+        "concepts": [
+          "negatives"
+        ],
+        "lessons": [
+          "lib/lessons/authored/negatives.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "full",
+        "note": "The lesson teaches integers, negative fractions, ordering, all four operations, common misconceptions, guided practice and an eight-mark authored assessment."
+      }
+    },
+    {
+      "id": "N2-finance",
+      "reference": "N2",
+      "derivation": "split",
+      "statement": "Understand and use household-finance vocabulary in context (profit, loss, cost price, selling price, debit, credit, balance, income tax, VAT, interest rate).",
+      "tier": "both",
+      "concepts": [
+        "financial-maths"
+      ],
+      "prerequisites": [
+        "N2-decimals"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "partial",
+        "sequence": false,
+        "assessment": false,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/maths-gaps-4.ts"
+        ],
+        "sequence": [],
+        "assessment": []
+      },
+      "assessment": {
+        "examStyleItems": 0,
+        "authoredStructured": false,
+        "marks": null,
+        "commandWord": null,
+        "markScheme": null,
+        "note": "No AQA-style item."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "Financial mathematics has a plan but no teaching sequence or assessment.",
+      "authoredLesson": {
+        "concepts": [
+          "financial-maths"
+        ],
+        "lessons": [
+          "lib/lessons/authored/maths-gaps-4.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "partial",
+        "note": "At least one listed authored lesson exists, but the bundle does not cover the whole objective. It is teaching evidence, not a complete sequence."
+      }
+    },
+    {
+      "id": "N3-inverse",
+      "reference": "N3",
+      "derivation": "split",
+      "statement": "Recognise and use relationships between operations, including inverse operations and cancellation.",
+      "tier": "both",
+      "concepts": [
+        "linear-equations",
+        "algebra-expressions"
+      ],
+      "prerequisites": [
+        "N2-integers"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "partial",
+        "sequence": false,
+        "assessment": false,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/maths-linear-equations.ts",
+          "lib/lessons/authored/maths-algebra-expressions.ts"
+        ],
+        "sequence": [],
+        "assessment": []
+      },
+      "assessment": {
+        "examStyleItems": 0,
+        "authoredStructured": false,
+        "marks": null,
+        "commandWord": null,
+        "markScheme": null,
+        "note": "No AQA-style item."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "Inverse operations are taught inside equation solving, not as the arithmetic relationship N3 asks for.",
+      "authoredLesson": {
+        "concepts": [
+          "linear-equations",
+          "algebra-expressions"
+        ],
+        "lessons": [
+          "lib/lessons/authored/maths-linear-equations.ts",
+          "lib/lessons/authored/maths-algebra-expressions.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "partial",
+        "note": "At least one listed authored lesson exists, but the bundle does not cover the whole objective. It is teaching evidence, not a complete sequence."
+      }
+    },
+    {
+      "id": "N3-priority",
+      "reference": "N3",
+      "derivation": "split",
+      "statement": "Use conventional notation for priority of operations, including brackets, powers, roots and reciprocals.",
+      "tier": "both",
+      "concepts": [
+        "order-ops"
+      ],
+      "prerequisites": [
+        "N2-integers"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "partial",
+        "sequence": false,
+        "assessment": false,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/order-ops.ts"
+        ],
+        "sequence": [],
+        "assessment": []
+      },
+      "assessment": {
+        "examStyleItems": 0,
+        "authoredStructured": false,
+        "marks": null,
+        "commandWord": null,
+        "markScheme": null,
+        "note": "No AQA-style item."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "The order-of-operations sequence exists but roots and reciprocals are not established. Higher excludes order-ops.",
+      "authoredLesson": {
+        "concepts": [
+          "order-ops"
+        ],
+        "lessons": [
+          "lib/lessons/authored/order-ops.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "partial",
+        "note": "At least one listed authored lesson exists, but the bundle does not cover the whole objective. It is teaching evidence, not a complete sequence."
+      }
+    },
+    {
+      "id": "N4-factors",
+      "reference": "N4",
+      "derivation": "split",
+      "statement": "Use the vocabulary and concepts of prime numbers, factors, multiples, common factors, common multiples, HCF and LCM.",
+      "tier": "both",
+      "concepts": [
+        "factors-primes"
+      ],
+      "prerequisites": [
+        "N2-integers"
+      ],
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/factors-primes.ts"
+        ],
+        "sequence": [
+          "lib/lessons/authored/factors-primes.ts"
+        ],
+        "assessment": [
+          "lib/lessons/authored/factors-primes.ts"
+        ]
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "authoredLesson": {
+        "concepts": [
+          "factors-primes"
+        ],
+        "lessons": [
+          "lib/lessons/authored/factors-primes.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "full",
+        "note": "factors-primes contains all eleven contract parts and explicitly teaches factor/multiple direction, prime vocabulary, prime factorisation, index notation, uniqueness, HCF and LCM. Its assessment items a1-a7 cover the N4 requirements; they remain unreviewed and untested."
+      },
+      "ladder": {
+        "mapped": true,
+        "content": "complete",
+        "sequence": true,
+        "assessment": true,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "assessment": {
+        "examStyleItems": 4,
+        "authoredStructured": true,
+        "marks": 7,
+        "commandWord": "Work out",
+        "markScheme": "factors-primes a3 (2 marks: factor and multiple), a4 (1 mark: all common factors), a5 (2 marks: HCF and LCM of 9 and 12) and a6 (2 marks: HCF and LCM of 24 and 36) — 7 marks total.",
+        "requirements": [
+          {
+            "id": "N4-vocabulary",
+            "statement": "Use the vocabulary of factors and multiples, including recognising a factor and a multiple of a given number.",
+            "covered": true,
+            "items": [
+              "lib/lessons/authored/factors-primes.ts#a3"
+            ],
+            "questionType": "structured",
+            "difficulty": "uncalibrated",
+            "tier": "both",
+            "marks": 2
+          },
+          {
+            "id": "N4-common-factors",
+            "statement": "Identify all the common factors of two numbers.",
+            "covered": true,
+            "items": [
+              "lib/lessons/authored/factors-primes.ts#a4"
+            ],
+            "questionType": "short-answer",
+            "difficulty": "uncalibrated",
+            "tier": "both",
+            "marks": 1
+          },
+          {
+            "id": "N4-hcf",
+            "statement": "Find the highest common factor of two numbers.",
+            "covered": true,
+            "items": [
+              "lib/lessons/authored/factors-primes.ts#a5",
+              "lib/lessons/authored/factors-primes.ts#a6"
+            ],
+            "questionType": "structured",
+            "difficulty": "uncalibrated",
+            "tier": "both",
+            "marks": 2
+          },
+          {
+            "id": "N4-lcm",
+            "statement": "Find the lowest common multiple of two numbers.",
+            "covered": true,
+            "items": [
+              "lib/lessons/authored/factors-primes.ts#a5",
+              "lib/lessons/authored/factors-primes.ts#a6"
+            ],
+            "questionType": "structured",
+            "difficulty": "uncalibrated",
+            "tier": "both",
+            "marks": 2
+          }
+        ],
+        "note": "Four items cover the published N4 factor, multiple, common-factor, common-multiple, HCF and LCM requirements. a3 is a two-row table, so a factor and a multiple are marked independently; a4 requires all the common factors; a5 and a6 ask for HCF and LCM separately. Difficulty is uncalibrated and no item has been educator-reviewed or learner-tested."
+      },
+      "gap": "All published N4 factor, multiple, common-factor, common-multiple, HCF and LCM requirements now have an item; no educator review and no learner evidence exist."
+    },
+    {
+      "id": "N4-prime-factor",
+      "reference": "N4",
+      "derivation": "split",
+      "statement": "Use prime factorisation, product notation and the unique factorisation theorem.",
+      "tier": "both",
+      "concepts": [
+        "factors-primes"
+      ],
+      "prerequisites": [
+        "N4-factors"
+      ],
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/factors-primes.ts"
+        ],
+        "sequence": [
+          "lib/lessons/authored/factors-primes.ts"
+        ],
+        "assessment": [
+          "lib/lessons/authored/factors-primes.ts"
+        ]
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "authoredLesson": {
+        "concepts": [
+          "factors-primes"
+        ],
+        "lessons": [
+          "lib/lessons/authored/factors-primes.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "full",
+        "note": "factors-primes contains all eleven contract parts and explicitly teaches factor/multiple direction, prime vocabulary, prime factorisation, index notation, uniqueness, HCF and LCM. Its assessment items a1-a7 cover the N4 requirements; they remain unreviewed and untested."
+      },
+      "ladder": {
+        "mapped": true,
+        "content": "complete",
+        "sequence": true,
+        "assessment": true,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "assessment": {
+        "examStyleItems": 3,
+        "authoredStructured": true,
+        "marks": 4,
+        "commandWord": "Write",
+        "markScheme": "factors-primes a1 (1 mark: product of primes), a2 (1 mark: index form) and a7 (2 marks: uniqueness of prime factorisation) — 4 marks total.",
+        "requirements": [
+          {
+            "id": "N4-prime-factorisation",
+            "statement": "Write a whole number as a product of its prime factors.",
+            "covered": true,
+            "items": [
+              "lib/lessons/authored/factors-primes.ts#a1"
+            ],
+            "questionType": "short-answer",
+            "difficulty": "uncalibrated",
+            "tier": "both",
+            "marks": 1
+          },
+          {
+            "id": "N4-product-notation",
+            "statement": "Use index notation for a repeated prime factor.",
+            "covered": true,
+            "items": [
+              "lib/lessons/authored/factors-primes.ts#a2"
+            ],
+            "questionType": "short-answer",
+            "difficulty": "uncalibrated",
+            "tier": "both",
+            "marks": 1
+          },
+          {
+            "id": "N4-unique-factorisation",
+            "statement": "Explain the uniqueness of prime factorisation, apart from the order of the factors.",
+            "covered": true,
+            "items": [
+              "lib/lessons/authored/factors-primes.ts#a7"
+            ],
+            "questionType": "constructed-response",
+            "difficulty": "uncalibrated",
+            "tier": "both",
+            "marks": 2
+          }
+        ],
+        "note": "Three items cover prime factorisation, index notation and uniqueness. a7 is a constructed response and is not machine-marked; it is self-marked against two written criteria. Difficulty is uncalibrated and no item has been educator-reviewed or learner-tested."
+      },
+      "gap": "All published prime factorisation, product notation and uniqueness requirements now have an item; no educator review and no learner evidence exist."
+    },
+    {
+      "id": "N5-listing",
+      "reference": "N5",
+      "derivation": "split",
+      "statement": "Apply systematic listing strategies, including lists, tables and diagrams.",
+      "tier": "both",
+      "concepts": [
+        "probability-basics"
+      ],
+      "prerequisites": [
+        "N1-order-mixed"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "partial",
+        "sequence": false,
+        "assessment": false,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/maths-probability-basics.ts"
+        ],
+        "sequence": [],
+        "assessment": []
+      },
+      "assessment": {
+        "examStyleItems": 0,
+        "authoredStructured": false,
+        "marks": null,
+        "commandWord": null,
+        "markScheme": null,
+        "note": "No AQA-style item."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "Listing is not a taught objective; probability has a plan but no sequence.",
+      "authoredLesson": {
+        "concepts": [
+          "probability-basics"
+        ],
+        "lessons": [
+          "lib/lessons/authored/maths-probability-basics.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "partial",
+        "note": "At least one listed authored lesson exists, but the bundle does not cover the whole objective. It is teaching evidence, not a complete sequence."
+      }
+    },
+    {
+      "id": "N5-product-rule",
+      "reference": "N5",
+      "derivation": "split",
+      "statement": "Use the product rule for counting (Higher tier).",
+      "tier": "higher",
+      "concepts": [
+        "tree-diagrams"
+      ],
+      "prerequisites": [
+        "N5-listing"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "complete",
+        "sequence": true,
+        "assessment": false,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/maths-tree-diagrams.ts"
+        ],
+        "sequence": [
+          "lib/lessons/authored/maths-tree-diagrams.ts"
+        ],
+        "assessment": []
+      },
+      "assessment": {
+        "examStyleItems": 0,
+        "authoredStructured": false,
+        "marks": null,
+        "commandWord": null,
+        "markScheme": null,
+        "note": "No AQA-style item."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "No AQA-style assessment; no learner evidence.",
+      "authoredLesson": {
+        "concepts": [
+          "tree-diagrams"
+        ],
+        "lessons": [
+          "lib/lessons/authored/maths-tree-diagrams.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "full",
+        "note": "The listed authored lessons contain all eleven contract parts and are judged to cover this objective. No AQA-style assessment exists."
+      }
+    },
+    {
+      "id": "N6-powers-roots",
+      "reference": "N6",
+      "derivation": "split",
+      "statement": "Use positive integer powers and associated real roots, and recognise powers of 2, 3, 4 and 5.",
+      "tier": "both",
+      "concepts": [
+        "indices-intro"
+      ],
+      "prerequisites": [
+        "N2-integers"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "partial",
+        "sequence": false,
+        "assessment": false,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/maths-indices-intro.ts"
+        ],
+        "sequence": [],
+        "assessment": []
+      },
+      "assessment": {
+        "examStyleItems": 0,
+        "authoredStructured": false,
+        "marks": null,
+        "commandWord": null,
+        "markScheme": null,
+        "note": "No AQA-style item."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "Index laws are taught; roots and the recognition of powers are not a complete sequence.",
+      "authoredLesson": {
+        "concepts": [
+          "indices-intro"
+        ],
+        "lessons": [
+          "lib/lessons/authored/maths-indices-intro.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "partial",
+        "note": "At least one listed authored lesson exists, but the bundle does not cover the whole objective. It is teaching evidence, not a complete sequence."
+      }
+    },
+    {
+      "id": "N6-estimate-powers",
+      "reference": "N6",
+      "derivation": "split",
+      "statement": "Estimate powers and roots of a positive number (Higher tier).",
+      "tier": "higher",
+      "concepts": [
+        "indices-intro"
+      ],
+      "prerequisites": [
+        "N6-powers-roots"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "partial",
+        "sequence": false,
+        "assessment": false,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/maths-indices-intro.ts"
+        ],
+        "sequence": [],
+        "assessment": []
+      },
+      "assessment": {
+        "examStyleItems": 0,
+        "authoredStructured": false,
+        "marks": null,
+        "commandWord": null,
+        "markScheme": null,
+        "note": "No AQA-style item."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "Estimation of powers and roots is not taught.",
+      "authoredLesson": {
+        "concepts": [
+          "indices-intro"
+        ],
+        "lessons": [
+          "lib/lessons/authored/maths-indices-intro.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "partial",
+        "note": "At least one listed authored lesson exists, but the bundle does not cover the whole objective. It is teaching evidence, not a complete sequence."
+      }
+    },
+    {
+      "id": "N7-roots-indices",
+      "reference": "N7",
+      "derivation": "split",
+      "statement": "Calculate with roots and integer indices.",
+      "tier": "both",
+      "concepts": [
+        "indices-intro"
+      ],
+      "prerequisites": [
+        "N6-powers-roots"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "complete",
+        "sequence": true,
+        "assessment": false,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/maths-indices-intro.ts"
+        ],
+        "sequence": [
+          "lib/lessons/authored/maths-indices-intro.ts"
+        ],
+        "assessment": []
+      },
+      "assessment": {
+        "examStyleItems": 0,
+        "authoredStructured": false,
+        "marks": null,
+        "commandWord": null,
+        "markScheme": null,
+        "note": "No AQA-style item."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "No AQA-style assessment; no learner evidence.",
+      "authoredLesson": {
+        "concepts": [
+          "indices-intro"
+        ],
+        "lessons": [
+          "lib/lessons/authored/maths-indices-intro.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "full",
+        "note": "The listed authored lessons contain all eleven contract parts and are judged to cover this objective. No AQA-style assessment exists."
+      }
+    },
+    {
+      "id": "N7-fractional-indices",
+      "reference": "N7",
+      "derivation": "split",
+      "statement": "Calculate with fractional indices (Higher tier).",
+      "tier": "higher",
+      "concepts": [
+        "indices-intro"
+      ],
+      "prerequisites": [
+        "N7-roots-indices"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "complete",
+        "sequence": true,
+        "assessment": false,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/maths-indices-intro.ts"
+        ],
+        "sequence": [
+          "lib/lessons/authored/maths-indices-intro.ts"
+        ],
+        "assessment": []
+      },
+      "assessment": {
+        "examStyleItems": 0,
+        "authoredStructured": false,
+        "marks": null,
+        "commandWord": null,
+        "markScheme": null,
+        "note": "No AQA-style item."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "No AQA-style assessment; no learner evidence.",
+      "authoredLesson": {
+        "concepts": [
+          "indices-intro"
+        ],
+        "lessons": [
+          "lib/lessons/authored/maths-indices-intro.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "full",
+        "note": "The listed authored lessons contain all eleven contract parts and are judged to cover this objective. No AQA-style assessment exists."
+      }
+    },
+    {
+      "id": "N8-exact-fractions",
+      "reference": "N8",
+      "derivation": "direct",
+      "statement": "Calculate exactly with fractions, including multi-step calculations.",
+      "tier": "both",
+      "concepts": [
+        "fraction-ops"
+      ],
+      "prerequisites": [
+        "N2-fractions"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "partial",
+        "sequence": false,
+        "assessment": false,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/fraction-ops.ts"
+        ],
+        "sequence": [],
+        "assessment": []
+      },
+      "assessment": {
+        "examStyleItems": 0,
+        "authoredStructured": false,
+        "marks": null,
+        "commandWord": null,
+        "markScheme": null,
+        "note": "No multi-step exact-calculation item."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "The four operations are taught, but exact multi-step calculation is not assessed.",
+      "authoredLesson": {
+        "concepts": [
+          "fraction-ops"
+        ],
+        "lessons": [
+          "lib/lessons/authored/fraction-ops.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "partial",
+        "note": "At least one listed authored lesson exists, but the bundle does not cover the whole objective. It is teaching evidence, not a complete sequence."
+      }
+    },
+    {
+      "id": "N8-pi",
+      "reference": "N8",
+      "derivation": "split",
+      "statement": "Calculate exactly with multiples of π.",
+      "tier": "higher",
+      "concepts": [
+        "area-perimeter"
+      ],
+      "prerequisites": [
+        "N8-exact-fractions"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "partial",
+        "sequence": false,
+        "assessment": false,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/maths-area-perimeter.ts"
+        ],
+        "sequence": [],
+        "assessment": []
+      },
+      "assessment": {
+        "examStyleItems": 0,
+        "authoredStructured": false,
+        "marks": null,
+        "commandWord": null,
+        "markScheme": null,
+        "note": "No AQA-style item."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "The area and perimeter lesson uses π numerically; exact multiples of π are not taught as a sequence.",
+      "authoredLesson": {
+        "concepts": [
+          "area-perimeter"
+        ],
+        "lessons": [
+          "lib/lessons/authored/maths-area-perimeter.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "partial",
+        "note": "At least one listed authored lesson exists, but the bundle does not cover the whole objective. It is teaching evidence, not a complete sequence."
+      }
+    },
+    {
+      "id": "N8-surds",
+      "reference": "N8",
+      "derivation": "split",
+      "statement": "Simplify surd expressions involving squares, and rationalise denominators (Higher tier).",
+      "tier": "higher",
+      "concepts": [
+        "surds"
+      ],
+      "prerequisites": [
+        "N7-roots-indices"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "complete",
+        "sequence": true,
+        "assessment": false,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/maths-surds.ts"
+        ],
+        "sequence": [
+          "lib/lessons/authored/maths-surds.ts"
+        ],
+        "assessment": [
+          "lib/lessons/authored/maths-surds.ts"
+        ]
+      },
+      "assessment": {
+        "examStyleItems": 0,
+        "authoredStructured": true,
+        "marks": null,
+        "commandWord": null,
+        "markScheme": null,
+        "note": "The lesson has structured practice, but no AQA marks or command word."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "No AQA-style assessment; no learner evidence.",
+      "authoredLesson": {
+        "concepts": [
+          "surds"
+        ],
+        "lessons": [
+          "lib/lessons/authored/maths-surds.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "full",
+        "note": "The listed authored lessons contain all eleven contract parts and are judged to cover this objective. No AQA-style assessment exists."
+      }
+    },
+    {
+      "id": "N9-standard-form",
+      "reference": "N9",
+      "derivation": "split",
+      "statement": "Calculate with and interpret standard form, with and without a calculator.",
+      "tier": "both",
+      "concepts": [
+        "standard-form"
+      ],
+      "prerequisites": [
+        "N6-powers-roots"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "complete",
+        "sequence": true,
+        "assessment": false,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/maths-standard-form.ts"
+        ],
+        "sequence": [
+          "lib/lessons/authored/maths-standard-form.ts"
+        ],
+        "assessment": []
+      },
+      "assessment": {
+        "examStyleItems": 0,
+        "authoredStructured": false,
+        "marks": null,
+        "commandWord": null,
+        "markScheme": null,
+        "note": "No AQA-style item."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "No AQA-style assessment; no learner evidence.",
+      "authoredLesson": {
+        "concepts": [
+          "standard-form"
+        ],
+        "lessons": [
+          "lib/lessons/authored/maths-standard-form.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "full",
+        "note": "The listed authored lessons contain all eleven contract parts and are judged to cover this objective. No AQA-style assessment exists."
+      }
+    },
+    {
+      "id": "N9-calculator-display",
+      "reference": "N9",
+      "derivation": "split",
+      "statement": "Interpret calculator displays, including standard-form output.",
+      "tier": "both",
+      "concepts": [
+        "standard-form"
+      ],
+      "prerequisites": [
+        "N9-standard-form"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "partial",
+        "sequence": false,
+        "assessment": false,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/maths-standard-form.ts"
+        ],
+        "sequence": [],
+        "assessment": []
+      },
+      "assessment": {
+        "examStyleItems": 0,
+        "authoredStructured": false,
+        "marks": null,
+        "commandWord": null,
+        "markScheme": null,
+        "note": "No item."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "No calculator-display objective or assessment.",
+      "authoredLesson": {
+        "concepts": [
+          "standard-form"
+        ],
+        "lessons": [
+          "lib/lessons/authored/maths-standard-form.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "partial",
+        "note": "At least one listed authored lesson exists, but the bundle does not cover the whole objective. It is teaching evidence, not a complete sequence."
+      }
+    },
+    {
+      "id": "N10-terminating",
+      "reference": "N10",
+      "derivation": "split",
+      "statement": "Work interchangeably with terminating decimals and their corresponding fractions, including ordering.",
+      "tier": "both",
+      "concepts": [
+        "decimals",
+        "fractions"
+      ],
+      "prerequisites": [
+        "N1-order-mixed"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "complete",
+        "sequence": true,
+        "assessment": false,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/decimals.ts",
+          "lib/lessons/authored/maths-fractions.ts"
+        ],
+        "sequence": [
+          "lib/lessons/authored/decimals.ts",
+          "lib/lessons/authored/maths-fractions.ts"
+        ],
+        "assessment": [
+          "lib/lessons/authored/decimals.ts"
+        ]
+      },
+      "assessment": {
+        "examStyleItems": 0,
+        "authoredStructured": true,
+        "marks": null,
+        "commandWord": null,
+        "markScheme": null,
+        "note": "Lesson practice exists, but no AQA marks or command word."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "No AQA-style assessment; no learner evidence.",
+      "authoredLesson": {
+        "concepts": [
+          "decimals",
+          "fractions"
+        ],
+        "lessons": [
+          "lib/lessons/authored/decimals.ts",
+          "lib/lessons/authored/maths-fractions.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "full",
+        "note": "The listed authored lessons contain all eleven contract parts and are judged to cover this objective. No AQA-style assessment exists."
+      }
+    },
+    {
+      "id": "N10-recurring",
+      "reference": "N10",
+      "derivation": "split",
+      "statement": "Change recurring decimals into fractions and vice versa (Higher tier).",
+      "tier": "higher",
+      "concepts": [
+        "decimals"
+      ],
+      "prerequisites": [
+        "N10-terminating"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "complete",
+        "sequence": true,
+        "assessment": true,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/decimals.ts"
+        ],
+        "sequence": [
+          "lib/lessons/authored/decimals.ts"
+        ],
+        "assessment": [
+          "lib/lessons/authored/decimals.ts"
+        ]
+      },
+      "assessment": {
+        "examStyleItems": 5,
+        "authoredStructured": true,
+        "marks": 14,
+        "commandWord": "Write and explain",
+        "markScheme": "decimals a3 (3 marks: recurring decimal to fraction), a4 (2 marks: fraction to recurring decimal), a5 (3 marks: why the decimal recurs), a6 (3 marks: why 0.999... = 1) and a7 (3 marks: mixed recurring decimal to fraction) — 14 marks total.",
+        "requirements": [
+          {
+            "id": "N10-recurring-to-fraction",
+            "statement": "Change a simple recurring decimal into a fraction.",
+            "covered": true,
+            "items": [
+              "lib/lessons/authored/decimals.ts#a3"
+            ],
+            "questionType": "short-answer",
+            "difficulty": "uncalibrated",
+            "tier": "higher",
+            "marks": 3
+          },
+          {
+            "id": "N10-fraction-to-recurring",
+            "statement": "Change a fraction into a recurring decimal.",
+            "covered": true,
+            "items": [
+              "lib/lessons/authored/decimals.ts#a4"
+            ],
+            "questionType": "short-answer",
+            "difficulty": "uncalibrated",
+            "tier": "higher",
+            "marks": 2
+          },
+          {
+            "id": "N10-terminating-test",
+            "statement": "Decide from the denominator whether a fraction terminates or recurs, and explain why.",
+            "covered": true,
+            "items": [
+              "lib/lessons/authored/decimals.ts#a5"
+            ],
+            "questionType": "constructed-response",
+            "difficulty": "uncalibrated",
+            "tier": "higher",
+            "marks": 3
+          },
+          {
+            "id": "N10-recurring-equality",
+            "statement": "Explain why a recurring decimal such as 0.999... represents an exact rational value.",
+            "covered": true,
+            "items": [
+              "lib/lessons/authored/decimals.ts#a6"
+            ],
+            "questionType": "constructed-response",
+            "difficulty": "uncalibrated",
+            "tier": "higher",
+            "marks": 3
+          },
+          {
+            "id": "N10-mixed-recurring",
+            "statement": "Change a recurring decimal with a non-repeating first digit into a fraction.",
+            "covered": true,
+            "items": [
+              "lib/lessons/authored/decimals.ts#a7"
+            ],
+            "questionType": "short-answer",
+            "difficulty": "uncalibrated",
+            "tier": "higher",
+            "marks": 3
+          }
+        ],
+        "note": "Five items cover recurring-decimal notation, conversion in both directions, the terminating-denominator test, the 0.999... equality and the mixed recurring case. a5 and a6 are constructed responses and are self-marked against written criteria; they are not machine-marked. Difficulty is uncalibrated and no item has been educator-reviewed or learner-tested."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "All published recurring-decimal requirements now have an item; no educator review and no learner evidence exist.",
+      "authoredLesson": {
+        "concepts": [
+          "decimals"
+        ],
+        "lessons": [
+          "lib/lessons/authored/decimals.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "full",
+        "note": "decimals now teaches recurring notation, the denominator test, conversion in both directions and the 0.999... equality alongside terminating decimals. Its assessment items a3-a7 cover the N10 Higher requirements; they remain unreviewed and untested."
+      }
+    },
+    {
+      "id": "N11-ratio-fractions",
+      "reference": "N11",
+      "derivation": "direct",
+      "statement": "Identify and work with fractions in ratio problems.",
+      "tier": "both",
+      "concepts": [
+        "ratio"
+      ],
+      "prerequisites": [
+        "N2-fractions"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "complete",
+        "sequence": true,
+        "assessment": false,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/maths-ratio.ts"
+        ],
+        "sequence": [
+          "lib/lessons/authored/maths-ratio.ts"
+        ],
+        "assessment": []
+      },
+      "assessment": {
+        "examStyleItems": 0,
+        "authoredStructured": false,
+        "marks": null,
+        "commandWord": null,
+        "markScheme": null,
+        "note": "No AQA-style item."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "No AQA-style assessment; no learner evidence.",
+      "authoredLesson": {
+        "concepts": [
+          "ratio"
+        ],
+        "lessons": [
+          "lib/lessons/authored/maths-ratio.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "full",
+        "note": "The listed authored lessons contain all eleven contract parts and are judged to cover this objective. No AQA-style assessment exists."
+      }
+    },
+    {
+      "id": "N12-fraction-operator",
+      "reference": "N12",
+      "derivation": "split",
+      "statement": "Interpret fractions as operators, including finding a fraction of a quantity.",
+      "tier": "both",
+      "concepts": [
+        "fractions",
+        "fraction-ops"
+      ],
+      "prerequisites": [
+        "N2-fractions"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "partial",
+        "sequence": false,
+        "assessment": false,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/maths-fractions.ts",
+          "lib/lessons/authored/fraction-ops.ts"
+        ],
+        "sequence": [],
+        "assessment": []
+      },
+      "assessment": {
+        "examStyleItems": 0,
+        "authoredStructured": false,
+        "marks": null,
+        "commandWord": null,
+        "markScheme": null,
+        "note": "No AQA-style item."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "Multiplication is taught as 'of' a fraction, but there is no direct '3/4 of 20' objective or assessment.",
+      "authoredLesson": {
+        "concepts": [
+          "fractions",
+          "fraction-ops"
+        ],
+        "lessons": [
+          "lib/lessons/authored/maths-fractions.ts",
+          "lib/lessons/authored/fraction-ops.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "partial",
+        "note": "At least one listed authored lesson exists, but the bundle does not cover the whole objective. It is teaching evidence, not a complete sequence."
+      }
+    },
+    {
+      "id": "N12-percentage-operator",
+      "reference": "N12",
+      "derivation": "split",
+      "statement": "Interpret percentages as operators, including using a multiplier.",
+      "tier": "both",
+      "concepts": [
+        "percentages"
+      ],
+      "prerequisites": [
+        "N12-fraction-operator"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "complete",
+        "sequence": true,
+        "assessment": false,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/percentages.ts"
+        ],
+        "sequence": [
+          "lib/lessons/authored/percentages.ts"
+        ],
+        "assessment": [
+          "lib/lessons/authored/percentages.ts"
+        ]
+      },
+      "assessment": {
+        "examStyleItems": 0,
+        "authoredStructured": true,
+        "marks": null,
+        "commandWord": null,
+        "markScheme": null,
+        "note": "The lesson has structured practice, but no AQA marks or command word."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "No AQA-style assessment; no learner evidence.",
+      "authoredLesson": {
+        "concepts": [
+          "percentages"
+        ],
+        "lessons": [
+          "lib/lessons/authored/percentages.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "full",
+        "note": "The listed authored lessons contain all eleven contract parts and are judged to cover this objective. No AQA-style assessment exists."
+      }
+    },
+    {
+      "id": "N13-units",
+      "reference": "N13",
+      "derivation": "split",
+      "statement": "Use standard units of mass, length, time, money and compound measures, with decimal quantities where appropriate.",
+      "tier": "both",
+      "concepts": [
+        "area-perimeter",
+        "volume"
+      ],
+      "prerequisites": [
+        "N2-decimals"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "partial",
+        "sequence": false,
+        "assessment": false,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/maths-area-perimeter.ts",
+          "lib/lessons/authored/maths-volume.ts"
+        ],
+        "sequence": [],
+        "assessment": []
+      },
+      "assessment": {
+        "examStyleItems": 0,
+        "authoredStructured": false,
+        "marks": null,
+        "commandWord": null,
+        "markScheme": null,
+        "note": "No AQA-style item."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "No dedicated units/compound-measures concept or sequence; area and volume plans do not teach unit handling.",
+      "authoredLesson": {
+        "concepts": [
+          "area-perimeter",
+          "volume"
+        ],
+        "lessons": [
+          "lib/lessons/authored/maths-area-perimeter.ts",
+          "lib/lessons/authored/maths-volume.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "partial",
+        "note": "At least one listed authored lesson exists, but the bundle does not cover the whole objective. It is teaching evidence, not a complete sequence."
+      }
+    },
+    {
+      "id": "N13-metric-conversions",
+      "reference": "N13",
+      "derivation": "split",
+      "statement": "Know and use metric conversion factors for length, area, volume and capacity; use imperial conversions when given.",
+      "tier": "both",
+      "concepts": [
+        "area-perimeter",
+        "volume"
+      ],
+      "prerequisites": [
+        "N13-units"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "partial",
+        "sequence": false,
+        "assessment": false,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/maths-area-perimeter.ts",
+          "lib/lessons/authored/maths-volume.ts"
+        ],
+        "sequence": [],
+        "assessment": []
+      },
+      "assessment": {
+        "examStyleItems": 0,
+        "authoredStructured": false,
+        "marks": null,
+        "commandWord": null,
+        "markScheme": null,
+        "note": "No AQA-style item."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "Metric conversions are not a taught objective; no sequence or assessment.",
+      "authoredLesson": {
+        "concepts": [
+          "area-perimeter",
+          "volume"
+        ],
+        "lessons": [
+          "lib/lessons/authored/maths-area-perimeter.ts",
+          "lib/lessons/authored/maths-volume.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "partial",
+        "note": "At least one listed authored lesson exists, but the bundle does not cover the whole objective. It is teaching evidence, not a complete sequence."
+      }
+    },
+    {
+      "id": "N14-estimate-check",
+      "reference": "N14",
+      "derivation": "direct",
+      "statement": "Estimate answers, check calculations using approximation and estimation, and evaluate results.",
+      "tier": "both",
+      "concepts": [
+        "rounding"
+      ],
+      "prerequisites": [
+        "N2-decimals"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "complete",
+        "sequence": true,
+        "assessment": false,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/rounding.ts"
+        ],
+        "sequence": [
+          "lib/lessons/authored/rounding.ts"
+        ],
+        "assessment": []
+      },
+      "assessment": {
+        "examStyleItems": 0,
+        "authoredStructured": false,
+        "marks": null,
+        "commandWord": null,
+        "markScheme": null,
+        "note": "No AQA-style item."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "No AQA-style assessment; no learner evidence.",
+      "authoredLesson": {
+        "concepts": [
+          "rounding"
+        ],
+        "lessons": [
+          "lib/lessons/authored/rounding.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "full",
+        "note": "The listed authored lessons contain all eleven contract parts and are judged to cover this objective. No AQA-style assessment exists."
+      }
+    },
+    {
+      "id": "N15-rounding",
+      "reference": "N15",
+      "derivation": "split",
+      "statement": "Round numbers and measures to a specified number of decimal places or significant figures, and do not round during intermediate steps.",
+      "tier": "both",
+      "concepts": [
+        "rounding"
+      ],
+      "prerequisites": [
+        "N1-order-mixed"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "complete",
+        "sequence": true,
+        "assessment": false,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/rounding.ts"
+        ],
+        "sequence": [
+          "lib/lessons/authored/rounding.ts"
+        ],
+        "assessment": []
+      },
+      "assessment": {
+        "examStyleItems": 0,
+        "authoredStructured": false,
+        "marks": null,
+        "commandWord": null,
+        "markScheme": null,
+        "note": "No AQA-style item."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "No AQA-style assessment; no learner evidence.",
+      "authoredLesson": {
+        "concepts": [
+          "rounding"
+        ],
+        "lessons": [
+          "lib/lessons/authored/rounding.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "full",
+        "note": "The listed authored lessons contain all eleven contract parts and are judged to cover this objective. No AQA-style assessment exists."
+      }
+    },
+    {
+      "id": "N15-error-intervals",
+      "reference": "N15",
+      "derivation": "split",
+      "statement": "Use inequality notation to specify simple error intervals due to truncation or rounding.",
+      "tier": "both",
+      "concepts": [
+        "rounding"
+      ],
+      "prerequisites": [
+        "N15-rounding"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "partial",
+        "sequence": false,
+        "assessment": false,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/rounding.ts"
+        ],
+        "sequence": [],
+        "assessment": []
+      },
+      "assessment": {
+        "examStyleItems": 0,
+        "authoredStructured": false,
+        "marks": null,
+        "commandWord": null,
+        "markScheme": null,
+        "note": "No AQA-style item."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "Error intervals are not taught; rounding is excluded from Higher.",
+      "authoredLesson": {
+        "concepts": [
+          "rounding"
+        ],
+        "lessons": [
+          "lib/lessons/authored/rounding.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "partial",
+        "note": "At least one listed authored lesson exists, but the bundle does not cover the whole objective. It is teaching evidence, not a complete sequence."
+      }
+    },
+    {
+      "id": "N16-limits",
+      "reference": "N16",
+      "derivation": "split",
+      "statement": "Apply and interpret limits of accuracy.",
+      "tier": "both",
+      "concepts": [
+        "rounding"
+      ],
+      "prerequisites": [
+        "N15-error-intervals"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "partial",
+        "sequence": false,
+        "assessment": false,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/rounding.ts"
+        ],
+        "sequence": [],
+        "assessment": []
+      },
+      "assessment": {
+        "examStyleItems": 0,
+        "authoredStructured": false,
+        "marks": null,
+        "commandWord": null,
+        "markScheme": null,
+        "note": "No AQA-style item."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "Foundation access is preserved through rounding; the limits-of-accuracy teaching and assessment are not yet complete. Upper and lower bounds remain the separate Higher objective N16-bounds.",
+      "authoredLesson": {
+        "concepts": [
+          "rounding"
+        ],
+        "lessons": [
+          "lib/lessons/authored/rounding.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "partial",
+        "note": "Limits of accuracy are mapped to the Foundation-available rounding lesson. The lesson covers rounding and error intervals but not the full limits-of-accuracy requirement; retargeting the Higher-only bounds lesson would make the objective inaccessible to Foundation."
+      }
+    },
+    {
+      "id": "N16-bounds",
+      "reference": "N16",
+      "derivation": "split",
+      "statement": "Use upper and lower bounds (Higher tier).",
+      "tier": "higher",
+      "concepts": [
+        "bounds"
+      ],
+      "prerequisites": [
+        "N16-limits"
+      ],
+      "ladder": {
+        "mapped": true,
+        "content": "complete",
+        "sequence": true,
+        "assessment": false,
+        "educatorReviewed": false,
+        "learnerTested": false,
+        "masteryDemonstrated": false
+      },
+      "evidence": {
+        "content": [
+          "lib/lessons/authored/maths-gaps-4.ts"
+        ],
+        "sequence": [
+          "lib/lessons/authored/maths-gaps-4.ts"
+        ],
+        "assessment": []
+      },
+      "assessment": {
+        "examStyleItems": 0,
+        "authoredStructured": false,
+        "marks": null,
+        "commandWord": null,
+        "markScheme": null,
+        "note": "No AQA-style item."
+      },
+      "review": {
+        "status": "unreviewed",
+        "reviewer": null,
+        "date": null
+      },
+      "learner": {
+        "status": "not-tested",
+        "evidence": null
+      },
+      "mastery": {
+        "status": "not-demonstrated",
+        "evidence": null
+      },
+      "gap": "No AQA-style assessment; no learner evidence.",
+      "authoredLesson": {
+        "concepts": [
+          "bounds"
+        ],
+        "lessons": [
+          "lib/lessons/authored/maths-gaps-4.ts"
+        ],
+        "parts": [
+          "objectives",
+          "priorKnowledge",
+          "introduction",
+          "explanation",
+          "representations",
+          "workedExamples",
+          "misconceptions",
+          "guidedPractice",
+          "assessment",
+          "transfer",
+          "retrieval"
+        ],
+        "coverage": "full",
+        "note": "The listed authored lessons contain all eleven contract parts and are judged to cover this objective. No AQA-style assessment exists."
+      }
+    }
+  ]
+}

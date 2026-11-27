@@ -88,6 +88,7 @@ const ANCHORS = [
   "surds",
   "completing-square",
   "fractions",
+  "factors-primes",
   "fraction-ops",
   "percentages",
   "place-value",

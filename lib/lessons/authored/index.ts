@@ -38,6 +38,7 @@ import { MATHS_DIVISION } from "./division";
 import { MATHS_NEGATIVES } from "./negatives";
 import { MATHS_ORDER_OPS } from "./order-ops";
 import { MATHS_FRACTION_OPS } from "./fraction-ops";
+import { MATHS_FACTORS_PRIMES } from "./factors-primes";
 import { MATHS_PERCENTAGES } from "./percentages";
 import { MATHS_QUADRATICS } from "./maths-quadratics";
 import { MATHS_COMPLETING_SQUARE } from "./maths-completing-square";
@@ -206,6 +207,7 @@ export const AUTHORED_LESSONS: readonly AuthoredLesson[] = [
   MATHS_ORDER_OPS,
   // Batch 7 — the teaching the `denom-add` repair assumes.
   MATHS_FRACTION_OPS,
+  MATHS_FACTORS_PRIMES,
   // Batch 8 — the thinnest served explanation in the bank.
   MATHS_PERCENTAGES,
   // Batch 9 — the first SECONDARY mathematics lesson. Every maths lesson before

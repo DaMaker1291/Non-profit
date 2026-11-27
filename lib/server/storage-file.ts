@@ -28,6 +28,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import {
   accountOwningProfile,
+  createClass,
+  reconcileClassIdentities,
+  rotateJoinCode,
   cacheGet,
   cacheSet,
   confirmErasure,
@@ -90,6 +93,7 @@ import { appendEvidence, deleteEvidence, hasEvidence, learnersWithEvidence, read
 // which is a contract no backend had to satisfy. The conformance suite found it.
 import { orderEvents } from "../evidence";
 import { resolveStoreKind, type Storage } from "./storage";
+import { postgresStorage } from "./storage-postgres";
 
 /**
  * The file store, as the port describes it.
@@ -171,6 +175,12 @@ export const fileStorage: Storage = {
   listClasses,
   getClass,
   saveClass,
+  // The three operations that are about the class SET rather than one record:
+  // they are here so the class door can reach them through the port, which is
+  // what makes the same door correct on a database.
+  createClass,
+  rotateJoinCode,
+  reconcileClassIdentities,
   updateClassByCode,
   updateClassById,
 
@@ -236,15 +246,18 @@ registerLedgerIO({
 /**
  * The backend this deployment runs, resolved from the environment.
  *
- * Throws for `OPENMIND_STORE=postgres` (specified, not implemented) and for an
- * unrecognised value — see `lib/server/storage.ts#resolveStoreKind` for why
- * refusing beats defaulting. Callers that need to REPORT the problem rather than
- * throw on it use `storeKindReport`.
+ * `file` is the default and needs no configuration. `postgres` is honoured only
+ * when DATABASE_URL names a database — `resolveStoreKind` refuses it otherwise
+ * rather than handing out a file store, because a deployment that believes it is
+ * on a database while writing JSON is the failure this seam exists to prevent.
+ * Callers that need to REPORT the problem rather than throw on it use
+ * `storeKindReport`.
  */
 export function activeStorage(env: Record<string, string | undefined> = process.env): Storage {
   const kind = resolveStoreKind(env);
   if (kind === "file") return fileStorage;
-  // Unreachable while `resolveStoreKind` refuses every non-file kind; kept so a
-  // future backend cannot be added by editing only one of the two functions.
+  if (kind === "postgres") return postgresStorage;
+  // Unreachable while `resolveStoreKind` answers a closed set; kept so a future
+  // backend cannot be added by editing only one of the two functions.
   throw new Error(`no implementation for store kind "${kind}"`);
 }

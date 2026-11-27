@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useI18n, useProfile } from "@/lib/client";
 import { fill } from "@/lib/i18n";
-import { clearRefused, flushQueue, queueSummary, setSyncScope, type QueueSummary } from "@/lib/sync-queue";
+import { clearRefused, flushQueue, queueSummary, setSyncScope, summaryVisibleTo, type QueueSummary } from "@/lib/sync-queue";
 import { watchPower } from "@/lib/power";
 import { drainIntervalMs, drainsOnArrival, resolveDeployment } from "@/lib/deployment";
 
@@ -106,12 +106,18 @@ export function OfflineBar() {
     };
   }, [auto, deployment, scopeId]);
 
+  // A SIGNED-OUT SHELL MUST NOT DISCLOSE A PREVIOUS LEARNER'S QUEUE. The queue
+  // is still on the device (the owner's only copy of an unsynced answer), but
+  // this shell cannot name its owner and deliberately does not drain it. So it
+  // reports an empty queue rather than showing a count or promising a sync that
+  // will not happen. See lib/sync-queue.ts#summaryVisibleTo.
+  const visible = summaryVisibleTo(scopeId, queue);
   // `fill` rather than concatenation: the count's place in the sentence is a
   // property of the LANGUAGE, so each dictionary decides it.
-  const pendingLabel = fill(t("offline.pending"), { n: queue.pending });
-  const syncingLabel = fill(t("offline.syncing"), { n: queue.pending });
-  const refusedLabel = fill(t("offline.refused"), { n: queue.refused });
-  const waitingLabel = fill(t("offline.waiting"), { n: queue.pending });
+  const pendingLabel = fill(t("offline.pending"), { n: visible.pending });
+  const syncingLabel = fill(t("offline.syncing"), { n: visible.pending });
+  const refusedLabel = fill(t("offline.refused"), { n: visible.refused });
+  const waitingLabel = fill(t("offline.waiting"), { n: visible.pending });
 
   // The status region exists in the DOM from the first paint — a live region
   // only announces if it's already there when the state changes. While
@@ -129,7 +135,7 @@ export function OfflineBar() {
         // is the contrast this banner needs.
         <div style={{ background: "var(--margin-red)", color: "var(--paper)", padding: "6px 16px", textAlign: "center", fontSize: 14 }}>
           {t("offline.bar")}
-          {queue.pending > 0 && ` · ${pendingLabel}`}
+          {visible.pending > 0 && ` · ${pendingLabel}`}
         </div>
       )}
       {/* A MANUAL SITE DOES NOT CLAIM TO BE SYNCING. The old banner said
@@ -138,7 +144,7 @@ export function OfflineBar() {
           sync, is the app describing something it is deliberately not doing.
           Here the learner is told the truth and given the one control that
           spends data: send now. */}
-      {online && queue.pending > 0 && (
+      {online && visible.pending > 0 && (
         <div style={{ background: "var(--amber, #b0670b)", color: "#fff", padding: "6px 16px", textAlign: "center", fontSize: 14 }}>
           {auto ? syncingLabel : waitingLabel}{" "}
           {!auto && (
@@ -148,7 +154,7 @@ export function OfflineBar() {
           )}
         </div>
       )}
-      {queue.refused > 0 && (
+      {visible.refused > 0 && (
         <div style={{ background: "var(--bad, #b00)", color: "#fff", padding: "6px 16px", textAlign: "center", fontSize: 14 }}>
           {refusedLabel}{" "}
           <button className="btn ghost small" style={{ color: "#fff" }} onClick={() => { clearRefused(); setQueue(queueSummary()); }}>

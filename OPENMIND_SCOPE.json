@@ -2,7 +2,7 @@
   "schema": "openmind.scope/1",
   "status": "frozen",
   "decidedAt": "2026-11-22",
-  "why": "Breadth was growing faster than evidence. No lesson has been reviewed by an educator, no curriculum has been reviewed by a local educator, and there is no foundational literacy content. Until one programme has been taught in one context and assessed with real pupils, adding countries, qualifications, concepts, subjects or languages makes the product look more capable without making it more useful.",
+  "why": "Breadth was growing faster than evidence. No lesson has been reviewed by an educator, no curriculum has been reviewed by a local educator, and there is no foundational literacy content. Until one programme has been taught in one context and assessed with real pupils, adding countries, qualifications, concepts, subjects or languages makes the product look more capable without making it more useful. The N4 factors/prime-factorisation concept is a recorded exception requested for the AQA Number pilot: it completes an already-mapped specification objective rather than adding a new subject or market, and it is counted here so the freeze stays reviewable.",
   "programme": {
     "context": null,
     "learners": null,
@@ -12,12 +12,12 @@
     "partners": []
   },
   "frozen": {
-    "concepts": 135,
+    "concepts": 136,
     "subjects": 5,
     "specifications": 91,
     "pathways": 73,
     "interfaceLanguages": 15,
-    "authoredLessons": 135
+    "authoredLessons": 136
   },
   "claims": {
     "educatorReviewedLessons": 0,

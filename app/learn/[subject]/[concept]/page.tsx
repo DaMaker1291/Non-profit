@@ -32,6 +32,15 @@ import PromptText from "@/components/prompt-text";
 import { FigureGraphic } from "@/components/question-figure";
 import { LessonMap } from "@/components/lesson-map";
 import { FractionModel } from "@/components/fraction-model";
+import { CircuitModel } from "@/components/circuit-model";
+import { AtomModel } from "@/components/atom-model";
+import { CellModel } from "@/components/cell-model";
+import { SearchModel } from "@/components/search-model";
+import { NumberLineModel } from "@/components/number-line-model";
+import { FractionLineModel } from "@/components/fraction-line-model";
+import { FractionOpsModel } from "@/components/fraction-ops-model";
+import { modelForConcept } from "@/lib/interactive-models";
+import { ModelShell } from "@/components/model-shell";
 import MathText from "@/components/math-text";
 import NumericAnswer from "@/components/numeric-answer";
 import FractionAnswer from "@/components/fraction-answer";
@@ -117,6 +126,10 @@ export default function ConceptPage() {
   const { state, set: setState } = useProfile();
   const teachLang = state?.profile.teachingLang ?? lang;
   const plan = planFor(conceptId, teachLang);
+  // WHICH MODEL THIS CONCEPT SHOWS, in one place: the plan may declare its own,
+  // and a concept whose research is done may carry one without an authored plan
+  // (`MODEL_BY_CONCEPT`). A concept with neither renders nothing.
+  const lessonModel = modelForConcept(conceptId, plan?.interactive);
   // `plan.sections` is the authored shape; `sectionsFor` gives the plans that
   // predate it the same readable sequence without inventing a new body.
   const planSections = plan ? sectionsFor(plan) : [];
@@ -1115,7 +1128,25 @@ export default function ConceptPage() {
           {t(dataPreference === "text" ? "lrn.textOnly" : "lrn.noExternal")}
         </p>
       )}
-      {plan?.interactive === "fraction-model" && <FractionModel />}
+      {/* EVERY MODEL SITS IN THE SAME FRAME: what you are learning to do, a
+          prediction to commit to BEFORE the interaction, the interaction, and
+          what the model cannot show. The frame's content is per CONCEPT, not per
+          model, because the number line teaches tens for place value, tenths for
+          decimals and direction for negatives. A model with no authored frame is
+          rendered bare rather than given an invented objective — that gap is a
+          defect the coverage register reports, not something to paper over. */}
+      {lessonModel && (
+        <ModelShell conceptId={conceptId} model={lessonModel}>
+          {lessonModel === "fraction-model" && <FractionModel />}
+          {lessonModel === "circuit-model" && <CircuitModel />}
+          {lessonModel === "atom-model" && <AtomModel />}
+          {lessonModel === "cell-model" && <CellModel />}
+          {lessonModel === "search-model" && <SearchModel />}
+          {lessonModel === "number-line-model" && <NumberLineModel conceptId={conceptId} />}
+          {lessonModel === "fraction-line-model" && <FractionLineModel />}
+          {lessonModel === "fraction-ops-model" && <FractionOpsModel />}
+        </ModelShell>
+      )}
 
       {/* A PUPIL WHO HAS FORGOTTEN THIS TRIES IT FROM MEMORY FIRST.
 

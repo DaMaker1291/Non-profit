@@ -21,6 +21,8 @@ import SpeakButton from "@/components/speak-button";
 import PromptText from "@/components/prompt-text";
 import MathText from "@/components/math-text";
 import NumericAnswer from "@/components/numeric-answer";
+import FractionAnswer from "@/components/fraction-answer";
+import PairAnswer from "@/components/pair-answer";
 import MarkedPanel from "@/components/marked-panel";
 import WorkSheet from "@/components/work-sheet";
 import { verdictForGrade } from "@/lib/proof";
@@ -65,6 +67,7 @@ export default function TryConceptPage() {
       setDemonstrated(null);
       setFlare(null);
       setSaved(false);
+      setErr("");
     } finally {
       setBusy(false);
     }
@@ -75,14 +78,22 @@ export default function TryConceptPage() {
   /** One path for both response kinds: the consequence of an answer is the
    *  same whichever way it was given, and only the field the server reads
    *  differs. */
-  async function submit(given: { choiceIndex: number } | { numericAnswer: string }) {
-    if (!q || picked !== null || busy) return;
+  async function submit(given: { choiceIndex: number } | { numericAnswer: string } | { fractionAnswer: { numerator: string; denominator: string } } | { pairAnswer: { x: string; y: string } }) {
+    if (!q || picked !== null || correct !== null || saved || busy) return;
     if ("choiceIndex" in given) setPicked(given.choiceIndex);
+    setErr("");
+    setSaved(false);
     setBusy(true);
     try {
       const o = await anonAnswer(q.conceptId, q.id, given, lang);
       if (o.kind === "offline") { setSaved(true); return; }
       if (o.kind === "error") {
+        // A REFUSAL IS NOT A VERDICT. This used to leave the chosen option in
+        // the "bad" red state while `answerIndex` was still null — the page
+        // drew a ✗ for an answer the server had not marked, and every option
+        // stayed disabled, so the instruction "try it again" was impossible to
+        // follow. Release the pick; the error sentence is the only verdict.
+        setPicked(null);
         // A REFUSAL IS NOT AN OFFLINE SAVE. A 401/403 is the server declining
         // to write this device's profile — the sentence for that is the one the
         // enrolment form already uses, and it is true here too: nothing was
@@ -139,25 +150,55 @@ export default function TryConceptPage() {
             note={t("work.note")}
             hideLabel={t("common.close")}
           />
+          {/* THE SERVER'S RESPONSE KIND DECIDES THE CONTROL. This page used to
+              render choices for every non-numeric item, including a `fraction`
+              item whose server contract requires a numerator and denominator. A
+              learner could pick the correct option and be answered with
+              `400 not a fraction` — and, before the verdict guard above, a red
+              ✗. The controls are the same ones the lesson page uses, so a
+              public challenge is answered the same way as signed-in practice. */}
           {q.responseKind === "numeric" ? (
             <NumericAnswer
               questionId={q.id}
               unit={q.tolerance?.unit}
-              disabled={picked !== null || busy}
+              disabled={picked !== null || correct !== null || saved || busy}
               label={t("answer.label")}
               checkLabel={t("learn.check")}
               emptyHint={t("answer.needNumber")}
               onSubmit={(raw) => void submit({ numericAnswer: raw })}
             />
+          ) : q.responseKind === "fraction" ? (
+            <FractionAnswer
+              questionId={q.id}
+              disabled={picked !== null || correct !== null || saved || busy}
+              label={t("answer.label")}
+              checkLabel={t("learn.check")}
+              emptyHint={t("answer.needNumber")}
+              onSubmit={(given) => void submit({ fractionAnswer: given })}
+            />
+          ) : q.responseKind === "pair" ? (
+            <PairAnswer
+              questionId={q.id}
+              disabled={picked !== null || correct !== null || saved || busy}
+              label={t("answer.label")}
+              checkLabel={t("learn.check")}
+              emptyHint={t("answer.needNumber")}
+              onSubmit={(given) => void submit({ pairAnswer: given })}
+            />
           ) : (
             <div className="choices">
               {q.choices.map((ch, i) => {
+                // NO VERDICT UNTIL THE SERVER GIVES ONE. `picked` records what
+                // the learner chose; it is not evidence the choice was wrong.
+                // When marking failed, `answerIndex` and `correct` are still
+                // null, so the chosen option must look neutral — a red ✗ here
+                // told a learner their correct 19/15 was wrong.
                 const cls =
-                  picked === null ? "" :
+                  correct === null || picked === null ? "" :
                   i === answerIndex ? "ok reveal" :
                   i === picked ? "bad" : "";
                 return (
-                  <button key={i} className={`choice ${cls}`} disabled={picked !== null || busy} onClick={() => void submit({ choiceIndex: i })}>
+                  <button key={i} className={`choice ${cls}`} disabled={picked !== null || correct !== null || saved || busy} onClick={() => void submit({ choiceIndex: i })}>
                     <span className="mark" data-idx={String.fromCharCode(65 + i)} />
                     <span className="choice-text"><MathText text={ch} /></span>
                   </button>

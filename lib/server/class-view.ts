@@ -10,7 +10,10 @@
 // `projectLearner` the learner's own pages read — never a number any client
 // reported. A self-report may flatter `cls.students`; it can never move this.
 // What the ledger has never measured is absent from the row: unknown, not 0.
-import { listProfileStates } from "./store";
+// The roster's LIVE view resolves every member's record, so it must read the
+// CONFIGURED backend: on a Postgres deployment the file store holds no learners,
+// and a live roster built from it is an empty table for a class that exists.
+import { activeStorage } from "./storage-file";
 import { handleOf, isTeacherOf, teacherHandle } from "./class-membership";
 // Relative specifiers: this module is in the compile mirror, which is built
 // with `tsc <files> ...` and no tsconfig, where `@/...` does not resolve.
@@ -57,7 +60,7 @@ import type { ClassRoster, ClassMemberLive, ClassMemberEvidence, ProfileState } 
  * re-derived here.
  */
 export async function resolveMembers(cls: ClassRoster): Promise<Array<{ handle: string; state: ProfileState }>> {
-  const states = await listProfileStates();
+  const states = await activeStorage().listProfiles();
   const byId = new Map(states.map((s) => [s.profile.id, s]));
   const out: Array<{ handle: string; state: ProfileState }> = [];
   const used = new Set<string>();

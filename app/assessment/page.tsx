@@ -242,6 +242,17 @@ export default function AssessmentPage() {
         own evidence, mastery and next step. Nothing on this page is a second question engine.
       </p>
 
+      <div className="card" style={{ marginBottom: 18 }} data-number-checkpoint-link>
+        <p className="eyebrow" style={{ marginTop: 0 }}>Number checkpoint</p>
+        <p className="reading" style={{ marginTop: 0 }}>
+          A single sitting across all five completed Number objectives: 14 questions written for the
+          checkpoint, 30 marks, with an objective-level breakdown after marking. The questions are
+          not the lesson assessment items, so their model answers cannot be looked up beforehand.
+          The individual lessons remain below.
+        </p>
+        <Link className="btn primary" href="/assessment/number">Open the Number checkpoint</Link>
+      </div>
+
       {catalogError ? <p className="notice">{catalogError}</p> : null}
 
       {catalog ? (

@@ -1,6 +1,6 @@
 # Teacher-readiness matrix
 
-Generated 2026-11-23T18:05:40.308Z from the lesson contracts. 135 of 135 lessons carry all ten core elements; 23 have a hand-authored teaching sequence and 112 a sequence composed from the genome paragraph. Every row is derived, none is authored for this file.
+Generated 2026-11-26T21:18:46.713Z from the lesson contracts. 135 of 135 lessons carry all ten core elements; 23 have a hand-authored teaching sequence and 112 a sequence composed from the genome paragraph. Every row is derived, none is authored for this file.
 
 `differentiation` is 0 for every lesson because the contract has no such field: mixed-age delivery is a classroom setting, not a lesson artefact. It is reported, not hidden.
 

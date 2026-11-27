@@ -146,6 +146,17 @@ export interface QueueSummary {
   oldest: number | null;
 }
 
+/** What the SHELL may show about the queue. A queue is learner-scoped, but a
+ *  signed-out shell has no learner scope: showing its count would tell the next
+ *  person on a shared device that somebody else has unsynced work, and the
+ *  "syncing" banner would promise a drain the shell deliberately does not run.
+ *  The queue itself is untouched — the owner gets it back when their profile is
+ *  known — but the public shell reports an empty queue, not the previous
+ *  learner's. */
+export function summaryVisibleTo(learnerId: string | null, summary: QueueSummary): QueueSummary {
+  return learnerId ? summary : { pending: 0, refused: 0, oldest: null };
+}
+
 // ── Storage: defensive. Corrupt JSON must never brick a lesson. ─────────────
 
 function store(): Storage | null {

@@ -20,7 +20,7 @@ export const MATHS_NEGATIVES: AuthoredLesson = {
   subject: "maths",
   curriculum: {
     reference: "GCSE Mathematics, number: negative numbers, ordering and the four operations",
-    level: "Key Stage 2 to Key Stage 3",
+    level: "Key Stage 3 to GCSE",
     note: "Objective phrased against the published subject content; no specification text is reproduced.",
   },
   declaredStatus: "draft",
@@ -43,6 +43,12 @@ export const MATHS_NEGATIVES: AuthoredLesson = {
         "Decide the sign of a product or quotient before calculating, and check a division against its multiplication.",
       evidence:
         "The learner says minus two times minus three must be positive because the direction reverses twice, gives 6, and checks it with 6 divided by minus three equals minus two.",
+    },
+    {
+      statement:
+        "Apply the same four operations to negative fractions, ordering them by position and using a common denominator before adding or subtracting.",
+      evidence:
+        "The learner works out minus two thirds plus one quarter as minus five twelfths, and minus three quarters divided by two fifths as minus fifteen eighths, deciding the sign before computing.",
     },
   ],
 
@@ -93,6 +99,13 @@ export const MATHS_NEGATIVES: AuthoredLesson = {
         "A pattern makes the rule visible without appealing to it. Three times minus two is minus six, two times minus two is minus four, one times minus two is minus two, and zero times minus two is zero; each time the first factor falls by one, the product rises by two. Continuing the pattern one more line gives minus one times minus two as two. A rule that contradicted the pattern would break the arithmetic on either side of it.",
       ],
     },
+    {
+      heading: "A fraction can sit below zero too",
+      paragraphs: [
+        "A fraction is a number, so it has a position on the same line. Minus two thirds is two thirds of a step to the left of zero; minus three quarters is three quarters of a step to the left. To order them, give them a common denominator: minus two thirds is minus eight twelfths, and minus three quarters is minus nine twelfths. Since minus nine twelfths is further left, minus three quarters is the smaller number. The negative sign does not change how fractions compare; it changes which side of zero they are on.",
+        "The four operations use the same sign rules, with the fraction arithmetic you already know. Add or subtract only after the denominators match: minus two thirds plus one quarter is minus eight twelfths plus three twelfths, which is minus five twelfths. The negative term is larger in size, so the answer stays negative. For multiplication and division, decide the sign first and then work with the sizes: minus two thirds times minus one half is positive one third, and minus three quarters divided by two fifths is minus three quarters times five halves, which is minus fifteen eighths. A negative fraction is not a different kind of number; it is the same arithmetic with a direction.",
+      ],
+    },
   ],
 
   representations: [
@@ -122,6 +135,22 @@ export const MATHS_NEGATIVES: AuthoredLesson = {
       notation: "(−2) × (−3) = 6",
       caption:
         "Two flips restore the positive sign; the size, six, comes from multiplying the two sizes and is unaffected by the signs.",
+    },
+    {
+      id: "r4",
+      kind: "maths.expression",
+      body: "The same denominators turn a comparison of fractions into a comparison of positions.",
+      notation: "−2/3 = −8/12   −3/4 = −9/12   so −3/4 < −2/3",
+      caption:
+        "Both values are left of zero; minus nine twelfths is further left than minus eight twelfths, so it is the smaller number.",
+    },
+    {
+      id: "r5",
+      kind: "maths.expression",
+      body: "The sign is decided first; the sizes are multiplied or divided second.",
+      notation: "−3/4 ÷ 2/5 = −(3/4 × 5/2) = −15/8",
+      caption:
+        "One negative value makes the quotient negative. Dividing by two fifths is the same as multiplying by five halves, so the size is fifteen eighths.",
     },
   ],
 
@@ -172,6 +201,72 @@ export const MATHS_NEGATIVES: AuthoredLesson = {
       ],
       answer: "6",
     },
+    {
+      id: "w3",
+      prompt: "Work out −2/3 + 1/4.",
+      steps: [
+        {
+          move: "Write both fractions over the common denominator 12: −2/3 = −8/12 and 1/4 = 3/12.",
+          why:
+            "Twelfths are a common unit, so the numerators can then be added. The value of each fraction is unchanged because its numerator and denominator were multiplied by the same number.",
+        },
+        {
+          move: "Add the signed numerators: −8 + 3 = −5, so the sum is −5/12.",
+          why:
+            "The negative term is larger in size, so the result is still negative. Adding three twelfths to minus eight twelfths moves right, but not far enough to reach zero.",
+        },
+        {
+          move: "Check on the line: −2/3 is about −0.67; adding 0.25 moves right to about −0.42, which is −5/12.",
+          why:
+            "The answer must lie between −2/3 and 0 because only a positive quarter was added. Minus five twelfths is about −0.42, which fits that interval.",
+        },
+      ],
+      answer: "−5/12",
+    },
+    {
+      id: "w4",
+      prompt: "Work out −3/4 ÷ 2/5.",
+      steps: [
+        {
+          move: "Decide the sign first: there is one negative value, so the quotient is negative.",
+          why:
+            "Division follows the same sign rule as multiplication: one negative factor flips the sign once.",
+        },
+        {
+          move: "Replace division by 2/5 with multiplication by its reciprocal, 5/2: 3/4 × 5/2.",
+          why:
+            "Dividing by a fraction asks how many of that fraction fit. Multiplying by the reciprocal gives the same count: three quarters divided by two fifths is three quarters times five halves.",
+        },
+        {
+          move: "Multiply the sizes: 3 × 5 = 15 and 4 × 2 = 8, so the size is 15/8; apply the sign to get −15/8, or −1 7/8.",
+          why:
+            "The answer is larger in size than three quarters because dividing by a number below one increases the count. Check it: −15/8 × 2/5 = −30/40 = −3/4.",
+        },
+      ],
+      answer: "−15/8 (or −1 7/8)",
+    },
+    {
+      id: "w5",
+      prompt: "Which is smaller, −3/4 or −2/3?",
+      steps: [
+        {
+          move: "Write both fractions with denominator 12: −3/4 = −9/12 and −2/3 = −8/12.",
+          why:
+            "A common denominator makes the pieces the same size, so the numerators become counts of the same unit and can be compared directly.",
+        },
+        {
+          move: "Compare the positions: −9/12 is one twelfth further left than −8/12.",
+          why:
+            "On the number line, further left means smaller. The negative signs do not reverse that reading; they place both values on the left of zero.",
+        },
+        {
+          move: "Conclude that −3/4 is smaller, and check with decimals: −0.75 is less than −0.666... .",
+          why:
+            "The decimal check agrees with the common-denominator comparison, so the conclusion does not depend on the fraction notation alone.",
+        },
+      ],
+      answer: "−3/4",
+    },
   ],
 
   misconceptions: [
@@ -197,6 +292,30 @@ export const MATHS_NEGATIVES: AuthoredLesson = {
       contrast: {
         wrong: "5 − (−3) = 2, because subtracting makes it smaller",
         right: "5 − (−3) = 8, because removing a debt of 3 leaves 3 more than before",
+      },
+    },
+    {
+      id: "m3",
+      belief: "−2/3 + 1/4 = −1/7, because you add the tops and the bottoms.",
+      whyItFails:
+        "The denominators name the size of the pieces, and thirds and quarters are different sizes. Adding them as though they were counts of the same piece produces a denominator that is not a common unit, so the answer does not describe any real amount. The fractions must first be rewritten over 12: −8/12 + 3/12 = −5/12.",
+      correction:
+        "Find a common denominator first, then add only the numerators. The sign of each numerator travels with it, so the negative term contributes −8 twelfths rather than +8 twelfths.",
+      contrast: {
+        wrong: "−2/3 + 1/4 = −1/7",
+        right: "−2/3 + 1/4 = −5/12",
+      },
+    },
+    {
+      id: "m4",
+      belief: "−3/4 ÷ 2/5 = −3/4 × 2/5, because division by a fraction just means multiplying the fractions.",
+      whyItFails:
+        "Division by two fifths asks how many two-fifths fit into minus three quarters, which is larger than multiplying by two fifths. The reciprocal is five halves, not two fifths. Multiplying by the same fraction would make the result smaller and would reverse the operation.",
+      correction:
+        "Keep the first fraction, change division to multiplication, and invert the second: −3/4 × 5/2 = −15/8. Decide the sign first, then multiply the sizes.",
+      contrast: {
+        wrong: "−3/4 ÷ 2/5 = −6/20",
+        right: "−3/4 ÷ 2/5 = −15/8",
       },
     },
   ],
@@ -235,6 +354,39 @@ export const MATHS_NEGATIVES: AuthoredLesson = {
           "Four times five is twenty, and one negative factor makes that product negative, so the answer is minus twenty.",
       },
     },
+    {
+      id: "p4",
+      prompt: "Put these in order, smallest first: −3/4, −1/2, −7/8.",
+      hint: "Write all three with denominator 8 before comparing them.",
+      answer: "−7/8, −3/4, −1/2, because in eighths they are −7/8, −6/8 and −4/8",
+      feedback: {
+        correct: "A common denominator turned a fraction comparison into a comparison of positions.",
+        incorrect:
+          "In eighths the values are −7/8, −6/8 and −4/8. The most negative is furthest left, so it comes first.",
+      },
+    },
+    {
+      id: "p5",
+      prompt: "Work out −1/2 + 3/4.",
+      hint: "Write both fractions over 4, then add the signed numerators.",
+      answer: "1/4, because −2/4 + 3/4 = 1/4",
+      feedback: {
+        correct: "The common denominator let the signed numerators combine directly.",
+        incorrect:
+          "Minus one half is minus two quarters. Adding three quarters gives one quarter, which is still positive but smaller than three quarters.",
+      },
+    },
+    {
+      id: "p6",
+      prompt: "Work out (−2/3) × (−3/5).",
+      hint: "Decide the sign from the number of negative factors before multiplying the sizes.",
+      answer: "2/5, because two negative factors give a positive product and 6/15 simplifies to 2/5",
+      feedback: {
+        correct: "You decided the sign first and then simplified the size.",
+        incorrect:
+          "Two negative factors make the product positive. Multiply the sizes to get 6/15, then divide top and bottom by 3 to get 2/5.",
+      },
+    },
   ],
 
   assessment: [
@@ -262,6 +414,105 @@ export const MATHS_NEGATIVES: AuthoredLesson = {
         "Checks the answer by dividing, and names the rule the learner over-applied.",
       ],
     },
+    {
+      id: "a3",
+      kind: "structured",
+      prompt: "Work out −2/3 + 1/4. Show the common denominator.",
+      modelAnswer:
+        "−2/3 = −8/12 and 1/4 = 3/12, so −2/3 + 1/4 = −8/12 + 3/12 = −5/12.",
+      marking: [
+        "Part (a): writes −2/3 as −8/12 (1 mark).",
+        "Part (b): adds the signed numerators to get −5 (1 mark).",
+        "Part (b): writes the answer as −5/12 (1 mark).",
+      ],
+      structured: {
+        parts: [
+          {
+            id: "a",
+            prompt: "What is the numerator when −2/3 is written with denominator 12?",
+            marks: 1,
+            answer: -8,
+            explanation:
+              "Multiplying the numerator and denominator of −2/3 by 4 gives −8/12. The numerator is −8; the negative sign belongs to the whole fraction.",
+          },
+          {
+            id: "b",
+            prompt: "Hence work out −2/3 + 1/4. Give your answer as a fraction.",
+            marks: 2,
+            response: "short",
+            short: [
+              {
+                id: "b1",
+                marks: 2,
+                label: "−5/12",
+                accept: ["-5/12", "−5/12"],
+              },
+            ],
+            explanation:
+              "−8/12 + 3/12 = −5/12. The negative term is larger in size, so the result is still negative.",
+          },
+        ],
+      },
+    },
+    {
+      id: "a4",
+      kind: "structured",
+      prompt: "Work out −3/4 ÷ 2/5. Give your answer as a fraction or a mixed number.",
+      modelAnswer:
+        "−3/4 ÷ 2/5 = −3/4 × 5/2 = −15/8 = −1 7/8.",
+      marking: [
+        "Part (a): identifies the reciprocal 5/2 (1 mark).",
+        "Part (b): multiplies 3/4 by 5/2 to get 15/8 (1 mark).",
+        "Part (b): applies the negative sign, giving −15/8 or −1 7/8 (1 mark).",
+      ],
+      structured: {
+        parts: [
+          {
+            id: "a",
+            prompt: "What is the reciprocal of 2/5?",
+            marks: 1,
+            response: "short",
+            short: [
+              {
+                id: "a1",
+                marks: 1,
+                label: "5/2",
+                accept: ["5/2", "5 / 2"],
+              },
+            ],
+            explanation:
+              "The reciprocal of a fraction swaps its numerator and denominator: the reciprocal of 2/5 is 5/2.",
+          },
+          {
+            id: "b",
+            prompt: "Hence work out −3/4 ÷ 2/5.",
+            marks: 2,
+            response: "short",
+            short: [
+              {
+                id: "b1",
+                marks: 2,
+                label: "−15/8",
+                accept: ["-15/8", "−15/8", "-1 7/8", "−1 7/8"],
+              },
+            ],
+            explanation:
+              "−3/4 × 5/2 = −15/8. The quotient is negative because there is one negative value, and its size is larger than 3/4 because it was divided by a number below 1.",
+          },
+        ],
+      },
+    },
+    {
+      id: "a5",
+      kind: "constructed-response",
+      prompt: "Which is smaller, −3/4 or −2/3? Explain using a common denominator.",
+      modelAnswer:
+        "−3/4 = −9/12 and −2/3 = −8/12. Both are left of zero, and −9/12 is further left than −8/12, so −3/4 is smaller. Writing both over 12 makes the comparison a comparison of counts of the same-sized piece: −9 is less than −8. The decimals agree: −0.75 is less than −0.666... .",
+      marking: [
+        "Writes both fractions with denominator 12, or another common denominator (1 mark).",
+        "Concludes that −3/4 is smaller because it is further left (1 mark).",
+      ],
+    },
   ],
 
   transfer: [
@@ -277,6 +528,20 @@ export const MATHS_NEGATIVES: AuthoredLesson = {
         "Gives 10 °C.",
         "Writes the signed subtraction, 3 − (−7), rather than 7 − 3.",
         "Explains that the span crosses zero and that the pupil compared sizes instead of positions.",
+      ],
+    },
+    {
+      id: "t2",
+      prompt:
+        "A submarine is at −3/4 km relative to sea level and descends another 2/5 km. What is its new position? Explain why the answer is more negative than either starting value.",
+      whyItTransfers:
+        "Both quantities are negative fractions, and the operation is an addition of two leftward moves. The learner must find a common denominator and keep the direction, rather than subtracting the sizes because one value is already negative.",
+      answer:
+        "The new position is −23/20 km, or −1 3/20 km: −3/4 − 2/5 = −15/20 − 8/20 = −23/20. Both moves are downward, so the position moves further left and the result is more negative than either starting value.",
+      marking: [
+        "Writes both fractions over 20 (or another common denominator).",
+        "Adds the signed numerators to get −23/20, or −1 3/20 km.",
+        "Explains that two downward moves make the position more negative.",
       ],
     },
   ],
@@ -301,6 +566,18 @@ export const MATHS_NEGATIVES: AuthoredLesson = {
         "11 °C. The change is 3 − (−8) = 11: subtracting a negative move undoes it, so the temperature crosses zero and rises eleven degrees in total.",
       when: "month-later",
     },
+    {
+      id: "x4",
+      prompt: "Work out −1/2 + 3/4.",
+      answer: "1/4, because −2/4 + 3/4 = 1/4.",
+      when: "week-later",
+    },
+    {
+      id: "x5",
+      prompt: "Work out (−2/3) × (−3/5).",
+      answer: "2/5, because two negative factors give a positive product and 6/15 simplifies to 2/5.",
+      when: "month-later",
+    },
   ],
 
   summary: [
@@ -308,13 +585,15 @@ export const MATHS_NEGATIVES: AuthoredLesson = {
     "Left to right on the line is smallest to largest, so minus seven is smaller than minus two.",
     "Subtracting a negative undoes a leftward move, which is why 5 − (−3) = 8.",
     "Each negative factor flips the sign once, so two negatives give a positive product.",
+    "Negative fractions follow the same rules: order by position after a common denominator, and decide the sign before multiplying or dividing.",
+    "To divide by a fraction, multiply by its reciprocal; the sign of the result is decided separately from its size.",
   ],
 
   accessibility: [
     {
       need: "screen-reader",
       alternative:
-        "Each journey is announced as a start, a direction and an end, so a move to the left is heard as a direction rather than as a minus sign before a number.",
+        "Each journey is announced as a start, a direction and an end, so a move to the left is heard as a direction rather than as a minus sign before a number. A negative fraction is announced as 'minus two thirds', keeping the sign attached to the whole fraction.",
     },
     {
       need: "dyslexia",

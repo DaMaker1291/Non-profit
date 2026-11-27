@@ -23,6 +23,8 @@ import SpeakButton from "@/components/speak-button";
 import VoiceInput from "@/components/voice-input";
 import StarterMode from "@/components/starter-mode";
 import NumericAnswer from "@/components/numeric-answer";
+import FractionAnswer from "@/components/fraction-answer";
+import PairAnswer from "@/components/pair-answer";
 import MarkedPanel from "@/components/marked-panel";
 import WorkSheet from "@/components/work-sheet";
 import { verdictForGrade } from "@/lib/proof";
@@ -192,9 +194,15 @@ export default function SolvePage() {
 
   /** One path for both response kinds (see the /try surface): the server reads
    *  the staged question's own kind, so the field here is the only difference. */
-  async function submit(given: { choiceIndex: number } | { numericAnswer: string }) {
-    if (!q || picked !== null) return;
+  async function submit(given:
+    | { choiceIndex: number }
+    | { numericAnswer: string }
+    | { fractionAnswer: { numerator: string; denominator: string } }
+    | { pairAnswer: { x: string; y: string } }) {
+    if (!q || picked !== null || correct !== null || saved || busy) return;
     if ("choiceIndex" in given) setPicked(given.choiceIndex);
+    setErr("");
+    setSaved(false);
     setBusy(true);
     try {
       // No mode, no hint count: attribution is the server's (staged transfer
@@ -206,7 +214,13 @@ export default function SolvePage() {
       // device and marked on reconnect, so the learner is told that instead of
       // being shown a verdict nobody has decided yet.
       if (o.kind === "offline") { setSaved(true); return; }
-      if (o.kind === "error") { setErr(t("common.error")); return; }
+      if (o.kind === "error") {
+        // A REFUSAL IS NOT A VERDICT: release the pick, or the chosen option
+        // stays red and disabled while the page says the answer was not marked.
+        setPicked(null);
+        setErr(t("common.error"));
+        return;
+      }
       setCorrect(o.grade.correct);
       setAnswerIndex(o.grade.answerIndex);
       setExplanation(o.grade.explanation);
@@ -218,6 +232,70 @@ export default function SolvePage() {
       setBusy(false);
     }
   }
+
+  /** One control per response kind, shared by the PROVE and TRANSFER stages.
+   *  The public wedge served fraction and coordinate items and drew four
+   *  options for them, so the server refused the choice as "not a fraction" —
+   *  the learner could pick the correct value and be told it was not marked.
+   *  The lesson page already had the right controls; this brings the wedge onto
+   *  the same switch instead of duplicating a second, narrower one. */
+  const responseControl = (question: AnonPracticeQ) => {
+    const locked = picked !== null || correct !== null || saved || busy;
+    if (question.responseKind === "numeric") {
+      return (
+        <NumericAnswer
+          questionId={question.id}
+          unit={question.tolerance?.unit}
+          disabled={locked}
+          label={t("answer.label")}
+          checkLabel={t("learn.check")}
+          emptyHint={t("answer.needNumber")}
+          onSubmit={(raw) => void submit({ numericAnswer: raw })}
+        />
+      );
+    }
+    if (question.responseKind === "fraction") {
+      return (
+        <FractionAnswer
+          questionId={question.id}
+          disabled={locked}
+          label={t("answer.label")}
+          checkLabel={t("learn.check")}
+          emptyHint={t("answer.needNumber")}
+          onSubmit={(given) => void submit({ fractionAnswer: given })}
+        />
+      );
+    }
+    if (question.responseKind === "pair") {
+      return (
+        <PairAnswer
+          questionId={question.id}
+          disabled={locked}
+          label={t("answer.label")}
+          checkLabel={t("learn.check")}
+          emptyHint={t("answer.needNumber")}
+          onSubmit={(given) => void submit({ pairAnswer: given })}
+        />
+      );
+    }
+    return (
+      <div className="choices">
+        {question.choices.map((ch, i) => {
+          // No verdict until the server gives one.
+          const cls =
+            correct === null || picked === null ? "" :
+            i === answerIndex ? "ok reveal" :
+            i === picked ? "bad" : "";
+          return (
+            <button key={i} className={`choice ${cls}`} disabled={locked} onClick={() => void submit({ choiceIndex: i })}>
+              <span className="mark" data-idx={String.fromCharCode(65 + i)} />
+              <span className="choice-text"><MathText text={ch} /></span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  };
 
   if (stage === "ask") {
     return (
@@ -331,33 +409,8 @@ export default function SolvePage() {
             note={t("work.note")}
             hideLabel={t("common.close")}
           />
-          {q.responseKind === "numeric" ? (
-            <NumericAnswer
-              questionId={q.id}
-              unit={q.tolerance?.unit}
-              disabled={picked !== null || busy}
-              label={t("answer.label")}
-              checkLabel={t("learn.check")}
-              emptyHint={t("answer.needNumber")}
-              onSubmit={(raw) => void submit({ numericAnswer: raw })}
-            />
-          ) : (
-            <div className="choices">
-              {q.choices.map((ch, i) => {
-                const cls =
-                  picked === null ? "" :
-                  i === answerIndex ? "ok reveal" :
-                  i === picked ? "bad" : "";
-                return (
-                  <button key={i} className={`choice ${cls}`} disabled={picked !== null || busy} onClick={() => void submit({ choiceIndex: i })}>
-                    <span className="mark" data-idx={String.fromCharCode(65 + i)} />
-                    <span className="choice-text"><MathText text={ch} /></span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          {picked === null && <StarterMode conceptId={q.conceptId} questionId={q.id} lang={lang} />}
+          {responseControl(q)}
+          {picked === null && correct === null && !saved && <StarterMode conceptId={q.conceptId} questionId={q.id} lang={lang} />}
           {correct !== null && (
             // Keyed by question, so the previous answer's working cannot sit
             // under a fresh verdict (see MarkedPanel).
@@ -407,32 +460,7 @@ export default function SolvePage() {
             note={t("work.note")}
             hideLabel={t("common.close")}
           />
-          {q.responseKind === "numeric" ? (
-            <NumericAnswer
-              questionId={q.id}
-              unit={q.tolerance?.unit}
-              disabled={picked !== null || busy}
-              label={t("answer.label")}
-              checkLabel={t("learn.check")}
-              emptyHint={t("answer.needNumber")}
-              onSubmit={(raw) => void submit({ numericAnswer: raw })}
-            />
-          ) : (
-            <div className="choices">
-              {q.choices.map((ch, i) => {
-                const cls =
-                  picked === null ? "" :
-                  i === answerIndex ? "ok reveal" :
-                  i === picked ? "bad" : "";
-                return (
-                  <button key={i} className={`choice ${cls}`} disabled={picked !== null || busy} onClick={() => void submit({ choiceIndex: i })}>
-                    <span className="mark" data-idx={String.fromCharCode(65 + i)} />
-                    <span className="choice-text"><MathText text={ch} /></span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
+          {responseControl(q)}
           {correct !== null && (
             <MarkedPanel
               key={q.id}

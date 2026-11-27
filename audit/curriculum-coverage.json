@@ -5871,5 +5871,26 @@
       "reviewedAt": null
     }
   ],
-  "problems": []
+  "problems": [
+    "gt-national · 1º básico · physics: still missing grade",
+    "gt-national · 2º básico · physics: still missing grade",
+    "gt-national · 3º básico · physics: still missing grade",
+    "gt-national · 4º diversificado · physics: still missing grade",
+    "gt-national · 5º diversificado · physics: still missing grade",
+    "gt-national · 1º básico · chemistry: still missing grade",
+    "gt-national · 2º básico · chemistry: still missing grade",
+    "gt-national · 3º básico · chemistry: still missing grade",
+    "gt-national · 4º diversificado · chemistry: still missing grade",
+    "gt-national · 5º diversificado · chemistry: still missing grade",
+    "gt-national · 1º básico · biology: still missing grade",
+    "gt-national · 2º básico · biology: still missing grade",
+    "gt-national · 3º básico · biology: still missing grade",
+    "gt-national · 4º diversificado · biology: still missing grade",
+    "gt-national · 5º diversificado · biology: still missing grade",
+    "gt-national · 1º básico · computing: still missing grade",
+    "gt-national · 2º básico · computing: still missing grade",
+    "gt-national · 3º básico · computing: still missing grade",
+    "gt-national · 4º diversificado · computing: still missing grade",
+    "gt-national · 5º diversificado · computing: still missing grade"
+  ]
 }

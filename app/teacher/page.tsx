@@ -461,7 +461,8 @@ export default function TeacherPage() {
                   or sent the teacher anywhere that did. */}
               <Link className="btn secondary" href="/teacher/right-level">Right-level groups</Link>
               <Link className="btn secondary" href="/teacher/paper">Record paper marks</Link>
-            <Link className="btn ghost" href="/print">Printable lessons</Link>
+              <Link className="btn ghost" href="/assessment/number">Number checkpoint</Link>
+              <Link className="btn ghost" href="/print">Printable lessons</Link>
             <Link className="btn ghost" href="/kiosk">Shared-device sign-in</Link>
           </nav>
 

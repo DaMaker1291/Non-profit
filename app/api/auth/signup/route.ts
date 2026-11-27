@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 import {
-  accountOwningProfile, createAccount, emailProblem, ensureProfileSecretFor, findAccountByEmail,
+  accountOwningProfile, createAccount, emailProblem, findAccountByEmail,
   mintRecoveryCodeFor, newProfileId, passwordProblem, publicAccount, type AccountRole,
 } from "@/lib/server/auth";
-import { getProfile, newProfileState, publicProfileState, saveProfile } from "@/lib/server/store";
+// THE RECORD GOES THROUGH THE STORAGE PORT. Sign-up creates a learner record, and
+// on a deployment configured for Postgres the file store is not where a learner
+// lives — writing here answered 200 while the database held no profile, so the
+// very next read of that learner was a 404 (or, worse, a second record).
+import { activeStorage } from "@/lib/server/storage-file";
+import { mintProfileSecret, newProfileState, publicProfileState } from "@/lib/server/store";
 import type { ProfileState, SubjectId } from "@/lib/types";
 import { hit, SIGNUP_PER_ADDRESS } from "@/lib/server/rate-limit";
 import { ingressFor } from "@/lib/server/client-address";
@@ -29,6 +34,7 @@ const ROLES: AccountRole[] = ["student", "teacher", "org"];
  * being thrown away at the sign-up wall.
  */
 export async function POST(req: Request): Promise<NextResponse> {
+  const storage = activeStorage();
   const body = await readBody(req);
   const email = str(body.email);
   const password = str(body.password);
@@ -75,7 +81,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   let state: ProfileState | null = null;
   const claim = body.claim && typeof body.claim === "object" ? (body.claim as Record<string, unknown>) : null;
   if (claim && typeof claim.profileId === "string") {
-    const candidate = await getProfile(claim.profileId);
+    const candidate = await storage.getProfile(claim.profileId);
     // A profile with no secret yet binds the first one presented; otherwise the
     // presented secret must match — a profile id alone is never enough.
     const proven = candidate && (!candidate.secret || candidate.secret === claim.secret);
@@ -105,10 +111,10 @@ export async function POST(req: Request): Promise<NextResponse> {
       schoolLang: language,
       subjects: subjects.length ? subjects.slice(0, 5) : ["maths"],
     });
-    await saveProfile(state);
+    await storage.saveProfile(state);
   } else if (name.trim() && state.profile.handle === "student") {
     state.profile.handle = name.trim().slice(0, 24);
-    await saveProfile(state);
+    await storage.saveProfile(state);
   }
 
   const role = ROLES.includes(str(body.role) as AccountRole) ? (str(body.role) as AccountRole) : "student";
@@ -124,7 +130,14 @@ export async function POST(req: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "server_error" }, { status: 500 });
   }
 
-  const secret = await ensureProfileSecretFor(state);
+  // The same rule the file store's helper applied, through the port: keep an
+  // existing capability (rotating it would sign every other device out) and mint
+  // one only where there is none, persisting it BEFORE it is returned.
+  if (!state.secret) {
+    state.secret = mintProfileSecret();
+    await storage.saveProfile(state);
+  }
+  const secret = state.secret;
   // EVERY NEW LEARNER GETS A RECOVERY CODE BEFORE THEY NEED ONE. Minting it at
   // sign-up rather than on demand is the difference between "there is a way back"
   // and "there was a way back if you thought about it while you still had access" —

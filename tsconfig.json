@@ -44,7 +44,11 @@
     "next-env.d.ts",
     "next.config.mjs",
     ".next-prod/dev/types/**/*.ts",
-    ".next-e2e/dev/types/**/*.ts"
+    ".next-e2e/dev/types/**/*.ts",
+    "/Users/shaurjeshbasu/Downloads/NON PROFIT/.next-test/types/**/*.ts",
+    "/Users/shaurjeshbasu/Downloads/NON PROFIT/.next-test/dev/types/**/*.ts",
+    "/Users/shaurjeshbasu/Downloads/NON PROFIT/.next-demo/types/**/*.ts",
+    "/Users/shaurjeshbasu/Downloads/NON PROFIT/.next-demo/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",

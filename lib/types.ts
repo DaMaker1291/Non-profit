@@ -442,8 +442,14 @@ export interface Question {
   answer: number;
   /** Human explanation of why the answer is right. */
   explanation: string;
-  /** Which misconception catalogues this question discriminates. */
+  /** Which misconception catalogues this question discriminates. This is the
+   *  union for retrieval and targeting, not a claim that every wrong option
+   *  represents that belief. */
   misconceptionTags: string[];
+  /** ONE NAMED BELIEF PER OPTION, aligned with `choices`; `""` means the option
+   *  is a slip, near-miss or padded distractor and MUST NOT be diagnosed as a
+   *  named misconception. Grader-only, never served. */
+  choiceMisconceptions?: string[];
   /** How the learner answers it. Absent = "choice". */
   responseKind?: ResponseKind;
   /** The canonical answer as a NUMBER, present exactly when

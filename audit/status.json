@@ -2,25 +2,25 @@
   "generatedBy": "scripts/status-report.mjs",
   "note": "Properties of the COMMITTED content, each derived from the artifact that makes it true. Runtime results (how many assertions a gate passed on the last run) are deliberately absent: they are true of a run and false of the repository. Regenerate with `npm run status`; `npm run status -- --check` fails when this file or the README table is stale.",
   "counts": {
-    "Content · Teachable concepts": 135,
-    "Content · Concepts by stage": "0:16 1:32 2:46 3:29 4:8 5:4",
-    "Content · Concepts with a named misconception": 65,
+    "Content · Teachable concepts": 136,
+    "Content · Concepts by stage": "0:16 1:33 2:46 3:29 4:8 5:4",
+    "Content · Concepts with a named misconception": 71,
     "Content · Languages": 15,
-    "Content verification · Concepts with a structural check": 135,
-    "Content verification · Concepts whose explanation states its key": 135,
+    "Content verification · Concepts with a structural check": 136,
+    "Content verification · Concepts whose explanation states its key": 136,
     "Content verification · Concepts independently re-derived from the prompt": 5,
-    "Content verification · Concepts checked for structure only": 130,
+    "Content verification · Concepts checked for structure only": 131,
     "Content verification · Concepts reviewed by a qualified person": 0,
-    "Assessment validity · Concepts with an option-length tell above the line": "63 of 135",
-    "Assessment validity · Best bank-wide length strategy": "25.2%",
+    "Assessment validity · Concepts with an option-length tell above the line": "62 of 136",
+    "Assessment validity · Best bank-wide length strategy": "25.1%",
     "Assessment validity · Course × subject rows audited for depth": 311,
     "Storage · Lock tables in lib/ and app/": 1,
     "Storage · Owners of where learning data lives": 1,
-    "Storage · Route files importing the store": 26,
+    "Storage · Route files importing the store": 16,
     "Storage · JSON files the server modules own": 15,
-    "Pilot (UK GCSE maths) · Concepts in the review cluster": 20,
-    "Pilot (UK GCSE maths) · Items awaiting human review": 179,
-    "Pilot (UK GCSE maths) · Cluster concepts with no named misconception to probe": 5,
+    "Pilot (UK GCSE maths) · Concepts in the review cluster": 21,
+    "Pilot (UK GCSE maths) · Items awaiting human review": 224,
+    "Pilot (UK GCSE maths) · Cluster concepts with no named misconception to probe": 0,
     "Curriculum · Country choices offered in enrolment": 251,
     "Curriculum · Countries with a recorded national route": 70,
     "Curriculum · National pathways": 71,
@@ -37,23 +37,23 @@
     {
       "section": "Content",
       "label": "Teachable concepts",
-      "value": 135,
+      "value": 136,
       "source": "lib/genome.ts",
-      "note": "maths 67 · physics 18 · chemistry 16 · biology 16 · computing 18"
+      "note": "maths 68 · physics 18 · chemistry 16 · biology 16 · computing 18"
     },
     {
       "section": "Content",
       "label": "Concepts by stage",
-      "value": "0:16 1:32 2:46 3:29 4:8 5:4",
+      "value": "0:16 1:33 2:46 3:29 4:8 5:4",
       "source": "lib/genome.ts",
       "note": "stage 0 (primary) → 5"
     },
     {
       "section": "Content",
       "label": "Concepts with a named misconception",
-      "value": 65,
+      "value": 71,
       "source": "lib/genome.ts",
-      "note": "catalogue of 55 patterns"
+      "note": "catalogue of 62 patterns"
     },
     {
       "section": "Content",
@@ -64,14 +64,14 @@
     {
       "section": "Content verification",
       "label": "Concepts with a structural check",
-      "value": 135,
+      "value": 136,
       "source": "audit/verification-coverage.json",
       "note": "four distinct options, no float noise, a non-empty explanation"
     },
     {
       "section": "Content verification",
       "label": "Concepts whose explanation states its key",
-      "value": 135,
+      "value": 136,
       "source": "audit/verification-coverage.json"
     },
     {
@@ -84,7 +84,7 @@
     {
       "section": "Content verification",
       "label": "Concepts checked for structure only",
-      "value": 130,
+      "value": 131,
       "source": "audit/verification-coverage.json",
       "note": "an item no matcher recognises is an item nobody has verified"
     },
@@ -98,14 +98,14 @@
     {
       "section": "Assessment validity",
       "label": "Concepts with an option-length tell above the line",
-      "value": "63 of 135",
+      "value": "62 of 136",
       "source": "audit/options-gate.json",
       "note": "a learner who never reads the question should not beat chance"
     },
     {
       "section": "Assessment validity",
       "label": "Best bank-wide length strategy",
-      "value": "25.2%",
+      "value": "25.1%",
       "source": "audit/options-gate.json",
       "note": "chance is 25%"
     },
@@ -133,9 +133,9 @@
     {
       "section": "Storage",
       "label": "Route files importing the store",
-      "value": 26,
+      "value": 16,
       "source": "app/api",
-      "note": "86 export statements in a 1373-line store; this is the surface docs/STORAGE_SPEC.md has to port"
+      "note": "87 export statements in a 1391-line store; this is the surface docs/STORAGE_SPEC.md has to port"
     },
     {
       "section": "Storage",
@@ -147,21 +147,21 @@
     {
       "section": "Pilot (UK GCSE maths)",
       "label": "Concepts in the review cluster",
-      "value": 20,
+      "value": 21,
       "source": "audit/pilot-pack.json",
       "note": "computed from the genome's prerequisite graph, not hand-picked"
     },
     {
       "section": "Pilot (UK GCSE maths)",
       "label": "Items awaiting human review",
-      "value": 179,
+      "value": 224,
       "source": "audit/pilot-pack.json",
       "note": "every item a learner in the cluster meets, at a seed the reviewer can reproduce"
     },
     {
       "section": "Pilot (UK GCSE maths)",
       "label": "Cluster concepts with no named misconception to probe",
-      "value": 5,
+      "value": 0,
       "source": "audit/pilot-pack.json",
       "note": "a distractor here is not yet tied to a pattern anyone has written down"
     },

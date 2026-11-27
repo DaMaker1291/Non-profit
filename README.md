@@ -205,7 +205,7 @@ mechanically possible.
 
 ### 🧬 The Knowledge Genome (`lib/genome.ts`)
 
-**135 atomic concepts** — Mathematics (67), Physics (18), Chemistry (16), Biology (16), Computing (18) — each with:
+**136 atomic concepts** — Mathematics (68), Physics (18), Chemistry (16), Biology (16), Computing (18) — each with:
 
 - a curriculum-aligned **lesson** (a real explanation, not a syllabus checkbox),
 - explicit **prerequisites** forming a directed graph (validated cycle-free),
@@ -279,7 +279,7 @@ No emails, no phone numbers, no real names — a handle, an optional country, le
 Next.js 15 (App Router, React 18, TypeScript strict, standalone output)
 ├── lib/
 │   ├── app-state.ts       # the learner lifecycle + the route access contract
-│   ├── genome.ts          # 135 concepts + prerequisite graph
+│   ├── genome.ts          # 136 concepts + prerequisite graph
 │   ├── matcher.ts         # offline question→concept matcher (the wedge)
 │   ├── misconceptions.ts  # 52-pattern catalogue with coaching
 │   ├── questions.ts       # seeded generators + serveView sanitizer
@@ -317,25 +317,25 @@ Runtime results are not listed here on purpose — a gate's last pass count is t
 
 | | Measured | Value | Note | Where it comes from |
 |---|---|---|---|---|
-| **Content** | Teachable concepts | 135 | maths 67 · physics 18 · chemistry 16 · biology 16 · computing 18 | `lib/genome.ts` |
-|  | Concepts by stage | 0:16 1:32 2:46 3:29 4:8 5:4 | stage 0 (primary) → 5 | `lib/genome.ts` |
-|  | Concepts with a named misconception | 65 | catalogue of 55 patterns | `lib/genome.ts` |
+| **Content** | Teachable concepts | 136 | maths 68 · physics 18 · chemistry 16 · biology 16 · computing 18 | `lib/genome.ts` |
+|  | Concepts by stage | 0:16 1:33 2:46 3:29 4:8 5:4 | stage 0 (primary) → 5 | `lib/genome.ts` |
+|  | Concepts with a named misconception | 71 | catalogue of 62 patterns | `lib/genome.ts` |
 |  | Languages | 15 |  | `lib/i18n.ts` |
-| **Content verification** | Concepts with a structural check | 135 | four distinct options, no float noise, a non-empty explanation | `audit/verification-coverage.json` |
-|  | Concepts whose explanation states its key | 135 |  | `audit/verification-coverage.json` |
+| **Content verification** | Concepts with a structural check | 136 | four distinct options, no float noise, a non-empty explanation | `audit/verification-coverage.json` |
+|  | Concepts whose explanation states its key | 136 |  | `audit/verification-coverage.json` |
 |  | Concepts independently re-derived from the prompt | 5 | circle-area-arc, completing-square, fractions, mixture-problems, surds | `audit/verification-coverage.json` |
-|  | Concepts checked for structure only | 130 | an item no matcher recognises is an item nobody has verified | `audit/verification-coverage.json` |
+|  | Concepts checked for structure only | 131 | an item no matcher recognises is an item nobody has verified | `audit/verification-coverage.json` |
 |  | Concepts reviewed by a qualified person | 0 | nobody has reviewed any item yet — the honest figure, and the one this project would most like to change | `audit/item-reviews.json` |
-| **Assessment validity** | Concepts with an option-length tell above the line | 63 of 135 | a learner who never reads the question should not beat chance | `audit/options-gate.json` |
-|  | Best bank-wide length strategy | 25.2% | chance is 25% | `audit/options-gate.json` |
+| **Assessment validity** | Concepts with an option-length tell above the line | 62 of 136 | a learner who never reads the question should not beat chance | `audit/options-gate.json` |
+|  | Best bank-wide length strategy | 25.1% | chance is 25% | `audit/options-gate.json` |
 |  | Course × subject rows audited for depth | 311 | every subject's target depth is reachable, by some generator in its course | `audit/content-coverage.json` |
 | **Storage** | Lock tables in lib/ and app/ | 1 | one, in lib/server/store.ts — two tables means two writers with no common serialisation point | `source scan` |
 |  | Owners of where learning data lives | 1 | one, in lib/server/store.ts; lib/env.ts reports the variable and resolves nothing, so it is exempt | `source scan` |
-|  | Route files importing the store | 26 | 86 export statements in a 1373-line store; this is the surface docs/STORAGE_SPEC.md has to port | `app/api` |
+|  | Route files importing the store | 16 | 87 export statements in a 1391-line store; this is the surface docs/STORAGE_SPEC.md has to port | `app/api` |
 |  | JSON files the server modules own | 15 | plus the per-learner evidence/*.jsonl ledgers and session-secret: "accounts.json", "ai-cache.json", "boots.json", "classes.json", "classroom-sessions.json", "content-reviews.json", "erasures.json", "interventions.json", "kiosk-sessions.json", "lesson-validation.json", "packs.json", "papers.json", "personal-papers.json", "profiles.json", "rooms.json" | `lib/server/*.ts` |
-| **Pilot (UK GCSE maths)** | Concepts in the review cluster | 20 | computed from the genome's prerequisite graph, not hand-picked | `audit/pilot-pack.json` |
-|  | Items awaiting human review | 179 | every item a learner in the cluster meets, at a seed the reviewer can reproduce | `audit/pilot-pack.json` |
-|  | Cluster concepts with no named misconception to probe | 5 | a distractor here is not yet tied to a pattern anyone has written down | `audit/pilot-pack.json` |
+| **Pilot (UK GCSE maths)** | Concepts in the review cluster | 21 | computed from the genome's prerequisite graph, not hand-picked | `audit/pilot-pack.json` |
+|  | Items awaiting human review | 224 | every item a learner in the cluster meets, at a seed the reviewer can reproduce | `audit/pilot-pack.json` |
+|  | Cluster concepts with no named misconception to probe | 0 | a distractor here is not yet tied to a pattern anyone has written down | `audit/pilot-pack.json` |
 | **Curriculum** | Country choices offered in enrolment | 251 |  | `lib/world-countries.ts` |
 |  | Countries with a recorded national route | 70 | asserted equal to the published count by `npm run curriculum-gate` | `lib/curricula/registry.ts` |
 |  | National pathways | 71 | Cameroon runs two systems, so this exceeds the country count | `lib/curricula/registry.ts` |
@@ -388,7 +388,7 @@ npm run verify         # the engine suite (the assertion count is printed by the
                        # fallbacks included, leaving the ledger byte-identical
                        # and every mastery field untouched)
 
-npm run verify:q       # question audit: 135 generators × 300 draws — four
+npm run verify:q       # question audit: 136 generators × 300 draws — four
                        # distinct options, no floating-point noise, and where the
                        # maths can be checked independently (surds, completing
                        # the square, sectors, linear word problems) the answer is
@@ -396,7 +396,10 @@ npm run verify:q       # question audit: 135 generators × 300 draws — four
 
 npm run build          # production build (standalone output)
 
-npm run e2e            # with dev server running: the API lifecycle assertions
+npm run test:isolated  # THE supported run: own scratch store + port, e2e + UI +
+                       # lesson walks; refuses an unisolated target (docs/
+                       # TEST-ISOLATION.md). `npm run e2e` alone refuses too.
+npm run e2e            # with a guarded dev server running: the API lifecycle assertions
                        # (the total varies between runs — read `failed`, not the
                        # total), including the route contract's server half (a session
                        # survives on its cookie alone, and sign-out really
@@ -425,7 +428,7 @@ The engine suite drives the *real* engines: it proves the strong student climbs 
 
 ### Known limits, stated rather than hidden
 
-- **Question-bank depth.** 119 of the 135 generators declare a *single* difficulty, so a curriculum tier can only move the depth of the 16 that have a real spread. Where a generator cannot reach a tier's depth the closest draw is served and the question's true difficulty rides along — the engine suite asserts that a uniform generator never fakes a harder draw, and the tier's real lever is the concept set its stage window selects.
+- **Question-bank depth.** 120 of the 136 generators declare a *single* difficulty, so a curriculum tier can only move the depth of the 16 that have a real spread. Where a generator cannot reach a tier's depth the closest draw is served and the question's true difficulty rides along — the engine suite asserts that a uniform generator never fakes a harder draw, and the tier's real lever is the concept set its stage window selects.
 - **Vocabulary, not translation of content.** The terminology layer rewrites words the genome actually uses (slope/gradient, PEMDAS/BIDMAS, scientific notation/standard form). It is deliberately small: the suite fails a mapping that never occurs in real content, or whose replacement would repeat the following word.
 - **Unit conversions.** Question stems are metric. Imperial/US-customary variants (feet, pounds, °F) are not generated yet, so a US student's *units* remain UK-flavoured even when the *words* follow Common Core.
 - **Storage is only as durable as the host, and OpenMind says which it is.** On a host that discards its filesystem (a free Render/Heroku/Fly instance), no statistic the running process can take tells a disk it keeps from a directory it rebuilds — two live drills produced two false "durable" verdicts — so the deployment must DECLARE it (`OPENMIND_DATA_DIR_DURABLE=1` for a real disk, proven by `npm run verify:persistence`) or declare that it accepts losing everything (`OPENMIND_ALLOW_EPHEMERAL_STORE=1`, a labelled demo). Until it does, `/api/ready` answers 503 and learner-data writes are REFUSED rather than accepted and thrown away; `/api/ready` reports what was declared AND what the store has been seen to survive, as two different things.

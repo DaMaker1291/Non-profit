@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
-import { getClass, listClasses, newId, updateClassById } from "@/lib/server/store";
+// Learning needs are written onto the class, so they follow the class to the
+// CONFIGURED backend.
+import { activeStorage } from "@/lib/server/storage-file";
+import { newId } from "@/lib/server/store";
+import type { ClassRoster } from "@/lib/types";
 // A store that cannot keep a learner record refuses the write and says why; this
 // route turns that refusal into the honest 503 instead of a bare 500.
 import { storeWriteRefusal } from "@/lib/server/write-refusal";
@@ -76,7 +80,7 @@ import type {
  *  STUDENTS with their full ledgers (resolveMembers excludes the teacher);
  *  the curriculum is the class's own declared one, never a default. */
 async function deriveNeeds(
-  cls: NonNullable<Awaited<ReturnType<typeof getClass>>>,
+  cls: ClassRoster,
   subjects: SubjectId[] | null,
 ): Promise<{ needs: ClassNeed[]; curriculum: string[] }> {
   if (!cls.subject) return { needs: [], curriculum: [] };
@@ -133,7 +137,7 @@ export async function GET(req: Request): Promise<NextResponse> {
 
   const clsId = searchParams.get("cls");
   if (clsId) {
-    const cls = await getClass(clsId);
+    const cls = await activeStorage().getClass(clsId);
     if (!cls) return NextResponse.json({ error: "not found" }, { status: 404 });
     // Same rule, same two refusals as every other teacher door: a signed-in
     // teaching ACCOUNT that owns THIS class. `me`/`secret` are not consulted.
@@ -148,8 +152,8 @@ export async function GET(req: Request): Promise<NextResponse> {
   // No class named: the strongest needs across every class the caller OWNS.
   // Sorted by severity within each class, then capped — Teacher Home reads
   // this, and "too many to read" is the failure mode the cap exists for.
-  const mine: Awaited<ReturnType<typeof listClasses>> = [];
-  for (const cls of await listClasses()) {
+  const mine: ClassRoster[] = [];
+  for (const cls of await activeStorage().listClasses()) {
     if (await canAdminister(cls, who.account.id)) mine.push(cls);
   }
   const rows: Array<ClassNeed & { className: string; clsId2: string }> = [];
@@ -202,7 +206,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     if (typeof body.clsId !== "string" || !body.clsId) {
       return NextResponse.json({ error: "missing class" }, { status: 400 });
     }
-    const cls = await getClass(body.clsId);
+    const cls = await activeStorage().getClass(body.clsId);
     if (!cls) return NextResponse.json({ error: "not found" }, { status: 404 });
     // THE ACCOUNT'S AUTHORITY, decided once, before anything is derived. A
     // capability in the body is a learner credential: it names nobody here.
@@ -315,7 +319,7 @@ export async function POST(req: Request): Promise<NextResponse> {
             ? `${MISCONCEPTIONS_BY_ID[rec0.misconceptionId ?? ""]?.name ?? rec0.misconceptionId ?? "misconception"} — review`
             : "Intervention");
         const stamp = Date.now();
-        const upd = await updateClassById(cls.id, (c) => {
+        const upd = await activeStorage().updateClassById(cls.id, (c) => {
           // Re-check INSIDE the lock, synchronously: an account that no longer
           // owns the roster must not administer it. A legacy row (no
           // `teacherAccountId` yet) was resolved by `teacherOfClass` above.
@@ -431,7 +435,7 @@ export async function POST(req: Request): Promise<NextResponse> {
  *  derived read on purpose, recomputed at each request: nothing can drift,
  *  and a change in the ledgers changes the verdict the way the evidence says. */
 async function outcomeFor(
-  cls: NonNullable<Awaited<ReturnType<typeof getClass>>>,
+  cls: ClassRoster,
   rec: InterventionRecord,
 ) {
   const targets = rec.targetHandles ?? [];

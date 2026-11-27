@@ -1,0 +1,2913 @@
+{
+  "generatedBy": "scripts/exam-coverage.mjs",
+  "note": "A concept is not an objective. Coverage is reported only for the references an audit actually inventories; a partial inventory is never extrapolated to the whole specification. A lesson file is not a teaching sequence, a teaching sequence is not an assessment, and one assessment item is not complete assessment coverage. The assessment stage separates items existing, some published requirements covered, and all requirements covered.",
+  "catalogue": {
+    "specifications": 91,
+    "mappingsOnFile": 2,
+    "mappedSpecifications": 2,
+    "reviewedMappings": 0,
+    "objectiveAudits": 1,
+    "specsWithObjectiveAudit": 1,
+    "totalReferenceStatements": 97,
+    "totalInventoriedReferences": 16,
+    "totalObjectives": 35,
+    "assessmentItemsObjectives": 5,
+    "assessmentPartialObjectives": 0,
+    "assessmentCompleteObjectives": 5,
+    "reviewedObjectives": 0,
+    "learnerTestedObjectives": 0,
+    "masteryDemonstratedObjectives": 0,
+    "specs": [
+      {
+        "id": "uk-gcse",
+        "name": "GCSE",
+        "country": "GB",
+        "board": "aqa",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 131,
+        "mappedSubject": "maths",
+        "mappingConcepts": 57,
+        "mappingReviewer": null,
+        "objectiveAudit": "aqa-gcse-maths-8300"
+      },
+      {
+        "id": "uk-alevel",
+        "name": "A-Level",
+        "country": "GB",
+        "board": "aqa",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 87,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "int-igcse",
+        "name": "Cambridge IGCSE",
+        "country": "INT",
+        "board": "cambridge",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 131,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "int-ib",
+        "name": "International Baccalaureate",
+        "country": "INT",
+        "board": "ib",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 132,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "us-core",
+        "name": "Common Core (US)",
+        "country": "US",
+        "board": "commoncore",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 131,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "us-sat",
+        "name": "Digital SAT",
+        "country": "US",
+        "board": "collegeboard",
+        "subjects": [
+          "maths"
+        ],
+        "concepts": 46,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "us-ap",
+        "name": "Advanced Placement (AP)",
+        "country": "US",
+        "board": "collegeboard",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 87,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "ca-provincial",
+        "name": "Provincial curriculum (Canada)",
+        "country": "CA",
+        "board": "canadian",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 131,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "za-nsc",
+        "name": "National Senior Certificate (CAPS)",
+        "country": "ZA",
+        "board": "caps",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 127,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "au-acara",
+        "name": "Australian Curriculum",
+        "country": "AU",
+        "board": "acara",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 131,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "ie-junior",
+        "name": "Junior / Senior Cycle (Ireland)",
+        "country": "IE",
+        "board": "state",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 131,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "in-cbse",
+        "name": "CBSE",
+        "country": "IN",
+        "board": "cbse",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 132,
+        "mappedSubject": "maths",
+        "mappingConcepts": 21,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "in-icse",
+        "name": "ICSE / ISC",
+        "country": "IN",
+        "board": "icse",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 132,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "pk-matric",
+        "name": "Matric / Intermediate (Pakistan)",
+        "country": "PK",
+        "board": "matric",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 131,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "bd-ssc",
+        "name": "SSC / HSC (Bangladesh)",
+        "country": "BD",
+        "board": "bangladeshi",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 131,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "ke-kcse",
+        "name": "KCSE (Kenya)",
+        "country": "KE",
+        "board": "kenyan",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 131,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "tz-csee",
+        "name": "CSEE (Tanzania)",
+        "country": "TZ",
+        "board": "kenyan",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 127,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "ug-uce",
+        "name": "UCE (Uganda)",
+        "country": "UG",
+        "board": "kenyan",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 127,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "ng-waec",
+        "name": "WAEC / NECO (Nigeria)",
+        "country": "NG",
+        "board": "nigerian",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 131,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "gh-wassce",
+        "name": "WASSCE (Ghana)",
+        "country": "GH",
+        "board": "state",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 131,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "ph-deped",
+        "name": "DepEd K-12 (Philippines)",
+        "country": "PH",
+        "board": "philippine",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 131,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "id-merdeka",
+        "name": "Kurikulum Merdeka (Indonesia)",
+        "country": "ID",
+        "board": "indonesian",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 131,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "br-enem",
+        "name": "ENEM / BNCC (Brazil)",
+        "country": "BR",
+        "board": "brazilian",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 131,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "mx-sep",
+        "name": "SEP (Mexico)",
+        "country": "MX",
+        "board": "mexican",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 131,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "any-independent",
+        "name": "Independent · skills pathway",
+        "country": "XX",
+        "board": "state",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 136,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "cm-gce-o",
+        "name": "GCE Ordinary Level",
+        "country": "CM",
+        "board": "gce",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 120,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "cm-gce-a",
+        "name": "GCE Advanced Level",
+        "country": "CM",
+        "board": "gce",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 87,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "cm-bepc",
+        "name": "BEPC",
+        "country": "CM",
+        "board": "minesec",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 120,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "cm-probatoire",
+        "name": "Probatoire",
+        "country": "CM",
+        "board": "minesec",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 124,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "cm-bac",
+        "name": "Baccalauréat",
+        "country": "CM",
+        "board": "minesec",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 124,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "et-esslce",
+        "name": "Ethiopian School Leaving Certificate (ESSLCE)",
+        "country": "ET",
+        "board": "ethiopian",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 131,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "eg-thanaweya",
+        "name": "Thanaweya Amma (General Secondary Certificate)",
+        "country": "EG",
+        "board": "egyptian",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 124,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "ma-college",
+        "name": "Brevet (3e année collège)",
+        "country": "MA",
+        "board": "moroccan",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 95,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "ma-bac",
+        "name": "Baccalauréat marocain",
+        "country": "MA",
+        "board": "moroccan",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 124,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "rw-o-level",
+        "name": "Ordinary Level (REB)",
+        "country": "RW",
+        "board": "rwandan",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 124,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "rw-a-level",
+        "name": "Advanced Level (REB)",
+        "country": "RW",
+        "board": "rwandan",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 124,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "zm-school-certificate",
+        "name": "School Certificate (ECZ)",
+        "country": "ZM",
+        "board": "zambian",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 124,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "zw-o-level",
+        "name": "ZIMSEC Ordinary Level",
+        "country": "ZW",
+        "board": "zimsec",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 116,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "zw-a-level",
+        "name": "ZIMSEC Advanced Level",
+        "country": "ZW",
+        "board": "zimsec",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 124,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "mw-msce",
+        "name": "Malawi School Certificate of Education (MSCE)",
+        "country": "MW",
+        "board": "malawian",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 116,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "ml-bac",
+        "name": "Baccalauréat malien",
+        "country": "ML",
+        "board": "malian",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 124,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "sn-bac",
+        "name": "Baccalauréat sénégalais",
+        "country": "SN",
+        "board": "senegalese",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 124,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "ci-bac",
+        "name": "Baccalauréat ivoirien",
+        "country": "CI",
+        "board": "ivorian",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 124,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "ne-bac",
+        "name": "Baccalauréat nigérien",
+        "country": "NE",
+        "board": "nigerien",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 124,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "bf-bac",
+        "name": "Baccalauréat burkinabè",
+        "country": "BF",
+        "board": "burkinabe",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 124,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "so-form-4",
+        "name": "Form 4 National Examination",
+        "country": "SO",
+        "board": "somali",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 116,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "sd-school-certificate",
+        "name": "Sudan School Certificate",
+        "country": "SD",
+        "board": "sudanese",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 116,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "vn-thpt",
+        "name": "THPT Quốc gia (National High School Examination)",
+        "country": "VN",
+        "board": "vietnamese",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 131,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "tr-yks",
+        "name": "YKS (TYT / AYT)",
+        "country": "TR",
+        "board": "turkish",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 131,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "ir-konkur",
+        "name": "Konkur (university entrance)",
+        "country": "IR",
+        "board": "iranian",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 131,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "af-baccalaureate",
+        "name": "Baccalaureate (Kankor entry)",
+        "country": "AF",
+        "board": "afghan",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 101,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "cn-gaokao",
+        "name": "Gaokao (National College Entrance Examination)",
+        "country": "CN",
+        "board": "chinese",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 132,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "jp-nyushi",
+        "name": "Daigaku Nyushi (university entrance)",
+        "country": "JP",
+        "board": "japanese",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 132,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "kr-csat",
+        "name": "Suneung (CSAT)",
+        "country": "KR",
+        "board": "korean",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 132,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "ye-general-secondary",
+        "name": "General Secondary Certificate",
+        "country": "YE",
+        "board": "yemeni",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 101,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "iq-preparatory",
+        "name": "Sixth Preparatory Certificate",
+        "country": "IQ",
+        "board": "iraqi",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 101,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "sy-baccalaureate",
+        "name": "Al-Shahada Al-Thanawiyya (Baccalaureate)",
+        "country": "SY",
+        "board": "syrian",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 101,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "jo-tawjihi",
+        "name": "Tawjihi (General Secondary Certificate)",
+        "country": "JO",
+        "board": "jordanian",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 116,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "lb-baccalaureate",
+        "name": "Lebanese Baccalaureate",
+        "country": "LB",
+        "board": "lebanese",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 123,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "np-see",
+        "name": "Secondary Education Examination (SEE)",
+        "country": "NP",
+        "board": "nepali",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 95,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "np-neb",
+        "name": "NEB Grade 12",
+        "country": "NP",
+        "board": "nepali",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 116,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "lk-o-level",
+        "name": "GCE Ordinary Level (Sri Lanka)",
+        "country": "LK",
+        "board": "srilankan",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 95,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "lk-a-level",
+        "name": "GCE Advanced Level (Sri Lanka)",
+        "country": "LK",
+        "board": "srilankan",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 123,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "mm-matriculation",
+        "name": "Matriculation Examination",
+        "country": "MM",
+        "board": "myanmar",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 101,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "kh-baccalaureate",
+        "name": "Baccalauréat (Cambodia)",
+        "country": "KH",
+        "board": "cambodian",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 101,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "la-upper-secondary",
+        "name": "Upper Secondary Completion",
+        "country": "LA",
+        "board": "lao",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 101,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "mn-eesh",
+        "name": "ЭЕШ (University Entrance Examination)",
+        "country": "MN",
+        "board": "mongolian",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 116,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "kz-unt",
+        "name": "ҰБТ (Unified National Testing)",
+        "country": "KZ",
+        "board": "kazakh",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 131,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "uz-entrance",
+        "name": "University entrance examinations",
+        "country": "UZ",
+        "board": "uzbek",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 116,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "es-eso",
+        "name": "Educación Secundaria Obligatoria (ESO)",
+        "country": "ES",
+        "board": "spanish",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 95,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "es-bachillerato",
+        "name": "Bachillerato (EBAU)",
+        "country": "ES",
+        "board": "spanish",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 124,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "fr-college",
+        "name": "Diplôme national du brevet",
+        "country": "FR",
+        "board": "french",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 95,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "fr-bac",
+        "name": "Baccalauréat",
+        "country": "FR",
+        "board": "french",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 124,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "de-msa",
+        "name": "Mittlerer Schulabschluss",
+        "country": "DE",
+        "board": "german",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 95,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "de-abi",
+        "name": "Abitur",
+        "country": "DE",
+        "board": "german",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 124,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "it-media",
+        "name": "Licenza media",
+        "country": "IT",
+        "board": "italian",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 95,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "it-maturita",
+        "name": "Esame di Stato (Maturità)",
+        "country": "IT",
+        "board": "italian",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 124,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "pl-osmoklasisty",
+        "name": "Egzamin ósmoklasisty",
+        "country": "PL",
+        "board": "polish",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 95,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "pl-matura",
+        "name": "Matura",
+        "country": "PL",
+        "board": "polish",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 124,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "ua-nmt",
+        "name": "НМТ (National Multi-subject Test)",
+        "country": "UA",
+        "board": "ukrainian",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 131,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "co-saber-11",
+        "name": "Saber 11",
+        "country": "CO",
+        "board": "colombian",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 124,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "ar-secundaria",
+        "name": "Secundaria · Título de Bachiller",
+        "country": "AR",
+        "board": "argentine",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 116,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "pe-secundaria",
+        "name": "Educación Secundaria (EBR)",
+        "country": "PE",
+        "board": "peruvian",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 116,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "ht-bac",
+        "name": "Baccalauréat (Haïti)",
+        "country": "HT",
+        "board": "haitian",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 124,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "bo-bachillerato",
+        "name": "Bachillerato (Bolivia)",
+        "country": "BO",
+        "board": "bolivian",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 116,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "ec-bachillerato",
+        "name": "Bachillerato (Ecuador)",
+        "country": "EC",
+        "board": "ecuadorian",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 124,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "gt-diversificado",
+        "name": "Evaluación Graduandos — Matemática",
+        "country": "GT",
+        "board": "guatemalan",
+        "subjects": [
+          "maths"
+        ],
+        "concepts": 49,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "hn-bachillerato",
+        "name": "Bachillerato (Honduras)",
+        "country": "HN",
+        "board": "honduran",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 116,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "ni-bachillerato",
+        "name": "Bachillerato (Nicaragua)",
+        "country": "NI",
+        "board": "nicaraguan",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 116,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "sv-bachillerato",
+        "name": "Bachillerato (El Salvador)",
+        "country": "SV",
+        "board": "salvadoran",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 116,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      },
+      {
+        "id": "do-bachillerato",
+        "name": "Bachillerato (República Dominicana)",
+        "country": "DO",
+        "board": "dominican",
+        "subjects": [
+          "maths",
+          "physics",
+          "chemistry",
+          "biology",
+          "computing"
+        ],
+        "concepts": 116,
+        "mappedSubject": null,
+        "mappingConcepts": 0,
+        "mappingReviewer": null,
+        "objectiveAudit": null
+      }
+    ]
+  },
+  "audits": [
+    {
+      "auditId": "aqa-gcse-maths-8300",
+      "file": "uk-gcse-maths-aqa-8300.json",
+      "openMindSpecId": "uk-gcse",
+      "subject": "maths",
+      "qualification": {
+        "board": "AQA",
+        "name": "GCSE Mathematics",
+        "code": "8300",
+        "tiers": [
+          {
+            "id": "foundation",
+            "name": "Foundation tier",
+            "grades": "1–5"
+          },
+          {
+            "id": "higher",
+            "name": "Higher tier",
+            "grades": "4–9"
+          }
+        ],
+        "specificationVersion": "1.1, September 2026",
+        "firstTeaching": "2015",
+        "firstExamination": "June 2017",
+        "linear": true,
+        "allPapersSameSeries": true
+      },
+      "source": {
+        "publisher": "AQA",
+        "title": "GCSE Mathematics 8300 specification",
+        "url": "https://www.aqa.org.uk/subjects/mathematics/gcse/mathematics-8300/specification",
+        "subjectContentUrl": "https://www.aqa.org.uk/subjects/mathematics/gcse/mathematics-8300/specification/subject-content",
+        "schemeOfAssessmentUrl": "https://www.aqa.org.uk/subjects/mathematics/gcse/mathematics-8300/specification/scheme-of-assessment",
+        "pdfUrl": "https://cdn.sanity.io/files/p28bar15/green/85a92f2f959e9e0d0350e6cfea08c94d9bf1d369.pdf",
+        "retrieved": "2026-11-26",
+        "note": "Read from the official AQA pages on 2026-11-26. Reference statements below are paraphrased for audit use; no AQA paper or mark scheme is included."
+      },
+      "papers": [
+        {
+          "id": "paper-1",
+          "name": "Paper 1",
+          "calculator": "non-calculator",
+          "durationMinutes": 90,
+          "marks": 80,
+          "weightPercent": 33.33
+        },
+        {
+          "id": "paper-2",
+          "name": "Paper 2",
+          "calculator": "calculator",
+          "durationMinutes": 90,
+          "marks": 80,
+          "weightPercent": 33.33
+        },
+        {
+          "id": "paper-3",
+          "name": "Paper 3",
+          "calculator": "calculator",
+          "durationMinutes": 90,
+          "marks": 80,
+          "weightPercent": 33.34
+        }
+      ],
+      "totalMarks": 240,
+      "domains": [
+        {
+          "id": "number",
+          "name": "Number",
+          "referencePrefix": "N",
+          "references": 16
+        },
+        {
+          "id": "algebra",
+          "name": "Algebra",
+          "referencePrefix": "A",
+          "references": 25
+        },
+        {
+          "id": "ratio",
+          "name": "Ratio, proportion and rates of change",
+          "referencePrefix": "R",
+          "references": 16
+        },
+        {
+          "id": "geometry",
+          "name": "Geometry and measures",
+          "referencePrefix": "G",
+          "references": 25
+        },
+        {
+          "id": "probability",
+          "name": "Probability",
+          "referencePrefix": "P",
+          "references": 9
+        },
+        {
+          "id": "statistics",
+          "name": "Statistics",
+          "referencePrefix": "S",
+          "references": 6
+        }
+      ],
+      "totalReferences": 97,
+      "inventory": {
+        "status": "partial",
+        "scope": "Number — all 16 references",
+        "references": [
+          "N1",
+          "N2",
+          "N3",
+          "N4",
+          "N5",
+          "N6",
+          "N7",
+          "N8",
+          "N9",
+          "N10",
+          "N11",
+          "N12",
+          "N13",
+          "N14",
+          "N15",
+          "N16"
+        ],
+        "objectives": 35,
+        "referencesInventoried": 16,
+        "referenceCoveragePercent": 16.5
+      },
+      "ladder": {
+        "mapped": 35,
+        "contentComplete": 18,
+        "contentPartial": 17,
+        "contentMissing": 0,
+        "sequenceComplete": 18,
+        "assessmentItems": 5,
+        "assessmentPartial": 0,
+        "assessmentComplete": 5,
+        "educatorReviewed": 0,
+        "learnerTested": 0,
+        "masteryDemonstrated": 0,
+        "stages": {
+          "unmapped": 0,
+          "mapped": 0,
+          "content-authored": 17,
+          "teaching-sequence-complete": 13,
+          "assessment-items": 0,
+          "assessment-partial": 0,
+          "assessment-complete": 5,
+          "educator-reviewed": 0,
+          "learner-tested": 0,
+          "mastery-demonstrated": 0
+        }
+      },
+      "assessment": {
+        "examStyleItems": 19,
+        "authoredStructured": 8,
+        "coverage": {
+          "none": 30,
+          "items": 0,
+          "partial": 0,
+          "complete": 5
+        }
+      },
+      "authoredCoverage": {
+        "full": 18,
+        "partial": 17,
+        "none": 0,
+        "concepts": 25,
+        "lessonsWithAllParts": 24
+      },
+      "tierGaps": [],
+      "higherTarget": 0.65,
+      "demandGaps": [
+        {
+          "conceptId": "addition",
+          "ceiling": 0.3,
+          "higherTarget": 0.65
+        },
+        {
+          "conceptId": "subtraction",
+          "ceiling": 0.3,
+          "higherTarget": 0.65
+        },
+        {
+          "conceptId": "multiplication",
+          "ceiling": 0.35,
+          "higherTarget": 0.65
+        },
+        {
+          "conceptId": "division",
+          "ceiling": 0.35,
+          "higherTarget": 0.65
+        },
+        {
+          "conceptId": "place-value",
+          "ceiling": 0.35,
+          "higherTarget": 0.65
+        },
+        {
+          "conceptId": "order-ops",
+          "ceiling": 0.4,
+          "higherTarget": 0.65
+        },
+        {
+          "conceptId": "negatives",
+          "ceiling": 0.45,
+          "higherTarget": 0.65
+        },
+        {
+          "conceptId": "rounding",
+          "ceiling": 0.5,
+          "higherTarget": 0.65
+        }
+      ],
+      "artefacts": [
+        {
+          "conceptId": "addition",
+          "lessonFile": true,
+          "teachingSequence": false,
+          "modality": "plan-text",
+          "interaction": null,
+          "browserVerified": false,
+          "educatorReviewed": false,
+          "learnerTested": false
+        },
+        {
+          "conceptId": "algebra-expressions",
+          "lessonFile": true,
+          "teachingSequence": true,
+          "modality": "plan-text",
+          "interaction": null,
+          "browserVerified": false,
+          "educatorReviewed": false,
+          "learnerTested": false
+        },
+        {
+          "conceptId": "area-perimeter",
+          "lessonFile": true,
+          "teachingSequence": false,
+          "modality": "plan-text",
+          "interaction": null,
+          "browserVerified": false,
+          "educatorReviewed": false,
+          "learnerTested": false
+        },
+        {
+          "conceptId": "bounds",
+          "lessonFile": true,
+          "teachingSequence": false,
+          "modality": "plan-text",
+          "interaction": null,
+          "browserVerified": false,
+          "educatorReviewed": false,
+          "learnerTested": false
+        },
+        {
+          "conceptId": "decimals",
+          "lessonFile": true,
+          "teachingSequence": true,
+          "modality": "interactive-model",
+          "interaction": "number-line-model",
+          "browserVerified": true,
+          "educatorReviewed": false,
+          "learnerTested": false
+        },
+        {
+          "conceptId": "division",
+          "lessonFile": true,
+          "teachingSequence": false,
+          "modality": "plan-text",
+          "interaction": null,
+          "browserVerified": false,
+          "educatorReviewed": false,
+          "learnerTested": false
+        },
+        {
+          "conceptId": "factors-primes",
+          "lessonFile": true,
+          "teachingSequence": true,
+          "modality": "plan-text",
+          "interaction": null,
+          "browserVerified": false,
+          "educatorReviewed": false,
+          "learnerTested": false
+        },
+        {
+          "conceptId": "financial-maths",
+          "lessonFile": true,
+          "teachingSequence": false,
+          "modality": "plan-text",
+          "interaction": null,
+          "browserVerified": false,
+          "educatorReviewed": false,
+          "learnerTested": false
+        },
+        {
+          "conceptId": "fraction-ops",
+          "lessonFile": true,
+          "teachingSequence": true,
+          "modality": "interactive-model",
+          "interaction": "fraction-ops-model",
+          "browserVerified": true,
+          "educatorReviewed": false,
+          "learnerTested": false
+        },
+        {
+          "conceptId": "fractions",
+          "lessonFile": true,
+          "teachingSequence": true,
+          "modality": "interactive-model",
+          "interaction": "fraction-line-model",
+          "browserVerified": true,
+          "educatorReviewed": false,
+          "learnerTested": false
+        },
+        {
+          "conceptId": "indices-intro",
+          "lessonFile": true,
+          "teachingSequence": true,
+          "modality": "plan-text",
+          "interaction": null,
+          "browserVerified": false,
+          "educatorReviewed": false,
+          "learnerTested": false
+        },
+        {
+          "conceptId": "linear-equations",
+          "lessonFile": true,
+          "teachingSequence": true,
+          "modality": "plan-text",
+          "interaction": null,
+          "browserVerified": false,
+          "educatorReviewed": false,
+          "learnerTested": false
+        },
+        {
+          "conceptId": "multiplication",
+          "lessonFile": true,
+          "teachingSequence": true,
+          "modality": "plan-text",
+          "interaction": null,
+          "browserVerified": false,
+          "educatorReviewed": false,
+          "learnerTested": false
+        },
+        {
+          "conceptId": "negatives",
+          "lessonFile": true,
+          "teachingSequence": true,
+          "modality": "interactive-model",
+          "interaction": "number-line-model",
+          "browserVerified": true,
+          "educatorReviewed": false,
+          "learnerTested": false
+        },
+        {
+          "conceptId": "order-ops",
+          "lessonFile": true,
+          "teachingSequence": true,
+          "modality": "plan-text",
+          "interaction": null,
+          "browserVerified": false,
+          "educatorReviewed": false,
+          "learnerTested": false
+        },
+        {
+          "conceptId": "percentages",
+          "lessonFile": true,
+          "teachingSequence": true,
+          "modality": "plan-text",
+          "interaction": null,
+          "browserVerified": false,
+          "educatorReviewed": false,
+          "learnerTested": false
+        },
+        {
+          "conceptId": "place-value",
+          "lessonFile": true,
+          "teachingSequence": true,
+          "modality": "interactive-model",
+          "interaction": "number-line-model",
+          "browserVerified": true,
+          "educatorReviewed": false,
+          "learnerTested": false
+        },
+        {
+          "conceptId": "probability-basics",
+          "lessonFile": true,
+          "teachingSequence": false,
+          "modality": "plan-text",
+          "interaction": null,
+          "browserVerified": false,
+          "educatorReviewed": false,
+          "learnerTested": false
+        },
+        {
+          "conceptId": "ratio",
+          "lessonFile": true,
+          "teachingSequence": false,
+          "modality": "plan-text",
+          "interaction": null,
+          "browserVerified": false,
+          "educatorReviewed": false,
+          "learnerTested": false
+        },
+        {
+          "conceptId": "rounding",
+          "lessonFile": true,
+          "teachingSequence": false,
+          "modality": "plan-text",
+          "interaction": null,
+          "browserVerified": false,
+          "educatorReviewed": false,
+          "learnerTested": false
+        },
+        {
+          "conceptId": "standard-form",
+          "lessonFile": true,
+          "teachingSequence": false,
+          "modality": "plan-text",
+          "interaction": null,
+          "browserVerified": false,
+          "educatorReviewed": false,
+          "learnerTested": false
+        },
+        {
+          "conceptId": "subtraction",
+          "lessonFile": true,
+          "teachingSequence": false,
+          "modality": "plan-text",
+          "interaction": null,
+          "browserVerified": false,
+          "educatorReviewed": false,
+          "learnerTested": false
+        },
+        {
+          "conceptId": "surds",
+          "lessonFile": true,
+          "teachingSequence": true,
+          "modality": "plan-text",
+          "interaction": null,
+          "browserVerified": false,
+          "educatorReviewed": false,
+          "learnerTested": false
+        },
+        {
+          "conceptId": "tree-diagrams",
+          "lessonFile": true,
+          "teachingSequence": false,
+          "modality": "plan-text",
+          "interaction": null,
+          "browserVerified": false,
+          "educatorReviewed": false,
+          "learnerTested": false
+        },
+        {
+          "conceptId": "volume",
+          "lessonFile": true,
+          "teachingSequence": false,
+          "modality": "plan-text",
+          "interaction": null,
+          "browserVerified": false,
+          "educatorReviewed": false,
+          "learnerTested": false
+        }
+      ],
+      "verdict": "NOT REVIEWED — assessment exists but no educator has signed it",
+      "objectives": [
+        {
+          "id": "N1-order-mixed",
+          "reference": "N1",
+          "tier": "both",
+          "stage": "teaching-sequence-complete",
+          "assessmentCoverage": "none",
+          "assessmentRequirements": [],
+          "content": "complete",
+          "sequence": true,
+          "assessment": false,
+          "concepts": [
+            "fractions",
+            "decimals",
+            "negatives"
+          ],
+          "gap": "No AQA-style assessment; no learner evidence."
+        },
+        {
+          "id": "N1-symbols",
+          "reference": "N1",
+          "tier": "both",
+          "stage": "content-authored",
+          "assessmentCoverage": "none",
+          "assessmentRequirements": [],
+          "content": "partial",
+          "sequence": false,
+          "assessment": false,
+          "concepts": [
+            "fractions",
+            "decimals"
+          ],
+          "gap": "Comparison symbols are used in prose, not assessed as a separate skill."
+        },
+        {
+          "id": "N2-integers",
+          "reference": "N2",
+          "tier": "both",
+          "stage": "content-authored",
+          "assessmentCoverage": "none",
+          "assessmentRequirements": [],
+          "content": "partial",
+          "sequence": false,
+          "assessment": false,
+          "concepts": [
+            "addition",
+            "subtraction",
+            "multiplication",
+            "division",
+            "negatives"
+          ],
+          "gap": "Multiplication has a sequence; addition, subtraction and division do not. All four concepts are excluded from Higher, where AQA can assess N2."
+        },
+        {
+          "id": "N2-decimals",
+          "reference": "N2",
+          "tier": "both",
+          "stage": "content-authored",
+          "assessmentCoverage": "none",
+          "assessmentRequirements": [],
+          "content": "partial",
+          "sequence": false,
+          "assessment": false,
+          "concepts": [
+            "decimals",
+            "place-value"
+          ],
+          "gap": "The decimals lesson covers place value, conversion and multiplication; addition, subtraction and division of decimals are not taught. Higher excludes place-value."
+        },
+        {
+          "id": "N2-fractions",
+          "reference": "N2",
+          "tier": "both",
+          "stage": "assessment-complete",
+          "assessmentCoverage": "complete",
+          "assessmentRequirements": [
+            {
+              "id": "N2-add",
+              "statement": "Add proper and improper fractions, including different denominators.",
+              "covered": true,
+              "items": [
+                "lib/lessons/authored/fraction-ops.ts#a1"
+              ],
+              "questionType": "short-answer",
+              "difficulty": "uncalibrated",
+              "tier": "both",
+              "marks": 1
+            },
+            {
+              "id": "N2-subtract",
+              "statement": "Subtract proper and improper fractions, including different denominators.",
+              "covered": true,
+              "items": [
+                "lib/lessons/authored/fraction-ops.ts#a3"
+              ],
+              "questionType": "short-answer",
+              "difficulty": "uncalibrated",
+              "tier": "both",
+              "marks": 1
+            },
+            {
+              "id": "N2-multiply",
+              "statement": "Multiply proper and improper fractions.",
+              "covered": true,
+              "items": [
+                "lib/lessons/authored/fraction-ops.ts#a5"
+              ],
+              "questionType": "structured",
+              "difficulty": "uncalibrated",
+              "tier": "both",
+              "marks": 2
+            },
+            {
+              "id": "N2-divide",
+              "statement": "Divide a mixed number by a proper fraction and express the quotient as a mixed number.",
+              "covered": true,
+              "items": [
+                "lib/lessons/authored/fraction-ops.ts#a4"
+              ],
+              "questionType": "structured",
+              "commandWord": "Work out",
+              "difficulty": "uncalibrated",
+              "tier": "both",
+              "marks": 3
+            },
+            {
+              "id": "N2-context",
+              "statement": "Interpret a fractional quotient in context: state the whole batches and the mass left over.",
+              "covered": true,
+              "items": [
+                "lib/lessons/authored/fraction-ops.ts#a4"
+              ],
+              "questionType": "structured",
+              "commandWord": "Work out",
+              "difficulty": "uncalibrated",
+              "tier": "both",
+              "marks": 2
+            }
+          ],
+          "content": "complete",
+          "sequence": true,
+          "assessment": true,
+          "concepts": [
+            "fraction-ops"
+          ],
+          "gap": "All five published operation requirements now have an assessment item; no educator review and no learner evidence."
+        },
+        {
+          "id": "N2-mixed",
+          "reference": "N2",
+          "tier": "both",
+          "stage": "teaching-sequence-complete",
+          "assessmentCoverage": "none",
+          "assessmentRequirements": [],
+          "content": "complete",
+          "sequence": true,
+          "assessment": false,
+          "concepts": [
+            "fraction-ops"
+          ],
+          "gap": "No AQA-style assessment; no learner evidence."
+        },
+        {
+          "id": "N2-negatives",
+          "reference": "N2",
+          "tier": "both",
+          "stage": "assessment-complete",
+          "assessmentCoverage": "complete",
+          "assessmentRequirements": [
+            {
+              "id": "N2-negative-fractions-add-subtract",
+              "statement": "Add and subtract negative fractions after writing them with a common denominator.",
+              "covered": true,
+              "items": [
+                "lib/lessons/authored/negatives.ts#a3"
+              ],
+              "questionType": "structured",
+              "difficulty": "uncalibrated",
+              "tier": "both",
+              "marks": 3
+            },
+            {
+              "id": "N2-negative-fractions-multiply-divide",
+              "statement": "Multiply and divide negative fractions, deciding the sign before calculating.",
+              "covered": true,
+              "items": [
+                "lib/lessons/authored/negatives.ts#a4"
+              ],
+              "questionType": "structured",
+              "difficulty": "uncalibrated",
+              "tier": "both",
+              "marks": 3
+            },
+            {
+              "id": "N2-negative-fractions-order",
+              "statement": "Order negative fractions by position, using a common denominator to compare them.",
+              "covered": true,
+              "items": [
+                "lib/lessons/authored/negatives.ts#a5"
+              ],
+              "questionType": "constructed-response",
+              "difficulty": "uncalibrated",
+              "tier": "both",
+              "marks": 2
+            }
+          ],
+          "content": "complete",
+          "sequence": true,
+          "assessment": true,
+          "concepts": [
+            "negatives"
+          ],
+          "gap": "The lesson now teaches negative fractions and all three assessment requirements have items. It has not been reviewed by a teacher or tested with learners; the Higher tier still needs a separate check that the concept is offered at the demand that tier expects."
+        },
+        {
+          "id": "N2-finance",
+          "reference": "N2",
+          "tier": "both",
+          "stage": "content-authored",
+          "assessmentCoverage": "none",
+          "assessmentRequirements": [],
+          "content": "partial",
+          "sequence": false,
+          "assessment": false,
+          "concepts": [
+            "financial-maths"
+          ],
+          "gap": "Financial mathematics has a plan but no teaching sequence or assessment."
+        },
+        {
+          "id": "N3-inverse",
+          "reference": "N3",
+          "tier": "both",
+          "stage": "content-authored",
+          "assessmentCoverage": "none",
+          "assessmentRequirements": [],
+          "content": "partial",
+          "sequence": false,
+          "assessment": false,
+          "concepts": [
+            "linear-equations",
+            "algebra-expressions"
+          ],
+          "gap": "Inverse operations are taught inside equation solving, not as the arithmetic relationship N3 asks for."
+        },
+        {
+          "id": "N3-priority",
+          "reference": "N3",
+          "tier": "both",
+          "stage": "content-authored",
+          "assessmentCoverage": "none",
+          "assessmentRequirements": [],
+          "content": "partial",
+          "sequence": false,
+          "assessment": false,
+          "concepts": [
+            "order-ops"
+          ],
+          "gap": "The order-of-operations sequence exists but roots and reciprocals are not established. Higher excludes order-ops."
+        },
+        {
+          "id": "N4-factors",
+          "reference": "N4",
+          "tier": "both",
+          "stage": "assessment-complete",
+          "assessmentCoverage": "complete",
+          "assessmentRequirements": [
+            {
+              "id": "N4-vocabulary",
+              "statement": "Use the vocabulary of factors and multiples, including recognising a factor and a multiple of a given number.",
+              "covered": true,
+              "items": [
+                "lib/lessons/authored/factors-primes.ts#a3"
+              ],
+              "questionType": "structured",
+              "difficulty": "uncalibrated",
+              "tier": "both",
+              "marks": 2
+            },
+            {
+              "id": "N4-common-factors",
+              "statement": "Identify all the common factors of two numbers.",
+              "covered": true,
+              "items": [
+                "lib/lessons/authored/factors-primes.ts#a4"
+              ],
+              "questionType": "short-answer",
+              "difficulty": "uncalibrated",
+              "tier": "both",
+              "marks": 1
+            },
+            {
+              "id": "N4-hcf",
+              "statement": "Find the highest common factor of two numbers.",
+              "covered": true,
+              "items": [
+                "lib/lessons/authored/factors-primes.ts#a5",
+                "lib/lessons/authored/factors-primes.ts#a6"
+              ],
+              "questionType": "structured",
+              "difficulty": "uncalibrated",
+              "tier": "both",
+              "marks": 2
+            },
+            {
+              "id": "N4-lcm",
+              "statement": "Find the lowest common multiple of two numbers.",
+              "covered": true,
+              "items": [
+                "lib/lessons/authored/factors-primes.ts#a5",
+                "lib/lessons/authored/factors-primes.ts#a6"
+              ],
+              "questionType": "structured",
+              "difficulty": "uncalibrated",
+              "tier": "both",
+              "marks": 2
+            }
+          ],
+          "content": "complete",
+          "sequence": true,
+          "assessment": true,
+          "concepts": [
+            "factors-primes"
+          ],
+          "gap": "All published N4 factor, multiple, common-factor, common-multiple, HCF and LCM requirements now have an item; no educator review and no learner evidence exist."
+        },
+        {
+          "id": "N4-prime-factor",
+          "reference": "N4",
+          "tier": "both",
+          "stage": "assessment-complete",
+          "assessmentCoverage": "complete",
+          "assessmentRequirements": [
+            {
+              "id": "N4-prime-factorisation",
+              "statement": "Write a whole number as a product of its prime factors.",
+              "covered": true,
+              "items": [
+                "lib/lessons/authored/factors-primes.ts#a1"
+              ],
+              "questionType": "short-answer",
+              "difficulty": "uncalibrated",
+              "tier": "both",
+              "marks": 1
+            },
+            {
+              "id": "N4-product-notation",
+              "statement": "Use index notation for a repeated prime factor.",
+              "covered": true,
+              "items": [
+                "lib/lessons/authored/factors-primes.ts#a2"
+              ],
+              "questionType": "short-answer",
+              "difficulty": "uncalibrated",
+              "tier": "both",
+              "marks": 1
+            },
+            {
+              "id": "N4-unique-factorisation",
+              "statement": "Explain the uniqueness of prime factorisation, apart from the order of the factors.",
+              "covered": true,
+              "items": [
+                "lib/lessons/authored/factors-primes.ts#a7"
+              ],
+              "questionType": "constructed-response",
+              "difficulty": "uncalibrated",
+              "tier": "both",
+              "marks": 2
+            }
+          ],
+          "content": "complete",
+          "sequence": true,
+          "assessment": true,
+          "concepts": [
+            "factors-primes"
+          ],
+          "gap": "All published prime factorisation, product notation and uniqueness requirements now have an item; no educator review and no learner evidence exist."
+        },
+        {
+          "id": "N5-listing",
+          "reference": "N5",
+          "tier": "both",
+          "stage": "content-authored",
+          "assessmentCoverage": "none",
+          "assessmentRequirements": [],
+          "content": "partial",
+          "sequence": false,
+          "assessment": false,
+          "concepts": [
+            "probability-basics"
+          ],
+          "gap": "Listing is not a taught objective; probability has a plan but no sequence."
+        },
+        {
+          "id": "N5-product-rule",
+          "reference": "N5",
+          "tier": "higher",
+          "stage": "teaching-sequence-complete",
+          "assessmentCoverage": "none",
+          "assessmentRequirements": [],
+          "content": "complete",
+          "sequence": true,
+          "assessment": false,
+          "concepts": [
+            "tree-diagrams"
+          ],
+          "gap": "No AQA-style assessment; no learner evidence."
+        },
+        {
+          "id": "N6-powers-roots",
+          "reference": "N6",
+          "tier": "both",
+          "stage": "content-authored",
+          "assessmentCoverage": "none",
+          "assessmentRequirements": [],
+          "content": "partial",
+          "sequence": false,
+          "assessment": false,
+          "concepts": [
+            "indices-intro"
+          ],
+          "gap": "Index laws are taught; roots and the recognition of powers are not a complete sequence."
+        },
+        {
+          "id": "N6-estimate-powers",
+          "reference": "N6",
+          "tier": "higher",
+          "stage": "content-authored",
+          "assessmentCoverage": "none",
+          "assessmentRequirements": [],
+          "content": "partial",
+          "sequence": false,
+          "assessment": false,
+          "concepts": [
+            "indices-intro"
+          ],
+          "gap": "Estimation of powers and roots is not taught."
+        },
+        {
+          "id": "N7-roots-indices",
+          "reference": "N7",
+          "tier": "both",
+          "stage": "teaching-sequence-complete",
+          "assessmentCoverage": "none",
+          "assessmentRequirements": [],
+          "content": "complete",
+          "sequence": true,
+          "assessment": false,
+          "concepts": [
+            "indices-intro"
+          ],
+          "gap": "No AQA-style assessment; no learner evidence."
+        },
+        {
+          "id": "N7-fractional-indices",
+          "reference": "N7",
+          "tier": "higher",
+          "stage": "teaching-sequence-complete",
+          "assessmentCoverage": "none",
+          "assessmentRequirements": [],
+          "content": "complete",
+          "sequence": true,
+          "assessment": false,
+          "concepts": [
+            "indices-intro"
+          ],
+          "gap": "No AQA-style assessment; no learner evidence."
+        },
+        {
+          "id": "N8-exact-fractions",
+          "reference": "N8",
+          "tier": "both",
+          "stage": "content-authored",
+          "assessmentCoverage": "none",
+          "assessmentRequirements": [],
+          "content": "partial",
+          "sequence": false,
+          "assessment": false,
+          "concepts": [
+            "fraction-ops"
+          ],
+          "gap": "The four operations are taught, but exact multi-step calculation is not assessed."
+        },
+        {
+          "id": "N8-pi",
+          "reference": "N8",
+          "tier": "higher",
+          "stage": "content-authored",
+          "assessmentCoverage": "none",
+          "assessmentRequirements": [],
+          "content": "partial",
+          "sequence": false,
+          "assessment": false,
+          "concepts": [
+            "area-perimeter"
+          ],
+          "gap": "The area and perimeter lesson uses π numerically; exact multiples of π are not taught as a sequence."
+        },
+        {
+          "id": "N8-surds",
+          "reference": "N8",
+          "tier": "higher",
+          "stage": "teaching-sequence-complete",
+          "assessmentCoverage": "none",
+          "assessmentRequirements": [],
+          "content": "complete",
+          "sequence": true,
+          "assessment": false,
+          "concepts": [
+            "surds"
+          ],
+          "gap": "No AQA-style assessment; no learner evidence."
+        },
+        {
+          "id": "N9-standard-form",
+          "reference": "N9",
+          "tier": "both",
+          "stage": "teaching-sequence-complete",
+          "assessmentCoverage": "none",
+          "assessmentRequirements": [],
+          "content": "complete",
+          "sequence": true,
+          "assessment": false,
+          "concepts": [
+            "standard-form"
+          ],
+          "gap": "No AQA-style assessment; no learner evidence."
+        },
+        {
+          "id": "N9-calculator-display",
+          "reference": "N9",
+          "tier": "both",
+          "stage": "content-authored",
+          "assessmentCoverage": "none",
+          "assessmentRequirements": [],
+          "content": "partial",
+          "sequence": false,
+          "assessment": false,
+          "concepts": [
+            "standard-form"
+          ],
+          "gap": "No calculator-display objective or assessment."
+        },
+        {
+          "id": "N10-terminating",
+          "reference": "N10",
+          "tier": "both",
+          "stage": "teaching-sequence-complete",
+          "assessmentCoverage": "none",
+          "assessmentRequirements": [],
+          "content": "complete",
+          "sequence": true,
+          "assessment": false,
+          "concepts": [
+            "decimals",
+            "fractions"
+          ],
+          "gap": "No AQA-style assessment; no learner evidence."
+        },
+        {
+          "id": "N10-recurring",
+          "reference": "N10",
+          "tier": "higher",
+          "stage": "assessment-complete",
+          "assessmentCoverage": "complete",
+          "assessmentRequirements": [
+            {
+              "id": "N10-recurring-to-fraction",
+              "statement": "Change a simple recurring decimal into a fraction.",
+              "covered": true,
+              "items": [
+                "lib/lessons/authored/decimals.ts#a3"
+              ],
+              "questionType": "short-answer",
+              "difficulty": "uncalibrated",
+              "tier": "higher",
+              "marks": 3
+            },
+            {
+              "id": "N10-fraction-to-recurring",
+              "statement": "Change a fraction into a recurring decimal.",
+              "covered": true,
+              "items": [
+                "lib/lessons/authored/decimals.ts#a4"
+              ],
+              "questionType": "short-answer",
+              "difficulty": "uncalibrated",
+              "tier": "higher",
+              "marks": 2
+            },
+            {
+              "id": "N10-terminating-test",
+              "statement": "Decide from the denominator whether a fraction terminates or recurs, and explain why.",
+              "covered": true,
+              "items": [
+                "lib/lessons/authored/decimals.ts#a5"
+              ],
+              "questionType": "constructed-response",
+              "difficulty": "uncalibrated",
+              "tier": "higher",
+              "marks": 3
+            },
+            {
+              "id": "N10-recurring-equality",
+              "statement": "Explain why a recurring decimal such as 0.999... represents an exact rational value.",
+              "covered": true,
+              "items": [
+                "lib/lessons/authored/decimals.ts#a6"
+              ],
+              "questionType": "constructed-response",
+              "difficulty": "uncalibrated",
+              "tier": "higher",
+              "marks": 3
+            },
+            {
+              "id": "N10-mixed-recurring",
+              "statement": "Change a recurring decimal with a non-repeating first digit into a fraction.",
+              "covered": true,
+              "items": [
+                "lib/lessons/authored/decimals.ts#a7"
+              ],
+              "questionType": "short-answer",
+              "difficulty": "uncalibrated",
+              "tier": "higher",
+              "marks": 3
+            }
+          ],
+          "content": "complete",
+          "sequence": true,
+          "assessment": true,
+          "concepts": [
+            "decimals"
+          ],
+          "gap": "All published recurring-decimal requirements now have an item; no educator review and no learner evidence exist."
+        },
+        {
+          "id": "N11-ratio-fractions",
+          "reference": "N11",
+          "tier": "both",
+          "stage": "teaching-sequence-complete",
+          "assessmentCoverage": "none",
+          "assessmentRequirements": [],
+          "content": "complete",
+          "sequence": true,
+          "assessment": false,
+          "concepts": [
+            "ratio"
+          ],
+          "gap": "No AQA-style assessment; no learner evidence."
+        },
+        {
+          "id": "N12-fraction-operator",
+          "reference": "N12",
+          "tier": "both",
+          "stage": "content-authored",
+          "assessmentCoverage": "none",
+          "assessmentRequirements": [],
+          "content": "partial",
+          "sequence": false,
+          "assessment": false,
+          "concepts": [
+            "fractions",
+            "fraction-ops"
+          ],
+          "gap": "Multiplication is taught as 'of' a fraction, but there is no direct '3/4 of 20' objective or assessment."
+        },
+        {
+          "id": "N12-percentage-operator",
+          "reference": "N12",
+          "tier": "both",
+          "stage": "teaching-sequence-complete",
+          "assessmentCoverage": "none",
+          "assessmentRequirements": [],
+          "content": "complete",
+          "sequence": true,
+          "assessment": false,
+          "concepts": [
+            "percentages"
+          ],
+          "gap": "No AQA-style assessment; no learner evidence."
+        },
+        {
+          "id": "N13-units",
+          "reference": "N13",
+          "tier": "both",
+          "stage": "content-authored",
+          "assessmentCoverage": "none",
+          "assessmentRequirements": [],
+          "content": "partial",
+          "sequence": false,
+          "assessment": false,
+          "concepts": [
+            "area-perimeter",
+            "volume"
+          ],
+          "gap": "No dedicated units/compound-measures concept or sequence; area and volume plans do not teach unit handling."
+        },
+        {
+          "id": "N13-metric-conversions",
+          "reference": "N13",
+          "tier": "both",
+          "stage": "content-authored",
+          "assessmentCoverage": "none",
+          "assessmentRequirements": [],
+          "content": "partial",
+          "sequence": false,
+          "assessment": false,
+          "concepts": [
+            "area-perimeter",
+            "volume"
+          ],
+          "gap": "Metric conversions are not a taught objective; no sequence or assessment."
+        },
+        {
+          "id": "N14-estimate-check",
+          "reference": "N14",
+          "tier": "both",
+          "stage": "teaching-sequence-complete",
+          "assessmentCoverage": "none",
+          "assessmentRequirements": [],
+          "content": "complete",
+          "sequence": true,
+          "assessment": false,
+          "concepts": [
+            "rounding"
+          ],
+          "gap": "No AQA-style assessment; no learner evidence."
+        },
+        {
+          "id": "N15-rounding",
+          "reference": "N15",
+          "tier": "both",
+          "stage": "teaching-sequence-complete",
+          "assessmentCoverage": "none",
+          "assessmentRequirements": [],
+          "content": "complete",
+          "sequence": true,
+          "assessment": false,
+          "concepts": [
+            "rounding"
+          ],
+          "gap": "No AQA-style assessment; no learner evidence."
+        },
+        {
+          "id": "N15-error-intervals",
+          "reference": "N15",
+          "tier": "both",
+          "stage": "content-authored",
+          "assessmentCoverage": "none",
+          "assessmentRequirements": [],
+          "content": "partial",
+          "sequence": false,
+          "assessment": false,
+          "concepts": [
+            "rounding"
+          ],
+          "gap": "Error intervals are not taught; rounding is excluded from Higher."
+        },
+        {
+          "id": "N16-limits",
+          "reference": "N16",
+          "tier": "both",
+          "stage": "content-authored",
+          "assessmentCoverage": "none",
+          "assessmentRequirements": [],
+          "content": "partial",
+          "sequence": false,
+          "assessment": false,
+          "concepts": [
+            "rounding"
+          ],
+          "gap": "Foundation access is preserved through rounding; the limits-of-accuracy teaching and assessment are not yet complete. Upper and lower bounds remain the separate Higher objective N16-bounds."
+        },
+        {
+          "id": "N16-bounds",
+          "reference": "N16",
+          "tier": "higher",
+          "stage": "teaching-sequence-complete",
+          "assessmentCoverage": "none",
+          "assessmentRequirements": [],
+          "content": "complete",
+          "sequence": true,
+          "assessment": false,
+          "concepts": [
+            "bounds"
+          ],
+          "gap": "No AQA-style assessment; no learner evidence."
+        }
+      ]
+    }
+  ],
+  "problems": []
+}

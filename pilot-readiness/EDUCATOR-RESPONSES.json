@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "updated": "2026-11-25",
+  "note": "Actual educator responses only. An entry requires a named reviewer with the relevant subject role, a date, the pack version reviewed, and a decision. Automated checks, internal reading and unsolicited comments are not reviews. This file is intentionally empty: 0 of 9 models have been reviewed.",
+  "schema": {
+    "id": "resp_<timestamp>",
+    "concept": "one of the nine model concept ids",
+    "packVersion": "version printed in the pack",
+    "reviewer": { "name": "string", "role": "string", "subject": "string" },
+    "date": "YYYY-MM-DD",
+    "decision": "use | use-with-changes | not-yet",
+    "answers": {
+      "use": "string",
+      "misleading": "string",
+      "interaction": "string",
+      "changes": "string",
+      "schoolResources": "string"
+    },
+    "couldIntroduce": [{ "item": "string", "verdict": "acceptable | fix | not-an-issue" }],
+    "corrections": [
+      {
+        "location": "path#symbol",
+        "claim": "string",
+        "correction": "string",
+        "status": "open | applied"
+      }
+    ],
+    "evidence": "path to the signed pack or message id"
+  },
+  "responses": []
+}

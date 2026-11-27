@@ -1304,8 +1304,9 @@ console.log("▸ Learning path");
     const action = nextEngine.decideNext(state, 1)[0];
     const course = specs.specForProfile(state.profile, "maths");
     const covered = specs.coverageOf({ spec: course.spec, level: course.level }).map((c) => c.id);
-    ok(action?.conceptId === covered[0],
-      `an unplaced ${level} learner starts at their course's own first idea (${action?.conceptId}, course opens at ${covered[0]})`);
+    const opening = specs.startConceptFor(course)?.id;
+    ok(action?.conceptId === opening,
+      `an unplaced ${level} learner starts at their course's own opening idea (${action?.conceptId}, course opens at ${opening})`);
     ok(covered.includes(action?.conceptId),
       `and that concept is IN the course they chose (${spec}/${level})`);
     ok(action?.conceptId === expected,
@@ -1313,7 +1314,7 @@ console.log("▸ Learning path");
   }
   const higher = nextEngine.decideNext(unplaced("uk-gcse", "higher"), 1)[0];
   ok(higher?.conceptId !== "place-value",
-    "a senior course never opens on a primary concept it does not contain");
+    "a senior course never opens on foundational arithmetic, even when it contains it for remediation");
 }
 
 // ── The subject page's Start belongs to the page's course ────────────────────
@@ -2495,16 +2496,16 @@ console.log("▸ Internationalisation");
   // worse than the honest empty branch.
   const repairMod = require("../.verify/repair.js");
   const pilotSlips = [...new Set(Object.keys(repairMod.REPAIRS).map((k) => k.split("@")[0]))].sort();
-  // FIFTEEN: eleven at the start, then `frac-slice` and `pct-base` with the
-  // foundations ring, then `dec-point` when `decimals` — the pathway's first
-  // concept — was authored, then `denom-add` when `fraction-ops` gained its
-  // lesson. The LIST is derived from the repairs so it cannot drift from them;
-  // the constant is a deliberate tripwire, because a new belief means four new
-  // coaching lines and it is better to be told than to ship a name with nothing
-  // under it in the languages that have the others. It fired exactly as intended
-  // when `fraction-ops` landed.
-  ok(pilotSlips.length === 15,
-    `the coached beliefs are the fifteen the pilot's repairs name (${pilotSlips.join(", ")})`);
+  // TWENTY-TWO: the original fifteen, the six foundation beliefs Q-012 named
+  // (`place-value-face`, `add-carry-drop`, `sub-borrow-unrepaid`, `mul-as-add`,
+  // `div-as-subtract`, `frac-of-amount`), and `factor-direction` for N4. The
+  // LIST is derived from the repairs so it cannot drift from them; the constant
+  // is a deliberate tripwire, because a new belief means four new coaching lines
+  // and it is better to be told than to ship a name with nothing under it in the
+  // languages that have the others. It fired exactly as intended when
+  // `fraction-ops` landed, again when Q-012 added its six, and again for N4.
+  ok(pilotSlips.length === 22,
+    `the coached beliefs are the twenty-two the repairs name (${pilotSlips.join(", ")})`);
   // A typo in a key is invisible to every other check: the line simply never
   // renders, exactly as `mc.sf-sig` once shipped a raw key to a learner.
   const badKeys = [];
@@ -6056,6 +6057,19 @@ console.log("▸ The question bank");
         "…and keeps the teaching the server sent with the verdict");
       ok(!src.includes('className={`feedback ${correct ? "ok" : "no"}`}'),
         "…and no longer renders a verdict on its own");
+      // THE SERVER'S KIND DECIDES THE CONTROL. A fraction item answered with a
+      // choice is refused as "not a fraction"; the learner can pick the correct
+      // printed value and be told it was not marked. The lesson page had the
+      // right controls; both anonymous surfaces must too.
+      ok(src.includes('responseKind === "fraction"') && src.includes("<FractionAnswer"),
+        `${surface} answers a fraction item with a fraction input, not four choices`);
+      ok(src.includes('responseKind === "pair"') && src.includes("<PairAnswer"),
+        `${surface} answers a coordinate item with two number fields`);
+      // A PICK IS NOT A VERDICT. If the answer could not be marked, the chosen
+      // option must stay neutral; the old code painted it red with no
+      // `answerIndex`, so a correct 19/15 was shown as wrong.
+      ok(src.includes("correct === null || picked === null"),
+        `${surface} never paints a wrong verdict before the server marks the answer`);
     }
   }
 
@@ -7432,10 +7446,19 @@ console.log("▸ The storage port describes the store that runs");
       return e instanceof storageMod.StoreConfigError && e.code === code ? e : null;
     }
   };
-  const pg = refused({ OPENMIND_STORE: "postgres" }, "store_not_implemented");
-  ok(Boolean(pg), "postgres is REFUSED rather than silently served as a file store");
-  ok(Boolean(pg) && /docs\/STORAGE_SPEC\.md/.test(pg.message) && /NOT IMPLEMENTED/.test(pg.message),
-    "and the refusal names the spec and says what is missing, so an operator can act on it");
+  // POSTGRES IS SELECTABLE, AND NOT WITHOUT A DATABASE. The backend exists
+  // (`lib/server/storage-postgres.ts`); what must never happen is a deployment
+  // that asks for a database and is quietly given a file store, which is why the
+  // refusal below is about the CONNECTION and not about the backend.
+  const pgNoUrl = refused({ OPENMIND_STORE: "postgres" }, "database_not_configured");
+  ok(Boolean(pgNoUrl), "postgres without DATABASE_URL is REFUSED rather than silently served as a file store");
+  ok(Boolean(pgNoUrl) && /DATABASE_URL/.test(pgNoUrl.message),
+    "and the refusal names the variable, so an operator can act on it");
+  const pgWithUrl = storageMod.resolveStoreKind({
+    OPENMIND_STORE: "postgres",
+    DATABASE_URL: "postgres://u@127.0.0.1/scratch_test",
+  });
+  ok(pgWithUrl === "postgres", `and with a connection string it resolves to postgres (got ${pgWithUrl})`);
   const typo = refused({ OPENMIND_STORE: "sqlite" }, "unknown_store_kind");
   ok(Boolean(typo) && /file, postgres/.test(typo.message),
     "an unrecognised backend is refused too, listing what is accepted — a typo is not a choice");
@@ -7443,7 +7466,7 @@ console.log("▸ The storage port describes the store that runs");
   // The REPORTING half: /api/ready and the environment report must be able to say
   // it rather than only throwing on it.
   const report = storageMod.storeKindReport({ OPENMIND_STORE: "postgres" });
-  ok(report.kind === null && report.problem?.code === "store_not_implemented",
+  ok(report.kind === null && report.problem?.code === "database_not_configured",
     "the same fact is reportable for a readiness screen, not only throwable");
   ok(storageMod.storeKindReport({}).problem === null, "and a normal deployment reports no problem at all");
 
@@ -7468,8 +7491,8 @@ console.log("▸ The storage port describes the store that runs");
   const control = loadStore({});
   ok(control.status === 0, `a default deployment still loads the store (exit ${control.status})`);
   const denied = loadStore({ OPENMIND_STORE: "postgres" });
-  ok(denied.status !== 0 && /NOT IMPLEMENTED/.test(`${denied.stdout}${denied.stderr}`),
-    "and a postgres-configured one REFUSES TO BOOT instead of writing files");
+  ok(denied.status !== 0 && /DATABASE_URL/.test(`${denied.stdout}${denied.stderr}`),
+    "and a postgres-configured one with no connection string REFUSES TO BOOT instead of writing files");
   const typoLoad = loadStore({ OPENMIND_STORE: "sqlite" });
   ok(typoLoad.status !== 0 && /unknown_store_kind|Accepted values/.test(`${typoLoad.stdout}${typoLoad.stderr}`),
     "as does an unrecognised backend, naming what it accepts");
@@ -8891,8 +8914,14 @@ console.log("▸ Two learners, one bank, different evidence");
   // cannot make.
   ok(topStrong.kind === (transferMod.canTransfer(CONCEPT) ? "TRANSFER" : "CHALLENGE") && topStrong.conceptId === CONCEPT,
     `the learner who got them all is given stretch work on that idea${transferMod.canTransfer(CONCEPT) ? ", on an unfamiliar surface — this concept CAN be re-framed" : " — deeper, because this concept has no second surface to move to"} (${topStrong.kind}:${topStrong.conceptId})`);
-  ok(topWeak.kind === "EXPLAIN" && topWeak.conceptId === CONCEPT,
-    `and the learner who missed them is asked to rebuild the idea first (${topWeak.kind}:${topWeak.conceptId}) — same content, not the same advice`);
+  // Q-012 made the fraction item speak about a NAMED slip (finding one part
+  // instead of several). Five wrong answers on it are now repeated evidence for
+  // that belief, so the correct next action is targeted REMEDIATE, not the
+  // generic EXPLAIN the untagged bank produced. The assertion is the stronger
+  // one: the weak learner must be sent to the repair for the named slip.
+  ok(topWeak.kind === "REMEDIATE" && topWeak.conceptId === CONCEPT &&
+     /one part|bigger slice/i.test(topWeak.reason),
+    `and the learner who missed them is sent to repair the named slip first (${topWeak.kind}:${topWeak.conceptId}) — same content, not the same advice`);
 
   for (const [id, res, label] of [["pair-strong", strong, "the strong learner"], ["pair-weak", weak, "the weak learner"]]) {
     const own = new Set((await ledgerOf(id)).map((e) => e.id));
@@ -9204,6 +9233,14 @@ console.log("▸ Offline answers sync once, in order, and are never trusted for 
       _dump: () => [...m.entries()],
     };
   };
+  // A queue is scoped to a learner; a signed-out shell is not. It must not
+  // disclose the previous learner's count or claim a sync it will not run.
+  const heldSummary = { pending: 2, refused: 1, oldest: 1700020000000 };
+  ok(syncQueue.summaryVisibleTo(null, heldSummary).pending === 0 &&
+    syncQueue.summaryVisibleTo(null, heldSummary).refused === 0,
+    "a signed-out shell reports an empty queue, not the previous learner's unsynced answers");
+  ok(syncQueue.summaryVisibleTo("learner-1", heldSummary).pending === 2,
+    "the owning learner still sees the held answers");
   const realFetch = globalThis.fetch;
   const realWindow = globalThis.window;
   try {
@@ -12069,8 +12106,9 @@ console.log("▸ A test-only approval cannot become a production approval");
   ok(pilot.includes("export const PILOT_APPROVALS: readonly PilotApproval[] = [];"),
     "the real approval registry remains empty");
   ok(pilot.includes('process.env.NODE_ENV !== "production"') &&
-     pilot.includes('process.env.OPENMIND_TEST_CONTENT_APPROVALS === "1"'),
-    "test approvals are reachable only from an explicit non-production fixture run");
+     pilot.includes('process.env.OPENMIND_TEST_CONTENT_APPROVALS === "1"') &&
+     pilot.includes('process.env.OPENMIND_TEST_SCRATCH === "1"'),
+    "test approvals need BOTH the fixture flag and the isolated-scratch flag, in a non-production process");
   ok(/reviewerRole: "automated test fixture — not a subject review"/.test(pilot),
     "and the fixture says in the record that it is not a subject review");
 }
@@ -13914,7 +13952,7 @@ console.log("▸ A paper says whether its shape is the awarding body's");
   //       controls and a labelled drawing rather than a picture of one.
   const plansSrc = fs.readFileSync("lib/lesson-plans.ts", "utf8");
   const lessonPageSrc = fs.readFileSync("app/learn/[subject]/[concept]/page.tsx", "utf8");
-  const modelSrc = fs.readFileSync("components/fraction-model.tsx", "utf8");
+  const modelSrc = fs.readFileSync("components/fraction-line-model.tsx", "utf8");
   // READ THE PLAN, NOT A CHARACTER WINDOW AROUND ITS SOURCE. This used to be
   // `/conceptId: "fractions"[\s\S]{0,4000}?interactive: …/`, which asserted
   // "the line is within 4000 characters" — a proxy that passed for years and
@@ -13923,12 +13961,16 @@ console.log("▸ A paper says whether its shape is the awarding body's");
   // is the fact the assertion was ever about, and it cannot be broken by
   // authoring more teaching into the plan.
   const servedFractions = require("../.verify/lesson-plans.js").planFor("fractions");
-  ok(servedFractions?.interactive === "fraction-model",
+  // THE MODEL CHANGED WHEN THE RESEARCH DID. The pilot bar taught part-whole; the
+  // evidence says number-line magnitude is what predicts fewer ordering errors, so
+  // the authored plan now declares the line. The assertion follows the served plan,
+  // not a string window in the source.
+  ok(servedFractions?.interactive === "fraction-line-model",
     `the fractions plan declares the interactive model it needs (${servedFractions?.interactive ?? "none"})`);
-  ok(lessonPageSrc.includes('<FractionModel />') && /plan\?\.interactive === "fraction-model"/.test(lessonPageSrc),
+  ok(lessonPageSrc.includes('<FractionLineModel />') && /lessonModel === "fraction-line-model"/.test(lessonPageSrc),
     "and the lesson page renders it only where a plan names it");
   ok((modelSrc.match(/type="range"/g) ?? []).length === 2,
-    "the model has a control for the pieces and one for the shading");
+    "the model has a control for the cut and one for the pieces taken");
   ok(/<svg[^>]*role="img"[^>]*aria-label=/.test(modelSrc) && /aria-live="polite"/.test(modelSrc),
     "with the drawing named for a screen reader and the fraction announced in words");
   // The component writes ids as template literals (`${id}-den`), so the check
@@ -17761,6 +17803,72 @@ console.log("▸ Every door that costs money or CPU names its bound");
   }).map((c) => c.id);
   ok(noted.length > 0,
     `at least one family writes per-option notes (${noted.join(", ")} of ${genome.CONCEPTS.length} concepts) — the rest are the backlog, stated here rather than guessed at`);
+
+  // THE FOUNDATION FAMILIES MUST EXPLAIN THE SLIP, NOT ONLY THE ANSWER. These
+  // five concepts have no misconception model at all, so this note is the only
+  // thing that can tell a wrong pupil what they did. Measured on the same
+  // spread seeds the assessment-quality report uses, and only on choice draws
+  // because a numeric draw has no options to explain.
+  const foundationHoles = [];
+  for (const id of ["place-value", "addition", "subtraction", "multiplication", "division"]) {
+    let explained = 0;
+    for (let i = 0; i < 40; i++) {
+      const item = questions.generateQuestion(id, i * 7919 + 13);
+      if (item?.responseKind === "numeric") continue;
+      if ((item?.choiceNotes ?? []).filter(Boolean).length >= 2) explained++;
+    }
+    if (explained < 1) foundationHoles.push(id);
+  }
+  ok(foundationHoles.length === 0,
+    `the foundation families explain a wrong option in their own words (${foundationHoles.length ? foundationHoles.join(", ") : "all five"})`);
+
+  // 7 · A NAMED BELIEF BELONGS TO THE OPTION THAT ACTUALLY REPRESENTS IT.
+  //
+  // Q-012 added per-option misconception attribution to all six foundation
+  // families. The item-level tag says the item CAN reveal a slip; the aligned
+  // map says WHICH option is evidence for it. A map that put the belief on the
+  // correct option, on a padded near-miss, or outside the concept's catalogue
+  // would make a wrong answer name a cause it did not demonstrate.
+  const foundationBeliefs = {
+    "place-value": "place-value-face",
+    addition: "add-carry-drop",
+    subtraction: "sub-borrow-unrepaid",
+    multiplication: "mul-as-add",
+    division: "div-as-subtract",
+    fractions: "frac-of-amount",
+  };
+  const wrongBelief = [];
+  const beliefCoverage = [];
+  for (const [conceptId, beliefId] of Object.entries(foundationBeliefs)) {
+    let tagged = 0;
+    for (let i = 0; i < 40; i++) {
+      const item = questions.generateQuestion(conceptId, i * 7919 + 13);
+      if (!isChoice(item)) continue;
+      const map = item.choiceMisconceptions;
+      if (!map) continue;
+      map.forEach((tag, index) => {
+        if (!tag) return;
+        tagged++;
+        if (index === item.answer) wrongBelief.push(`${conceptId}: belief on the key`);
+        if (tag !== beliefId) wrongBelief.push(`${conceptId}: ${tag} on option ${index}`);
+        const known = misconceptions.MISCONCEPTIONS_BY_ID[tag];
+        if (!known || !known.concepts.includes(conceptId)) {
+          wrongBelief.push(`${conceptId}: ${tag} not catalogued for the concept`);
+        }
+      });
+    }
+    beliefCoverage.push(`${conceptId} ${tagged}`);
+    ok(tagged > 0, `${conceptId} names a belief on at least one wrong option (${tagged})`);
+  }
+  ok(wrongBelief.length === 0,
+    `every named belief sits on a wrong option the concept actually catalogues (${wrongBelief.slice(0, 3).join(", ") || "none"}) — ${beliefCoverage.join(", ")}`);
+  const routeSrc3 = fs.readFileSync("app/api/progress/route.ts", "utf8");
+  ok(/const tag = attributed >= 0 \? q\.choiceMisconceptions\[attributed\] : ""/.test(routeSrc3),
+    "the grader records the CHOSEN option's belief, not the item's whole tag list");
+  ok(/q\.choiceValues\.findIndex/.test(routeSrc3),
+    "a typed answer is matched to the authored value it equals, so a number that is not a known distractor invents no cause");
+  ok(/diagnosedTags = tag \? \[tag\] : \[\]/.test(routeSrc3),
+    "…and an untagged option is recorded as an unexplained slip, not given the item-level belief by default");
 }
 
 
@@ -18575,6 +18683,714 @@ console.log("▸ Every authored lesson can be taught, and the guide keeps the an
     `an authored lesson without a written plan still yields a run sheet (${lessons.length - unplanned.length}/${lessons.length} have a plan; ${unplanned.length} teach from the lesson itself)`);
   ok(plans.plannedConceptIds().length >= lessons.length,
     "and the planned set covers the authored set, so a teacher is never sent to an unplanned lesson by the picker");
+}
+
+console.log("▸ The Number checkpoint uses unseen items and never ships their keys");
+{
+  const fs = require("fs");
+  const checkpoint = require("../.verify/number-checkpoint.js");
+  const view = checkpoint.numberCheckpointView();
+
+  ok(view.objectives.length === 5,
+    `the Number checkpoint names the five completed objectives (${view.objectives.map((o) => o.id).join(", ")})`);
+  ok(view.itemCount === 14 && view.totalMarks === 30,
+    `it is one sitting of 14 questions and 30 marks (got ${view.itemCount} / ${view.totalMarks})`);
+  ok(view.objectives.every((o) => o.marks === o.items.reduce((sum, i) => sum + i.marks, 0)),
+    "every objective's published mark total is the sum of its own items, not a second estimate");
+  ok(view.objectives.reduce((sum, o) => sum + o.marks, 0) === view.totalMarks,
+    "the objective totals add back to the paper's total");
+  ok(view.objectives.every((o) => o.items.length > 0 && o.items.every((i) => i.prompt.trim().length > 0 && i.marks > 0)),
+    "every objective has at least one item, and every item has a prompt and a positive mark value");
+
+  const numbers = view.objectives.flatMap((o) => o.items.map((i) => i.number));
+  ok(numbers.every((n, index) => n === index + 1),
+    "the questions are numbered once across the whole paper, not restarting inside each section");
+
+  const keys = view.objectives.flatMap((o) => o.items.map((i) => `${i.conceptId}#${i.itemId}`));
+  ok(new Set(keys).size === keys.length,
+    "no checkpoint item is counted twice in the same sitting");
+
+  // UNSEEN, AND PROVABLY SO. The defect this replaces: every checkpoint item
+  // was the lesson's own item, and every one of those items puts its model
+  // answer and marking criteria on the lesson page. A learner could read the
+  // answer before sitting the paper, so the checkpoint measured reading.
+  const authored = require("../.verify/lessons/authored/index.js");
+  const normalise = (text) => text.replace(/\s+/g, " ").trim().toLowerCase();
+  const lessonPrompts = new Map();
+  for (const lesson of authored.AUTHORED_LESSONS) {
+    for (const item of lesson.assessment) lessonPrompts.set(normalise(item.prompt), `${lesson.conceptId}#${item.id}`);
+  }
+  const reused = view.objectives.flatMap((o) => o.items).filter((i) => lessonPrompts.has(normalise(i.prompt)));
+  ok(reused.length === 0,
+    `no checkpoint question is a lesson assessment question (${reused.length} reused${reused.length ? ": " + reused.slice(0, 3).map((i) => `${i.itemId} = ${lessonPrompts.get(normalise(i.prompt))}`).join(", ") : ""})`);
+  ok(view.objectives.every((o) => o.items.every((i) => /^c\d+$/.test(i.itemId))),
+    "every checkpoint item id is checkpoint-namespaced (c1…), so it cannot be mistaken for a lesson item in a ledger");
+
+  const bankSource = fs.readFileSync("lib/number-checkpoint.ts", "utf8");
+  ok(!/from "\.\/lessons\/authored/.test(bankSource),
+    "the checkpoint bank imports no authored lesson, so a lesson edit cannot silently rewrite the paper");
+  ok(view.objectives.every((o) => o.items.every((i) => i.single || i.parts.reduce((sum, p) => sum + p.marks, 0) === i.marks)),
+    "a structured item's parts add back to the item's marks, so partial credit cannot drift from the paper total");
+  ok(view.objectives.every((o) => o.items.every((i) => !i.single || i.parts.length === 0)),
+    "a single-answer item carries no phantom parts");
+
+  // THE BOUNDARY. This is a key-leak test, not a wording test: every path in the
+  // public view is visited and a forbidden FIELD rejects the build. A prompt may
+  // contain the word "answer"; the object may not contain an answer field.
+  const forbidden = new Set(["answer", "accepted", "modelAnswer", "marking", "explanation", "check", "structured"]);
+  const leaked = [];
+  const walk = (value, path) => {
+    if (Array.isArray(value)) {
+      value.forEach((entry, index) => walk(entry, `${path}[${index}]`));
+      return;
+    }
+    if (value && typeof value === "object") {
+      for (const [key, entry] of Object.entries(value)) {
+        if (forbidden.has(key)) leaked.push(`${path}.${key}`);
+        walk(entry, `${path}.${key}`);
+      }
+    }
+  };
+  walk(view, "checkpoint");
+  ok(leaked.length === 0,
+    `the public checkpoint carries no answer, accepted list, model answer or marking criteria (${leaked.length} leaked${leaked.length ? ": " + leaked.slice(0, 4).join(", ") : ""})`);
+
+  // THE KEY IS REAL AND MARKS THE MATHEMATICS. A leak test proves the answer is
+  // hidden; it does not prove the hidden answer is right.
+  const grading = require("../.verify/lesson-assessment.js");
+  const c2 = checkpoint.numberCheckpointItemFor(view.id, "c2");
+  ok(c2 && grading.gradeAuthoredAssessment(c2.item, "1 13/20") === true &&
+      grading.gradeAuthoredAssessment(c2.item, "1 3/20") === false,
+    "a checkpoint short answer marks the correct mixed number right and a plausible slip wrong");
+  const c3 = checkpoint.numberCheckpointItemFor(view.id, "c3");
+  const full = c3 && grading.gradeStructuredAssessment(c3.item, ["5/2", "20/3", "6", "1/4"], ["", "5/2 × 8/3", "", ""]);
+  const noMethod = c3 && grading.gradeStructuredAssessment(c3.item, ["5/2", "20/3", "6", "1/4"]);
+  ok(full && full.awarded === 5 && full.marks === 5,
+    `the contextual division item awards all five marks for correct parts with the reciprocal shown (got ${full ? `${full.awarded}/${full.marks}` : "no grade"})`);
+  ok(noMethod && noMethod.awarded === 4,
+    `and a correct answer with no working keeps four of five — the method mark is not inferred from the answer (got ${noMethod ? `${noMethod.awarded}/${noMethod.marks}` : "no grade"})`);
+  const decimalItems = ["c12", "c13", "c14"].map((id) => checkpoint.numberCheckpointItemFor(view.id, id));
+  ok(decimalItems.every((d) => d && d.item.structured),
+    "the recurring-decimal objective is marked in parts, so the subtraction step is visible separately from the simplified fraction");
+
+  const page = fs.readFileSync("app/assessment/number/page.tsx", "utf8");
+  const client = fs.readFileSync("components/number-checkpoint.tsx", "utf8");
+  ok(/numberCheckpointView\(\)/.test(page) && /NumberCheckpoint/.test(page),
+    "the page renders the checkpoint's own view rather than a hand-written second paper");
+  ok(/api\.checkpointCheck/.test(client) && !/api\.lessonCheck/.test(client) && /secret/.test(client),
+    "the client marks through the checkpoint door, not the lessonCheck door, and passes the device secret");
+
+  const route = fs.readFileSync("app/api/progress/route.ts", "utf8");
+  const start = route.indexOf('if (body.action === "checkpointCheck")');
+  const end = route.indexOf("// ── A lesson's own assessment", start);
+  const branch = start >= 0 && end > start ? route.slice(start, end) : "";
+  const branchCode = branch.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+  ok(branchCode.length > 0, "the progress route has a checkpointCheck branch");
+  ok(!/lessonCheck/.test(branchCode),
+    "and that branch never touches the lesson's lessonCheck counter");
+  ok(branchCode.includes('source: "assessment"') && branchCode.includes("questionId: `checkpoint:${checkpointId}:${itemId}`"),
+    "a checkpoint attempt is recorded as assessment evidence under its own checkpoint id");
+}
+
+// ── A MODEL MUST BE TRUE, AND RESEARCH MUST BE HONEST ────────────────
+// Two claims that are easy to make on screen and impossible to see: a drawing
+// whose arithmetic contradicts its caption, and a bibliography whose entries were
+// never read. Neither is caught by rendering the page.
+{
+  const models = require("../.verify/interactive-models.js");
+  const closed = (cells, bulbs) => ({ cells, bulbs, closed: true });
+
+  // The physics, asserted from the model rather than from the prose.
+  const open = models.readCircuit({ cells: 2, bulbs: 2, closed: false });
+  ok(open.currentAmps === 0 && open.brightness === 0 && open.note === "open",
+    "an open switch carries no current anywhere in the loop, whatever the cells");
+  const base = models.readCircuit(closed(1, 1));
+  ok(Math.abs(base.currentAmps - 0.25) < 1e-9 && Math.abs(base.brightness - 1) < 1e-9,
+    `one cell and one bulb is 0.25 A at brightness 1× (got ${base.currentAmps} A / ${base.brightness}×)`);
+  const twoBulbs = models.readCircuit(closed(1, 2));
+  ok(Math.abs(twoBulbs.currentAmps - base.currentAmps / 2) < 1e-9,
+    "adding an identical bulb in series HALVES the current — the constant-current belief is refuted by the model");
+  const twoCells = models.readCircuit(closed(2, 1));
+  ok(Math.abs(twoCells.currentAmps - base.currentAmps * 2) < 1e-9, "adding a cell doubles it");
+  const balanced = models.readCircuit(closed(2, 2));
+  ok(Math.abs(balanced.brightness - 1) < 1e-9,
+    "two cells with two bulbs is exactly as bright as one with one — brightness follows the RATIO");
+  ok(models.readCircuit(closed(1, 4)).brightness < models.readCircuit(closed(1, 2)).brightness,
+    "and more bulbs on the same cell is dimmer, not the same");
+  ok(models.readCircuit({ cells: 99, bulbs: 99, closed: true }).currentAmps === models.readCircuit(closed(4, 4)).currentAmps,
+    "the controls are bounded, so the model cannot claim a circuit no classroom could show");
+  ok(models.readCircuit(closed(0, 2)).note === "no-cell" && models.readCircuit(closed(2, 0)).note === "no-bulb",
+    "a loop with no source and a loop with nothing to light are distinguishable states, not both \"dark\"");
+
+  // KIRCHHOFF, AS A SECOND ROUTE TO THE SAME NUMBER. The current comes from I = V/R;
+  // this asserts the p.d. across the bulbs adds back up to the cell voltage, which
+  // is a different statement and the one that would fail if the model ever printed
+  // a current and a per-bulb p.d. that disagreed with each other.
+  const conservation = [1, 2, 3, 4].flatMap((cells) => [1, 2, 3, 4].map((bulbs) => ({ cells, bulbs, reading: models.readCircuit(closed(cells, bulbs)) })));
+  ok(conservation.every(({ cells, bulbs, reading }) => Math.abs(bulbs * reading.voltsPerBulb - cells * models.CELL_VOLTS) < 1e-9),
+    "the p.d. across the bulbs adds up to the cell voltage in all 16 cell/bulb settings, checked independently of the current formula");
+  ok(Math.abs(models.readCircuit(closed(1, 2)).voltsPerBulb - 0.75) < 1e-9,
+    "two identical bulbs in series split 1.5 V into 0.75 V each, which is why they are dimmer rather than dark");
+
+  // WHICH WAY THE ARROWS POINT IS ARITHMETIC, NOT A STYLE CHOICE. PhET's sim makes
+  // a learner choose electrons or conventional current before it draws anything;
+  // our model drew an arrow and named neither. The direction now follows from the
+  // terminal the cell is drawn with, so a picture pointing into the positive plate
+  // cannot pass.
+  ok(models.CURRENT_CONVENTION.drawn === "conventional" && models.topWireCurrentDirection() === "right" && models.CELL_TERMINALS.positive === "left",
+    "the drawing names conventional current, and the top-wire direction follows from the positive plate being on the left");
+  ok(/electrons/i.test(models.CURRENT_CONVENTION.electrons) && /opposite way/.test(models.CURRENT_CONVENTION.electrons) && /not two different currents/.test(models.CURRENT_CONVENTION.notContradictory),
+    "the convention record states how electron drift differs and why the two descriptions do not contradict each other");
+  const circuitSrc = fs.readFileSync("components/circuit-model.tsx", "utf8");
+  ok(/topWireCurrentDirection\(\)/.test(circuitSrc) && /const arrow = /.test(circuitSrc),
+    "the arrows are drawn from the direction the terminals imply, not from a hard-coded path");
+  ok(/arrows: conventional current/.test(circuitSrc) && /cm-terminal-sign/.test(circuitSrc) && /data-circuit-convention/.test(circuitSrc) && /Neither is wrong/.test(circuitSrc),
+    "the drawing labels its arrows as conventional current, prints the + and − plates, and says plainly that the electron description is not a contradiction");
+  const researchReg = require("../.verify/learning-research.js");
+  const phet = researchReg.RESEARCH_SOURCES.find((s) => s.id === "phet-cck-dc");
+  ok(Boolean(phet) && phet.depth === "interactive-tested" && /NO closed circuit was built/.test(phet.limitations) && !/agrees with PhET/.test(circuitSrc),
+    "the PhET record keeps its non-claim: the sim was operated, no closed circuit was built, and the model claims no agreement with a measurement");
+
+  // The beliefs are DATA, so the suite can check each one against the model.
+  ok(models.CIRCUIT_BELIEFS.length === 4 && models.CIRCUIT_BELIEFS.every((b) => b.holds === false),
+    "every circulated belief is one the model refutes (four of them, each with a source)");
+  const constantCurrent = models.CIRCUIT_BELIEFS.find((b) => b.id === "battery-constant-current");
+  ok(models.readCircuit(closed(1, 1)).currentAmps !== models.readCircuit(closed(1, 2)).currentAmps
+    && Boolean(constantCurrent) && constantCurrent.holds === false,
+    "the constant-current belief is refuted by the same number the component prints");
+  const usedUp = models.CIRCUIT_BELIEFS.find((b) => b.id === "current-used-up");
+  ok(Boolean(usedUp) && models.readCircuit(closed(2, 3)).sameCurrentEverywhere === true && usedUp.holds === false,
+    "the used-up belief is refuted by the model stating one current for the whole loop");
+  ok(models.CIRCUIT_BELIEFS.every((b) => b.sourceId.length > 0 && b.why.length > 80),
+    "each belief names a source and explains why it fails, rather than saying it is wrong");
+
+  // Every declared model is implemented and bound to a real concept.
+  const fsMod = require("node:fs");
+  const modelComponents = {
+    "fraction-model": "components/fraction-model.tsx",
+    "circuit-model": "components/circuit-model.tsx",
+    "atom-model": "components/atom-model.tsx",
+    "cell-model": "components/cell-model.tsx",
+    "search-model": "components/search-model.tsx",
+    "number-line-model": "components/number-line-model.tsx",
+    "fraction-line-model": "components/fraction-line-model.tsx",
+    "fraction-ops-model": "components/fraction-ops-model.tsx",
+  };
+  ok(models.INTERACTIVE_MODEL_IDS.every((id) => fsMod.existsSync(modelComponents[id])),
+    `every interactive model a plan can name has a component (${models.INTERACTIVE_MODEL_IDS.join(", ")})`);
+  ok(Object.entries(models.MODEL_BY_CONCEPT).every(([, id]) => models.INTERACTIVE_MODEL_IDS.includes(id)),
+    "and every concept-bound model is one of the declared ids, so a typo cannot silently render nothing");
+  const plansSrc = fsMod.readFileSync("lib/lesson-plans.ts", "utf8");
+  ok(/conceptId: "electricity-circuits"[\s\S]{0,4000}?interactive: "circuit-model"/.test(plansSrc),
+    "the electricity lesson binds the circuit model, so the component is reachable from a real lesson");
+  const pageSrc = fsMod.readFileSync("app/learn/[subject]/[concept]/page.tsx", "utf8");
+  ok(/lessonModel === "circuit-model" && <CircuitModel \/>/.test(pageSrc),
+    "and the lesson page renders it on that condition rather than importing it for nothing");
+
+  // ── THE OTHER THREE PILOT MODELS ─────────────────────────────────────────────
+  // Assertions on the MODEL, not on the component: if a belief in the table stops
+  // being true of the arithmetic, the sentence beside the picture is now wrong and
+  // the suite is the only thing that would notice.
+  const pilots = require("../.verify/pilot-models.js");
+  const carbon13 = pilots.readAtom({ protons: 6, neutrons: 7, electrons: 6 });
+  const carbon14 = pilots.readAtom({ protons: 6, neutrons: 8, electrons: 6 });
+  ok(carbon13.symbol === "C" && carbon14.symbol === "C" && carbon13.massNumber === 13 && carbon14.massNumber === 14,
+    "the atom model keeps the element when only the neutrons change (carbon-13 and carbon-14 are both carbon)");
+  ok(pilots.readAtom({ protons: 6, neutrons: 6, electrons: 5 }).charge === 1
+    && pilots.readAtom({ protons: 6, neutrons: 6, electrons: 7 }).charge === -1,
+    "and an electron count that differs from the proton count is a charge, not a new element");
+  ok(pilots.readAtom({ protons: 0, neutrons: 2, electrons: 0 }).symbol === null
+    && pilots.readAtom({ protons: 0, neutrons: 2, electrons: 0 }).note === "not-an-element",
+    "and zero protons produces 'no element to name' rather than a symbol for nothing");
+  ok(pilots.ATOM_BELIEFS.length === 4 && pilots.ATOM_BELIEFS.filter((b) => !b.holds).length === 2,
+    "the atom beliefs table separates the two refuted claims from the two the model supports");
+
+  const plantParts = pilots.organellesFor("plant").map((o) => o.id);
+  const animalParts = pilots.organellesFor("animal").map((o) => o.id);
+  ok(plantParts.includes("cell-wall") && plantParts.includes("chloroplast") && !animalParts.includes("cell-wall") && !animalParts.includes("chloroplast"),
+    "the cell model gives a plant cell parts an animal cell does not have, in both directions");
+  const withoutWall = pilots.readCell("plant", plantParts.filter((id) => id !== "cell-wall"));
+  ok(withoutWall.broken.length === 1 && /shape/.test(withoutWall.sentence) && !/dies/.test(withoutWall.sentence),
+    "and switching a part off says what stops happening, not that the cell dies");
+  ok(pilots.organellesFor("animal").every((o) => o.id !== "vacuole") && pilots.organellesFor("plant").some((o) => o.id === "vacuole"),
+    "and the large vacuole is a plant part, so a plant cell is not an animal cell plus extras");
+
+  const binaryOnSorted = pilots.runBinarySearch(pilots.SEARCH_LIST, 55);
+  const binaryOnUnsorted = pilots.runBinarySearch([31, 3, 72], 3);
+  ok(binaryOnUnsorted.preconditionMet === false && binaryOnUnsorted.comparisons === 0,
+    "binary search refuses an unordered list instead of returning a confident wrong answer");
+  ok(binaryOnSorted.found && binaryOnSorted.comparisons <= 4,
+    `halving a fourteen-item list finds a value in at most four looks (${binaryOnSorted.comparisons})`);
+  const frontOfList = pilots.compareSearches(pilots.SEARCH_LIST, 3);
+  ok(frontOfList.linear.comparisons === 1 && frontOfList.savedByBinary < 0,
+    "and the model does not claim binary always wins: a target at the front is found in one look");
+  ok(pilots.runLinearSearch(pilots.SEARCH_LIST, 1000).comparisons === pilots.SEARCH_LIST.length,
+    "while a value that is not there costs every item, in both algorithms' terms");
+
+  // The number line: direction and magnitude kept apart, in the concept's own unit.
+  const nlSpec = pilots.NUMBER_LINE_BY_CONCEPT;
+  const left = pilots.readNumberLine(-5, nlSpec.negatives);
+  ok(/LEFT of zero/.test(left.sentence) && /SMALLER/.test(left.sentence) && left.distanceFromZero === 5,
+    "the number line says a negative sits LEFT of zero and further left is SMALLER, while reporting the distance as 5");
+  // THE NEIGHBOURS, read as an ORDER, because the first version printed them the
+  // wrong way round and only a browser showed it.
+  const minusThree = pilots.readNumberLine(-3, nlSpec.negatives);
+  ok(/less than −2 and more than −4/.test(minusThree.sentence),
+    "and −3 is stated as less than its right neighbour and more than its left one, not the reverse");
+  const plusThree = pilots.readNumberLine(3, nlSpec.negatives);
+  ok(/greater than 2 and less than 4/.test(plusThree.sentence),
+    "while +3 is greater than 2 and less than 4, so both sides are checked separately");
+  const tenths = pilots.readNumberLine(0.4, nlSpec.decimals);
+  ok(tenths.label === "0.4" && /tenth/.test(tenths.sentence),
+    "the decimal line moves in tenths and prints them rather than a float's noise (0.4, not 0.4000000000000001)");
+  const tens = pilots.readNumberLine(340, nlSpec["place-value"]);
+  ok(/34 moves/.test(tens.sentence) && nlSpec["place-value"].step === 10,
+    "the place-value line counts its ticks in tens, so 340 is 34 moves from zero");
+  ok(pilots.NUMBER_LINE_BELIEFS.length === 2 && pilots.NUMBER_LINE_BELIEFS.every((b) => b.holds === false),
+    "both number-line beliefs are ones the model refutes, not ones it asserts");
+
+  // ── COVERAGE: what "repeat it for every concept" actually covers today ───────
+  const coverage = require("../.verify/model-coverage.js");
+  const cov = coverage.coverageSummary();
+  const covRows = coverage.coverageRows();
+  ok(cov.concepts === 136 && covRows.length === 136,
+    `coverage is measured over every concept in the genome (${cov.concepts})`);
+  // NINE MEASURES, NOT ONE. A lesson file must never be reported as a teaching
+  // sequence or as an interactive experience.
+  ok(cov.interactiveModels + cov.planText + cov.noContent === cov.concepts,
+    `the delivered modality partitions every concept (${cov.interactiveModels} interactive + ${cov.planText} prose + ${cov.noContent} none = ${cov.concepts})`);
+  ok(cov.lessonFiles >= cov.teachingSequences && cov.teachingSequences >= cov.pilotPlans && cov.teachingSequences < cov.concepts,
+    `a lesson FILE is not a teaching SEQUENCE: ${cov.lessonFiles} files, ${cov.teachingSequences} hand-authored sequences, and the two are never reported as one`);
+  ok(cov.modelled === covRows.filter((r) => r.interaction).length && cov.modelled >= 9,
+    `every modelled row names an interaction and there are at least the nine built (${cov.modelled})`);
+  ok(cov.browserVerified === covRows.filter((r) => r.browserVerified).length,
+    `browser verification is counted from the evidence record, not from the build (${cov.browserVerified} concepts)`);
+  ok(cov.modelsWithoutBrowserEvidence.length === 0,
+    `every model a learner can reach has been opened in a browser (${cov.modelsWithoutBrowserEvidence.join(", ") || "none missing"})`);
+  ok(cov.modelledWithoutDossier.length === 0,
+    `no concept shows a model with no research behind it (${cov.modelledWithoutDossier.join(", ") || "none"})`);
+  ok(cov.educatorReviewed === 0 && cov.learnerTested === 0,
+    "and no concept claims educator review or learner testing, because neither has happened");
+  ok(cov.queue.length === cov.concepts - cov.modelled,
+    `the queue is the honest remainder: ${cov.queue.length} concepts still without a model`);
+
+  // The research register: honest, licensed, traceable.
+  const research = require("../.verify/learning-research.js");
+  const problems = research.validateResearch();
+  ok(problems.length === 0, `the research register is honest and licensed (${problems.length ? problems.slice(0, 3).join(" | ") : "no problems"})`);
+  const summary = research.researchSummary();
+  ok(summary.inspected >= 5 && summary.blocked >= 1,
+    `sources actually inspected: ${summary.inspected} of ${summary.sources}; ${summary.blocked} recorded as blocked rather than dropped`);
+  // THE COUNT IS COMPUTED, NOT ADDED BY HAND. A previous report said 32 sources
+  // while its own categories summed to 31; the register held 31.
+  const rec = research.researchReconciliation();
+  ok(rec.reconciled && rec.total === summary.sources && rec.depthSum === rec.total,
+    `the source total reconciles with its own categories in both dimensions (${rec.total} = ${rec.depthSum})`);
+  ok(summary.byDepth.abstract > 0 && summary.byDepth.section > 0 && summary.byDepth["full-text"] > 0,
+    `inspection depth is recorded rather than implied (${summary.byDepth.abstract} abstract, ${summary.byDepth.section} section, ${summary.byDepth["full-text"]} full text, ${summary.byDepth.metadata} metadata, ${summary.byDepth.discovered} discovered)`);
+  ok(summary.researchedConcepts.includes("electricity-circuits")
+    && summary.researchedConcepts.includes("atoms-elements")
+    && summary.researchedConcepts.includes("cells")
+    && summary.researchedConcepts.includes("algorithms-search")
+    && summary.researchedConcepts.includes("fractions")
+    && summary.researchedConcepts.includes("fraction-ops")
+    && summary.researchedConcepts.includes("place-value"),
+    `all five pilots and the fraction follow-on now have researched dossiers (${summary.researchedConcepts.join(", ")})`);
+  // The fraction sources must be real, inspected, and distinct: three are the
+  // minimum for a researched dossier, and all five pilots depend on this one.
+  const fractionSources = research.RESEARCH_SOURCES.filter((s) => s.concepts.includes("fractions") && s.inspection === "inspected");
+  ok(fractionSources.length >= 3 && fractionSources.every((s) => s.depth !== "discovered" && s.depth !== "metadata"),
+    `fractions rests on ${fractionSources.length} inspected sources at a stated depth (${fractionSources.map((s) => `${s.id}:${s.depth}`).join(", ")})`);
+  ok(research.RESEARCH_SOURCES.some((s) => s.id === "wwc-2010-fractions-guide" && s.depth === "section"),
+    "the WWC practice guide's number-line recommendation is in the register as a section read, not a link");
+  // Planted failures: the validator must be able to refuse, or the clean result
+  // above means nothing.
+  const plantedLicence = research.validateResearch(
+    [{ ...research.RESEARCH_SOURCES[0], id: "planted", licence: { name: "CC BY-NC 4.0", url: null, reuse: "adapt" } }], [],
+  );
+  ok(plantedLicence.some((p) => /NonCommercial|NoDerivatives/.test(p)),
+    "and it REFUSES an NC licence marked adaptable");
+  const plantedInspection = research.validateResearch(
+    [{ ...research.RESEARCH_SOURCES[0], id: "planted2", inspection: "inspected", whatWasInspected: undefined, accessedOn: null }], [],
+  );
+  ok(plantedInspection.some((p) => /claims inspection/.test(p)),
+    "and REFUSES an inspection claim that does not say what was read");
+  const plantedStatus = research.validateResearch([], [{ ...research.CONCEPT_DOSSIERS[0], status: "researched" }]);
+  ok(plantedStatus.some((p) => /three are required/.test(p)),
+    "and REFUSES \"researched\" on fewer than three inspected sources");
+  const plantedDepth = research.validateResearch(
+    [{ ...research.RESEARCH_SOURCES[0], id: "planted3", inspection: "identified", depth: "full-text" }], [],
+  );
+  ok(plantedDepth.some((p) => /marked "identified" but records depth/.test(p)),
+    "and REFUSES a depth deeper than its inspection state");
+  const plantedVideo = research.validateResearch(
+    [{ ...research.RESEARCH_SOURCES[0], id: "planted4", depth: "video-segment", whatWasInspected: "I watched the video about fractions." }], [],
+  );
+  ok(plantedVideo.some((p) => /without a timestamp/.test(p)),
+    "and REFUSES a claimed video segment with no timestamp to check it against");
+
+  // SAMPLED FRAMES ARE NOT A WATCH, AND EXTRACTED SLIDE TEXT IS NOT A DECK SEEN.
+  // The Oak fractions video was decoded frame by frame because its player never
+  // initialised; the linear-search segment was actually played. Those are two
+  // different claims and the register must hold two different rungs.
+  const framesRecord = research.RESEARCH_SOURCES.find((s) => s.id === "oak-fractions-numbers-video");
+  const playedRecord = research.RESEARCH_SOURCES.find((s) => s.id === "oak-linear-search-video");
+  const deckRecord = research.RESEARCH_SOURCES.find((s) => s.id === "drfrost-fractions-slides");
+  ok(framesRecord?.depth === "video-frames-sampled" && /not heard/.test(framesRecord.limitations),
+    `the fractions video is recorded as sampled frames, with its unheard audio stated (${framesRecord?.depth})`);
+  ok(playedRecord?.depth === "video-segment" && /\d{1,2}:\d{2}/.test(playedRecord.whatWasInspected ?? ""),
+    "the linear-search segment, which was played, keeps its timestamped video-segment rung");
+  ok(deckRecord?.depth === "slides-text" && /TEXT ONLY/i.test(deckRecord.limitations),
+    `the Dr Frost deck is recorded as slide text, with the unrendered media stated (${deckRecord?.depth})`);
+  const plantedFrames = research.validateResearch(
+    [{ ...research.RESEARCH_SOURCES[0], id: "planted5", depth: "video-frames-sampled", whatWasInspected: "Four frames of the video.", limitations: "Not the whole video." }], [],
+  );
+  ok(plantedFrames.some((p) => /without a timestamp/.test(p)) && plantedFrames.some((p) => /audio/.test(p)),
+    "and REFUSES sampled frames with no timestamps and nothing said about the audio");
+  const plantedSlides = research.validateResearch(
+    [{ ...research.RESEARCH_SOURCES[0], id: "planted6", depth: "slides-text", whatWasInspected: "Read every slide's text.", limitations: "None." }], [],
+  );
+  ok(plantedSlides.some((p) => /visuals were not rendered/.test(p)),
+    "and REFUSES slide text that does not say the visuals were not rendered");
+
+  // ── THE FRACTION MODELS: the arithmetic the pictures claim ─────────────────
+  const frac = require("../.verify/fraction-models.js");
+  const threeEighths = frac.readFractionLine(3, 8);
+  ok(threeEighths.benchmark === "below-half" && /below 1\/2/.test(threeEighths.sentence),
+    "3/8 is placed BELOW one half, and the sentence says why (twice 3 is less than 8)");
+  ok(frac.readFractionLine(5, 8).benchmark === "above-half" && frac.readFractionLine(4, 8).benchmark === "at-half",
+    "5/8 is above half and 4/8 is exactly half, so the benchmark is not a single threshold check");
+  ok(frac.readFractionLine(1, 8).position < frac.readFractionLine(1, 4).position,
+    "a bigger denominator puts the SAME single piece further left, which is the belief the model refutes");
+  const threeQuartersVsFiveEighths = frac.compareFractions(3, 4, 5, 8);
+  ok(threeQuartersVsFiveEighths.relation === ">" && threeQuartersVsFiveEighths.commonDenominator === 8
+    && threeQuartersVsFiveEighths.leftConverted === "6/8" && threeQuartersVsFiveEighths.rightConverted === "5/8",
+    "3/4 and 5/8 are compared in eighths (6/8 against 5/8), not by their bottoms");
+  const bottomTrap = frac.compareFractions(2, 3, 3, 5);
+  ok(bottomTrap.relation === ">" && bottomTrap.bottomRuleHappensToWork === false,
+    "2/3 > 3/5 even though 3 < 5, and the model reports that the bottom-comparison would be wrong here");
+  const sum = frac.addFractions(1, 2, 1, 3);
+  ok(sum.commonDenominator === 6 && sum.sumLabel === "5/6" && sum.wrongLabel === "2/5",
+    "1/2 + 1/3 is five sixths, while adding tops and bottoms gives 2/5");
+  ok(sum.wrongIsImpossible && /SMALLER than 1\/2/.test(sum.sentence),
+    "and the wrong answer is shown to be smaller than the larger addend, which no sum can be");
+  // The mediant lies between the addends, so the impossible test must hold for
+  // every distinct pair the controls can make — not only the worked example.
+  const impossibleFailures = [];
+  for (let b = 2; b <= 12; b += 1) {
+    for (let d = 2; d <= 12; d += 1) {
+      for (const a of [1, Math.floor(b / 2)]) {
+        for (const c of [1, Math.floor(d / 2)]) {
+          if (a === 0 || c === 0) continue;
+          const r = frac.addFractions(a, b, c, d);
+          if (a / b !== c / d && !r.wrongIsImpossible) impossibleFailures.push(`${a}/${b}+${c}/${d}→${r.wrongLabel}`);
+        }
+      }
+    }
+  }
+  ok(impossibleFailures.length === 0,
+    `for every distinct pair the controls allow, the tops-and-bottoms answer is smaller than the larger addend (${impossibleFailures.length} exception(s))`);
+  ok(frac.FRACTION_BELIEFS.filter((b) => !b.holds).length >= 4
+    && frac.FRACTION_BELIEFS.every((b) => research.RESEARCH_SOURCES.some((s) => s.id === b.sourceId)),
+    "the fraction beliefs are refutations with sources that exist in the register");
+  ok(/ONE WHOLE/.test(frac.readFractionLine(3, 3).sentence) && /at ZERO/.test(frac.readFractionLine(0, 3).sentence),
+    "the two ends of the line are named as one whole and zero, not described as 'above 1/2'");
+  const equalAddends = frac.addFractions(1, 2, 1, 2);
+  ok(!equalAddends.wrongIsImpossible && /not the sum/.test(equalAddends.sentence),
+    "the impossible-sum test is not claimed when the addends are equal, and the sentence falls back to the piece-size reason");
+
+  // ── EVERY MODEL STATES ITS LIMITS, AND EVERY REACHABLE MODEL WAS OPENED ─────
+  const assumptions = require("../.verify/model-assumptions.js");
+  const evidence = require("../.verify/model-evidence.js");
+  const modelRegistry = require("../.verify/interactive-models.js");
+  const reachable = [...new Set(covRows.map((r) => r.interaction).filter(Boolean))];
+  ok(assumptions.MODEL_ASSUMPTIONS.length === modelRegistry.INTERACTIVE_MODEL_IDS.length,
+    `every declared model has an assumptions record (${assumptions.MODEL_ASSUMPTIONS.length} of ${modelRegistry.INTERACTIVE_MODEL_IDS.length})`);
+  ok(reachable.every((m) => {
+    const a = assumptions.assumptionsFor(m);
+    return a && a.level && a.assumptions.length >= 3 && a.limitations.length >= 2 && a.addresses.length >= 1 && a.couldIntroduce.length >= 1;
+  }), `every model a learner can reach states its level, assumptions, limits and at least one misconception it might introduce (${reachable.join(", ")})`);
+  ok(reachable.every((m) => {
+    const e = evidence.evidenceFor(m);
+    return e && e.verifiedOn && e.checks.length >= 3 && e.viewport && e.notChecked.length >= 1;
+  }), "and every reachable model carries a dated browser record with checks and stated gaps, not just a build result");
+  ok(evidence.MODEL_EVIDENCE.every((e) => e.verifiedOn === null || e.notChecked.length > 0),
+    "no browser pass is recorded as complete: each one names what it did not cover");
+
+  // ── EVERY MODEL ASKS FOR A PREDICTION BEFORE IT IS TOUCHED ─────────────────
+  // A model without a stated objective is an animation with a caption, and a
+  // model with no prediction teaches a learner to press and watch. The frame
+  // (`lib/model-teaching.ts`, drawn by `components/model-shell.tsx`) is the same
+  // four things on every concept, and this block is the checklist a reviewer
+  // would otherwise have to remember: the objective is action-first, the
+  // prediction has a real wrong option as well as a right one, the reveal says
+  // WHY, and the teacher notes are not empty.
+  {
+    const teaching = require("../.verify/model-teaching.js");
+    const plans = require("../.verify/lesson-plans.js");
+    const words = (s) => String(s).split(/\s+/).filter((w) => /[A-Za-z0-9]/.test(w)).length;
+    const modelledConcepts = covRows.filter((r) => r.interaction).map((r) => r.conceptId);
+
+    ok(teaching.MODEL_TEACHING.length === modelledConcepts.length,
+      `every modelled concept has one teaching frame, and only modelled concepts have one (${teaching.MODEL_TEACHING.length} frames for ${modelledConcepts.length} concepts)`);
+
+    const frameGaps = [];
+    for (const conceptId of modelledConcepts) {
+      const t = teaching.teachingForConcept(conceptId);
+      const row = covRows.find((r) => r.conceptId === conceptId);
+      if (!t) { frameGaps.push(`${conceptId}: no frame`); continue; }
+      if (t.model !== row.interaction) frameGaps.push(`${conceptId}: frame says ${t.model}, lesson renders ${row.interaction}`);
+      // THE OBJECTIVE IS A DOOR, NOT A TOPIC. The supplemental fallback writes
+      // "Explain the idea \"X\", then use it in a problem" — a sentence with the
+      // concept's name in it and nothing a learner can do. Any frame that lands
+      // back on that shape is a frame that has not been written.
+      if (words(t.objective) < 8 || /^Explain the idea/.test(t.objective)) frameGaps.push(`${conceptId}: objective is a topic (${t.objective})`);
+      if (t.predict.kind === "choice") {
+        const ids = t.predict.options.map((o) => o.id);
+        if (t.predict.options.length < 3) frameGaps.push(`${conceptId}: ${t.predict.options.length} prediction options`);
+        if (new Set(ids).size !== ids.length) frameGaps.push(`${conceptId}: duplicate prediction option ids`);
+        if (ids.filter((id) => id === t.predict.answerId).length !== 1) frameGaps.push(`${conceptId}: answerId names ${ids.filter((id) => id === t.predict.answerId).length} options`);
+      } else {
+        // A DESCRIBE FRAME HAS NO OPTIONS AND NO KEY. Its checklist is the prompt,
+        // the reveal, and enough ideas for the learner to check their own sentence
+        // against the model without being marked.
+        if (words(t.predict.prompt) < 6) frameGaps.push(`${conceptId}: describe prompt is ${words(t.predict.prompt)}w`);
+        if (t.predict.lookFor.length < 2) frameGaps.push(`${conceptId}: ${t.predict.lookFor.length} ideas to look for`);
+        if (words(t.predict.question) < 8) frameGaps.push(`${conceptId}: describe question is ${words(t.predict.question)}w`);
+      }
+      if (words(t.predict.reveal) < 20) frameGaps.push(`${conceptId}: reveal is ${words(t.predict.reveal)}w`);
+      if (words(t.apply) < 8) frameGaps.push(`${conceptId}: apply is ${words(t.apply)}w`);
+      const n = t.teacher;
+      if (n.demonstrate.length < 2) frameGaps.push(`${conceptId}: ${n.demonstrate.length} demonstration steps`);
+      if (n.ask.length < 2) frameGaps.push(`${conceptId}: ${n.ask.length} questions to ask`);
+      for (const field of ["guided", "printable", "assessment"]) {
+        if (words(n[field]) < 8) frameGaps.push(`${conceptId}: teacher.${field} is ${words(n[field])}w`);
+      }
+      if (n.followUp.length < 1) frameGaps.push(`${conceptId}: no follow-up`);
+    }
+    ok(frameGaps.length === 0,
+      `every model states an action-first objective, a prediction with a real wrong answer, a reveal that says why, an apply step and usable teacher notes (${frameGaps.slice(0, 3).join(" | ") || "all complete"})`);
+
+    // THE REVEAL IS WITHHELD UNTIL A CHOICE, and the verdict is not "wrong".
+    const choiceFrames = teaching.MODEL_TEACHING.filter((t) => t.predict.kind === "choice");
+    const describeFrames = teaching.MODEL_TEACHING.filter((t) => t.predict.kind === "describe");
+    const sample = choiceFrames[0];
+    const right = teaching.predictionVerdict(sample, sample.predict.answerId);
+    const wrongId = sample.predict.options.map((o) => o.id).find((id) => id !== sample.predict.answerId);
+    const wrong = teaching.predictionVerdict(sample, wrongId);
+    ok(right.correct && !wrong.correct,
+      "the prediction's marked answer is the only id that comes back correct");
+    ok(/tempting answer/.test(wrong.sentence) && /built to show/.test(right.sentence),
+      "a wrong prediction is named as the tempting answer and then taught, not just marked wrong");
+    ok(choiceFrames.length >= 5 && describeFrames.length >= 2,
+      `not every prediction is a multiple choice: ${choiceFrames.length} choice frames and ${describeFrames.length} describe frames, because some subjects need the learner's own words`);
+    ok(describeFrames.every((t) => teaching.predictionVerdict(t, "anything") === null),
+      "a describe prediction has no verdict at all, so 'nothing is marked' is true in the type as well as in the copy");
+    ok(describeFrames.every((t) => t.predict.lookFor.length >= 2 && words(t.predict.reveal) >= 20 && words(t.predict.prompt) >= 6),
+      "every describe prediction says what to write, what the model shows, and enough ideas to check the sentence against");
+    ok(teaching.describeCommitted("too short") === false && teaching.describeCommitted("the bulb stays equally bright") === true,
+      "a describe prediction commits on enough words to be a claim, not on a keystroke");
+
+    // THE PAGE USES THE FRAME FOR EVERY MODEL, and the limits are printed by the
+    // shell from the register rather than re-typed beside each drawing (a second
+    // copy is a copy that can disagree with the one a teacher corrects).
+    const lessonPage = fs.readFileSync("app/learn/[subject]/[concept]/page.tsx", "utf8");
+    ok(/import \{ ModelShell \} from "@\/components\/model-shell"/.test(lessonPage) &&
+       /<ModelShell conceptId=\{conceptId\} model=\{lessonModel\}>/.test(lessonPage),
+      "the lesson page wraps every model in the frame, keyed by concept as well as model");
+    const shellSrc = fs.readFileSync("components/model-shell.tsx", "utf8");
+    ok(/verdict\s*\? verdict\.sentence\s*:/.test(shellSrc) && /described\s*\? `Your description is not marked/.test(shellSrc),
+      "the shell withholds both the choice verdict and the description's reveal until the learner has committed");
+    ok(/CONFIDENCE_OPTIONS/.test(shellSrc) && /data-model-calibration/.test(shellSrc) && /calibrationSentence/.test(shellSrc),
+      "the shell asks the optional confidence question and prints the calibration sentence it changes");
+    ok(/data-model-predict-kind=\{predict\.kind\}/.test(shellSrc),
+      "the DOM says which shape of prediction the page is using, so a teacher or a test can see it rather than infer it");
+    const cal = (c, correct) => teaching.calibrationSentence(c, correct);
+    ok(cal(null, true) === null &&
+       /confident and the model agrees/.test(cal("confident", true)) &&
+       /confident and the model shows something else/.test(cal("confident", false)) &&
+       /Nothing was lost/.test(cal("guess", false)) &&
+       /not sure, and the model shows something else/.test(cal("unsure", false)),
+      "confidence changes what the learner reads when the model answers, in every combination, and says nothing when it was not asked");
+    ok(teaching.CONFIDENCE_OPTIONS.length === 3 && teaching.CONFIDENCE_OPTIONS.map((c) => c.id).join() === "confident,unsure,guess",
+      "the confidence question is the three states the request named, with no default and no fourth");
+    ok(/assumptionsFor\(model\)/.test(shellSrc) && /couldIntroduce/.test(shellSrc),
+      "the shell prints its assumptions and its 'where the picture could mislead' from the register");
+    // THE MODEL DOES NOT OPEN UNTIL THE LEARNER COMMITS. An earlier version left the
+    // controls live under the question, which produced a drawing pressed before any
+    // belief existed. The slot has to be gated in the DOM, and the gate has to be
+    // visible as a state rather than an invisible pointer-events trick.
+    ok(/data-model-slot=\{committed \? "open" : "locked"\}/.test(shellSrc) &&
+       /committed \? \(\s*children\s*\)/.test(shellSrc) &&
+       /data-model-gate/.test(shellSrc),
+      "the shell keeps the model shut until a prediction is committed, and exposes locked/open in the DOM rather than hiding the gate in CSS");
+    const duplicated = ["atom-model", "cell-model", "circuit-model", "search-model"]
+      .filter((f) => /What this model assumes/.test(fs.readFileSync(`components/${f}.tsx`, "utf8")));
+    ok(duplicated.length === 0,
+      `no component re-types the assumptions the register owns (still: ${duplicated.join(", ") || "none"})`);
+
+    // THE SEARCH MODEL SEPARATES WHAT THIS RUN HAS SHOWN FROM WHAT IT COST.
+    const pm = require("../.verify/pilot-models.js");
+    const start = pm.searchProgress(pm.SEARCH_LIST, 55, 0);
+    ok(start.finalSentence === null && /Nothing has been checked yet/.test(start.liveSentence),
+      "at zero steps the search model reports no result at all, instead of printing the completed comparison");
+    ok(!/took/.test(start.liveSentence),
+      "and the live line does not quote a look count that has not been taken");
+    const mid = pm.searchProgress(pm.SEARCH_LIST, 55, 1);
+    const full = pm.searchProgress(pm.SEARCH_LIST, 55, 99);
+    ok(mid.linearShown === 1 && mid.binaryShown === 1 && !mid.finished && mid.finalSentence === null,
+      "one step shows one look of each algorithm and still no finished comparison");
+    ok(full.finished && /one at a time took 9 looks, halving took 3/.test(full.finalSentence),
+      `stepping to the end produces the completed comparison (${full.finalSentence})`);
+    const first = pm.searchProgress(pm.SEARCH_LIST, 3, 99);
+    ok(/one at a time took 1 look/.test(first.finalSentence) && /One at a time needed fewer looks/.test(first.finalSentence),
+      "the front-of-list target finishes with one at a time ahead, so 'halving is better' is refuted by the count");
+    const shuffled = pm.searchProgress([31, 3, 72, 12, 99, 8, 55, 19, 91, 24, 68, 40, 80, 47], 55, 99);
+    ok(shuffled.binaryShown === 0 && /could not start/.test(shuffled.finalSentence),
+      "an unsorted list reports halving as unable to start, not as zero looks");
+    ok(full.taken === Math.max(9, 3) && mid.linearShown <= 9 && mid.binaryShown <= 3,
+      "the live counts are clamped to each algorithm's own total");
+
+    // THE INSTRUCTION SEQUENCE IS A STATE, and the count is the learner's.
+    const g0 = pm.searchGuidance(pm.SEARCH_LIST, 55, 0);
+    const g1 = pm.searchGuidance(pm.SEARCH_LIST, 55, 1);
+    const gEnd = pm.searchGuidance(pm.SEARCH_LIST, 55, 99);
+    ok(pm.LINEAR_STEPS.length === 5 && pm.BINARY_STEPS.length === 5 && g0.linear.current === 2 && g0.binary.current === 2,
+      "each algorithm keeps a five-instruction sequence, and the first highlighted step is the one that starts the search");
+    const nextBinary = pm.runBinarySearch(pm.SEARCH_LIST, 55).windows[1];
+    ok(g1.linear.current === 3 && g1.linear.done.join() === "1,2" && g1.linearFocus.position === 2 && g1.binaryFocus.position === nextBinary.mid + 1,
+      `after one look the executing instruction is the comparison, the set-up steps are done, and each cursor sits on the item the next comparison will take (linear ${g1.linearFocus.position}, binary ${g1.binaryFocus.position})`);
+    ok(gEnd.linear.current === 4 && gEnd.binary.current === 4,
+      "a found target stops on the 'stop, you have found it' instruction in both algorithms");
+    const gBlocked = pm.searchGuidance([31, 3, 72], 55, 3);
+    ok(gBlocked.binary.current === null && /Cannot start/.test(gBlocked.binary.note),
+      "an unsorted list has no executing binary instruction at all, rather than a highlighted one that cannot run");
+    ok(!/ of \d+ look/.test(mid.liveSentence) && /Neither total is printed/.test(mid.liveSentence),
+      `the running line publishes no total before the run ends — the count is what the learner performs (${mid.liveSentence})`);
+    ok(/took 9 looks, halving took 3/.test(full.finalSentence),
+      "and the totals appear in the finished sentence, after the exploration");
+  }
+}
+
+// ── NOTHING REACHES PAST THE STORAGE PORT ───────────────────────────────────
+// THE FAILURE THIS EXISTS FOR is not a crash: a route answers 200 and writes a
+// JSON file beside the database, so one learner's account exists in two places and
+// the second is invisible to every operator tool. It happened thirteen times in
+// this codebase and every one was found end-to-end — `teacher_profile_missing` for
+// a teacher who existed, `not found` for a learner who existed, a roster table
+// holding only the teacher. A test can only catch the doors it happens to open; a
+// SOURCE assertion catches the next one before it ships.
+//
+// The forbidden list is the entity operations the port owns. A file may still
+// import the pure helpers beside them (`newId`, `publicProfileState`,
+// `hashPassword`) — those are not storage. The allowlist is the backend itself:
+// `store.ts` is the file store, `storage-file.ts` is the file backend, and
+// `storage.ts` declares the port. Nothing else in production may name these.
+{
+  const fsMod = require("node:fs");
+  const pathMod = require("node:path");
+  const PORT_OWNED = new Set([
+    "getProfile", "saveProfile", "listProfileStates",
+    "getClass", "listClasses", "saveClass", "updateClassById", "updateClassByCode",
+    "rotateJoinCode", "createClass", "reconcileClassIdentities",
+    "getRoom", "listRooms", "saveRoom", "updateRoomById",
+    "getStoredPaper", "saveStoredPaper", "getPersonalPaper", "savePersonalPaper",
+    "listPersonalPapers", "cacheGet", "cacheSet", "listPacks", "savePack",
+    "readAllPacks", "ensureProfileSecretFor",
+  ]);
+  const BACKEND = new Set(["lib/server/store.ts", "lib/server/storage.ts", "lib/server/storage-file.ts"]);
+  const walk = (dir) => fsMod.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const p = pathMod.join(dir, e.name);
+    if (e.isDirectory()) return e.name === "node_modules" || e.name.startsWith(".") ? [] : walk(p);
+    return /\.(ts|tsx)$/.test(e.name) ? [p] : [];
+  });
+  const importRe = /import\s+(?:type\s+)?\{([^}]*)\}\s+from\s+["'](?:@\/lib\/server\/store|\.\/store|\.\.\/server\/store)["']/g;
+  const offenders = [];
+  for (const file of [...walk("app"), ...walk("lib")]) {
+    if (BACKEND.has(file)) continue;
+    const src = fsMod.readFileSync(file, "utf8");
+    let m;
+    while ((m = importRe.exec(src))) {
+      for (const raw of m[1].split(",")) {
+        const name = raw.trim().split(/\s+as\s+/)[0].replace(/^type\s+/, "").trim();
+        if (PORT_OWNED.has(name)) offenders.push(`${file}#${name}`);
+      }
+    }
+  }
+  ok(offenders.length === 0,
+    `every production route reaches learner data through the storage port (${offenders.length} bypass(es)${offenders.length ? ": " + offenders.slice(0, 6).join(", ") : ""})`);
+  // The gate proves it can FAIL: a source string this check never sees would make
+  // the assertion above meaningless.
+  importRe.lastIndex = 0;
+  const probe = "import { getProfile, newId } from \"@/lib/server/store\";";
+  const seen = [...probe.matchAll(importRe)].flatMap((mm) => mm[1].split(",").map((s) => s.trim()));
+  ok(seen.includes("getProfile") && seen.includes("newId"),
+    "and the scan reads a multi-name import list correctly, so a bypass cannot hide inside a group");
+}
+
+// ── THE REMAINING FILE-ONLY SUBSYSTEMS, ENUMERATED ─────────────────────────
+// The port owns every learner record, class, room, paper, pack and cache entry.
+// THREE families are still file-backed, and this is the list of them rather than a
+// sentence in a report: kiosk/classroom session tokens (a table does not exist for
+// them yet), and teacher interventions (the table exists, the module still reads
+// JSON).
+//
+// IT IS A RATCHET, NOT AN ALLOWLIST. Equality with the literal below means a NEW
+// bypass fails the suite AND a fixed one also fails it — the second half is what
+// stops this list from becoming a permanent excuse: to remove an entry you must
+// have removed the dependency, and to add one you must say so here.
+{
+  const fsMod = require("node:fs");
+  const pathMod = require("node:path");
+  const FILE_ONLY = new Set([
+    "resolveKioskSession", "createKioskSession", "deleteKioskSession", "deleteKioskSessionsFor",
+    "readClassroomSessionsJson", "writeClassroomSessionsJson",
+    "readJson", "writeJson", "withLock",
+  ]);
+  const BACKEND = new Set(["lib/server/store.ts", "lib/server/storage.ts", "lib/server/storage-file.ts"]);
+  const walk = (dir) => fsMod.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const p = pathMod.join(dir, e.name);
+    if (e.isDirectory()) return e.name === "node_modules" || e.name.startsWith(".") ? [] : walk(p);
+    return /\.(ts|tsx)$/.test(e.name) ? [p] : [];
+  });
+  const importRe = /import\s+(?:type\s+)?\{([^}]*)\}\s+from\s+["'](?:@\/lib\/server\/store|\.\/store|\.\.\/server\/store)["']/g;
+  const found = [];
+  for (const file of [...walk("app"), ...walk("lib")]) {
+    if (BACKEND.has(file)) continue;
+    const src = fsMod.readFileSync(file, "utf8");
+    let m;
+    while ((m = importRe.exec(src))) {
+      for (const raw of m[1].split(",")) {
+        const name = raw.trim().split(/\s+as\s+/)[0].replace(/^type\s+/, "").trim();
+        if (FILE_ONLY.has(name)) found.push(`${file}#${name}`);
+      }
+    }
+  }
+  found.sort();
+  const KNOWN = [
+    "app/api/classes/route.ts#deleteKioskSessionsFor",
+    "app/api/kiosk/leave/route.ts#deleteKioskSession",
+    "app/api/kiosk/login/route.ts#createKioskSession",
+    "app/api/kiosk/login/route.ts#deleteKioskSessionsFor",
+    "app/api/my-data/route.ts#resolveKioskSession",
+    "app/api/profile/route.ts#deleteKioskSessionsFor",
+    "app/api/profile/route.ts#resolveKioskSession",
+    "lib/server/auth.ts#resolveKioskSession",
+    "lib/server/capability.ts#resolveKioskSession",
+    "lib/server/classroom.ts#readClassroomSessionsJson",
+    "lib/server/classroom.ts#withLock",
+    "lib/server/classroom.ts#writeClassroomSessionsJson",
+    "lib/server/evidence-file.ts#withLock",
+    "lib/server/interventions.ts#readJson",
+    "lib/server/interventions.ts#withLock",
+    "lib/server/interventions.ts#writeJson",
+  ].sort();
+  const added = found.filter((f) => !KNOWN.includes(f));
+  const removed = KNOWN.filter((k) => !found.includes(k));
+  ok(added.length === 0 && removed.length === 0,
+    `the file-only subsystems are exactly the ones enumerated here — ${KNOWN.length} named, ${found.length} found`
+    + (added.length ? `; NEW bypass: ${added.join(", ")}` : "")
+    + (removed.length ? `; migrated, so delete from the list: ${removed.join(", ")}` : ""));
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

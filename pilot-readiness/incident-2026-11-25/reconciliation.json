@@ -1,0 +1,464 @@
+{
+  "incident": "2026-11-25T21:15:00.000Z",
+  "store": "/Users/shaurjeshbasu/Downloads/NON PROFIT/.openmind-data",
+  "backupDir": "/tmp/openmind-incident-20261125T220920/backups",
+  "failures": [],
+  "preExisting": [
+    {
+      "id": "prof_ea7b5f6d17b44179b6996e7365b724e6",
+      "handle": "MGHFV,G",
+      "createdAt": 1794054804622,
+      "era": "pre-existing",
+      "events": 0,
+      "practice": 1,
+      "masteries": 0,
+      "personalPapers": 0,
+      "diagnostics": 1
+    },
+    {
+      "id": "prof_f4ab2fc9231b4d95a200db9e46bf1963",
+      "handle": "myrsmrxhf",
+      "createdAt": 1794089272652,
+      "era": "pre-existing",
+      "events": 0,
+      "practice": 1,
+      "masteries": 0,
+      "personalPapers": 0,
+      "diagnostics": 0
+    },
+    {
+      "id": "prof_eba5cc12131c4f809a58c6e2946350b4",
+      "handle": "sync_learner",
+      "createdAt": 1794528870571,
+      "era": "pre-existing",
+      "events": 0,
+      "practice": 0,
+      "masteries": 0,
+      "personalPapers": 0,
+      "diagnostics": 0
+    },
+    {
+      "id": "prof_576b08ec64da443e993aba800685cd65",
+      "handle": "sync_learner",
+      "createdAt": 1794581222775,
+      "era": "pre-existing",
+      "events": 0,
+      "practice": 0,
+      "masteries": 0,
+      "personalPapers": 0,
+      "diagnostics": 0
+    },
+    {
+      "id": "prof_682ce0c874b6495fa0ad5289ff1531aa",
+      "handle": "sync_learner",
+      "createdAt": 1794581890737,
+      "era": "pre-existing",
+      "events": 0,
+      "practice": 0,
+      "masteries": 0,
+      "personalPapers": 0,
+      "diagnostics": 0
+    },
+    {
+      "id": "prof_e4983efec56e4f82a5e85a74b8779764",
+      "handle": "ddddddd",
+      "createdAt": 1795107328694,
+      "era": "pre-existing",
+      "events": 0,
+      "practice": 0,
+      "masteries": 0,
+      "personalPapers": 0,
+      "diagnostics": 0
+    }
+  ],
+  "incidentWindow": [
+    {
+      "id": "prof_45898ea43007495091a4f49667f5cf9e",
+      "handle": "amina_k",
+      "createdAt": 1795641332609,
+      "era": "incident-window",
+      "events": 0,
+      "practice": 0,
+      "masteries": 0,
+      "personalPapers": 0,
+      "diagnostics": 3
+    },
+    {
+      "id": "prof_2bab3cdc897d4d2981572e739214b5d4",
+      "handle": "loop_e2e",
+      "createdAt": 1795641336926,
+      "era": "incident-window",
+      "events": 0,
+      "practice": 1,
+      "masteries": 0,
+      "personalPapers": 0,
+      "diagnostics": 0
+    },
+    {
+      "id": "prof_9c84ae88ceaa4ecda27c1584bc07c45b",
+      "handle": "e2e_struggler",
+      "createdAt": 1795641337597,
+      "era": "incident-window",
+      "events": 0,
+      "practice": 1,
+      "masteries": 0,
+      "personalPapers": 0,
+      "diagnostics": 0
+    },
+    {
+      "id": "prof_0293aeb37c964807a5052108570f564d",
+      "handle": "e2e_untouched",
+      "createdAt": 1795641337660,
+      "era": "incident-window",
+      "events": 0,
+      "practice": 1,
+      "masteries": 0,
+      "personalPapers": 0,
+      "diagnostics": 0
+    },
+    {
+      "id": "prof_823f3c1301bc4e8099846590435bf2c1",
+      "handle": "diag_only_e2e",
+      "createdAt": 1795641338136,
+      "era": "incident-window",
+      "events": 0,
+      "practice": 0,
+      "masteries": 0,
+      "personalPapers": 0,
+      "diagnostics": 1
+    },
+    {
+      "id": "prof_17acc28550244bfebbe388ee1f93fdb1",
+      "handle": "proof_http",
+      "createdAt": 1795641338419,
+      "era": "incident-window",
+      "events": 0,
+      "practice": 0,
+      "masteries": 0,
+      "personalPapers": 0,
+      "diagnostics": 2
+    },
+    {
+      "id": "prof_0678ec07c69b4465a39c87d86a9a9d04",
+      "handle": "cls_teacher_e2e",
+      "createdAt": 1795641339778,
+      "era": "incident-window",
+      "events": 0,
+      "practice": 0,
+      "masteries": 0,
+      "personalPapers": 0,
+      "diagnostics": 0
+    },
+    {
+      "id": "prof_cc219b468ef5410ba3c3551decbd012b",
+      "handle": "bk_2009",
+      "createdAt": 1795641340073,
+      "era": "incident-window",
+      "events": 0,
+      "practice": 0,
+      "masteries": 0,
+      "personalPapers": 0,
+      "diagnostics": 0
+    },
+    {
+      "id": "prof_577b46ae03284132bfcaa553143fb884",
+      "handle": "stranger_p",
+      "createdAt": 1795641340191,
+      "era": "incident-window",
+      "events": 0,
+      "practice": 0,
+      "masteries": 0,
+      "personalPapers": 0,
+      "diagnostics": 0
+    },
+    {
+      "id": "prof_fd98376e4f3a47bcab27e2b029fc0fb8",
+      "handle": "anon",
+      "createdAt": 1795641340281,
+      "era": "incident-window",
+      "events": 0,
+      "practice": 0,
+      "masteries": 0,
+      "personalPapers": 0,
+      "diagnostics": 0
+    },
+    {
+      "id": "prof_d5ac5d8b2b07465e911de05ccd6f2367",
+      "handle": "phys_teacher_e2e",
+      "createdAt": 1795641340503,
+      "era": "incident-window",
+      "events": 0,
+      "practice": 0,
+      "masteries": 0,
+      "personalPapers": 0,
+      "diagnostics": 0
+    },
+    {
+      "id": "prof_aa22816f38b5401fa41bfdae7d23b165",
+      "handle": "phys_kid_e2e",
+      "createdAt": 1795641340612,
+      "era": "incident-window",
+      "events": 0,
+      "practice": 0,
+      "masteries": 0,
+      "personalPapers": 0,
+      "diagnostics": 0
+    },
+    {
+      "id": "prof_d324bd3c15844d77853edac0821da45e",
+      "handle": "phys_quiet_e2e",
+      "createdAt": 1795641340771,
+      "era": "incident-window",
+      "events": 0,
+      "practice": 0,
+      "masteries": 0,
+      "personalPapers": 0,
+      "diagnostics": 0
+    },
+    {
+      "id": "prof_7db67eca034647b3a0e06d7a5d0cb431",
+      "handle": "names_teacher_e2e",
+      "createdAt": 1795641340989,
+      "era": "incident-window",
+      "events": 0,
+      "practice": 0,
+      "masteries": 0,
+      "personalPapers": 0,
+      "diagnostics": 0
+    },
+    {
+      "id": "prof_369dfd981bb94eaab800830a5a80007b",
+      "handle": "Alex",
+      "createdAt": 1795641341075,
+      "era": "incident-window",
+      "events": 0,
+      "practice": 0,
+      "masteries": 0,
+      "personalPapers": 0,
+      "diagnostics": 0
+    },
+    {
+      "id": "prof_652b61f8b7664380b42fcee5119e7c20",
+      "handle": "Alex",
+      "createdAt": 1795641341082,
+      "era": "incident-window",
+      "events": 0,
+      "practice": 0,
+      "masteries": 0,
+      "personalPapers": 0,
+      "diagnostics": 0
+    },
+    {
+      "id": "prof_b2eec9d8b34547e5a1bca95d578e0861",
+      "handle": "Alex",
+      "createdAt": 1795641341089,
+      "era": "incident-window",
+      "events": 0,
+      "practice": 0,
+      "masteries": 0,
+      "personalPapers": 0,
+      "diagnostics": 0
+    },
+    {
+      "id": "prof_2024284f37ee4604b9bbf13d5574f87b",
+      "handle": "next_lang_ar_e2e",
+      "createdAt": 1795641341303,
+      "era": "incident-window",
+      "events": 0,
+      "practice": 0,
+      "masteries": 0,
+      "personalPapers": 0,
+      "diagnostics": 0
+    },
+    {
+      "id": "prof_e33b500e702c4f92a55be3b971ac0010",
+      "handle": "micro_p",
+      "createdAt": 1795641341684,
+      "era": "incident-window",
+      "events": 0,
+      "practice": 0,
+      "masteries": 0,
+      "personalPapers": 0,
+      "diagnostics": 0
+    },
+    {
+      "id": "prof_5083f0ed6d6f48d1922b58e0c6f25a09",
+      "handle": "micro_c",
+      "createdAt": 1795641341796,
+      "era": "incident-window",
+      "events": 0,
+      "practice": 0,
+      "masteries": 0,
+      "personalPapers": 0,
+      "diagnostics": 0
+    },
+    {
+      "id": "prof_e804d0444450401181111f06bd72d2e3",
+      "handle": "starter_e2e",
+      "createdAt": 1795641341850,
+      "era": "incident-window",
+      "events": 0,
+      "practice": 1,
+      "masteries": 0,
+      "personalPapers": 0,
+      "diagnostics": 0
+    },
+    {
+      "id": "prof_c3d9c3d2b027417fb0db067f67fe7b30",
+      "handle": "starter_e2e_ok",
+      "createdAt": 1795641341906,
+      "era": "incident-window",
+      "events": 0,
+      "practice": 1,
+      "masteries": 0,
+      "personalPapers": 0,
+      "diagnostics": 0
+    },
+    {
+      "id": "prof_be8ab750b1f94c3cac112424c8d632ac",
+      "handle": "attrib_hint_e2e",
+      "createdAt": 1795641341950,
+      "era": "incident-window",
+      "events": 0,
+      "practice": 0,
+      "masteries": 0,
+      "personalPapers": 0,
+      "diagnostics": 0
+    },
+    {
+      "id": "prof_4e402eec85ff429d9dd8bd4fbdd4cde9",
+      "handle": "attrib_transfer_e2e",
+      "createdAt": 1795641341996,
+      "era": "incident-window",
+      "events": 0,
+      "practice": 2,
+      "masteries": 0,
+      "personalPapers": 0,
+      "diagnostics": 0
+    },
+    {
+      "id": "prof_4bcc50c9e13e4767b632b34009497722",
+      "handle": "paper_e2e",
+      "createdAt": 1795641342237,
+      "era": "incident-window",
+      "events": 0,
+      "practice": 0,
+      "masteries": 0,
+      "personalPapers": 0,
+      "diagnostics": 0
+    }
+  ],
+  "survivors": [
+    {
+      "id": "stu_mub5fkj8lg2plm7a0a",
+      "identical": true,
+      "handle": "ui_check",
+      "createdAt": 1789989332660
+    }
+  ],
+  "accounts": [
+    {
+      "email": "acc_mub5fknqrwq92g",
+      "profileId": "stu_mub5fkj8lg2plm7a0a",
+      "createdAt": 1789989332889,
+      "era": "pre-existing",
+      "kept": true
+    },
+    {
+      "email": "acc_eda416b859f3497f96b44f4f8978c8d6",
+      "profileId": "prof_e4983efec56e4f82a5e85a74b8779764",
+      "createdAt": 1795107328750,
+      "era": "pre-existing",
+      "kept": false
+    },
+    {
+      "email": "acc_79ea8bb0e838477f9224a97c7b4bb4d0",
+      "profileId": "prof_0678ec07c69b4465a39c87d86a9a9d04",
+      "createdAt": 1795641339818,
+      "era": "incident-window",
+      "kept": false
+    },
+    {
+      "email": "acc_d2ddcb5ff8694967bb972ff063d6ccc1",
+      "profileId": "prof_d5ac5d8b2b07465e911de05ccd6f2367",
+      "createdAt": 1795641340556,
+      "era": "incident-window",
+      "kept": false
+    },
+    {
+      "email": "acc_857659ffcad24c1b93d5d5f841c1787e",
+      "profileId": "prof_7db67eca034647b3a0e06d7a5d0cb431",
+      "createdAt": 1795641341023,
+      "era": "incident-window",
+      "kept": false
+    }
+  ],
+  "papers": [
+    {
+      "id": "pap_1m5hasqw3k7cu",
+      "createdAt": 1795641342457,
+      "era": "incident-window",
+      "owner": null,
+      "label": "GCSE Mathematics — Higher Paper 1 (non-calculator)"
+    }
+  ],
+  "classes": [
+    {
+      "id": "cls_a765664215da4033b17fb6fd6e0edbac",
+      "createdAt": 1795641340049,
+      "era": "incident-window",
+      "owner": null,
+      "label": "Class 9A — Mathematics"
+    },
+    {
+      "id": "cls_eb33d8e31f3a48b1b0f34ba351452b90",
+      "createdAt": 1795641340606,
+      "era": "incident-window",
+      "owner": null,
+      "label": "Year 11 Physics"
+    },
+    {
+      "id": "cls_3a15401ae6a84e6ca47b836684a82c40",
+      "createdAt": 1795641340952,
+      "era": "incident-window",
+      "owner": null,
+      "label": "Declared physics"
+    },
+    {
+      "id": "cls_14bfe31c01454474ab1b05cfc2cb082b",
+      "createdAt": 1795641340976,
+      "era": "incident-window",
+      "owner": null,
+      "label": "No subject declared"
+    },
+    {
+      "id": "cls_83a1e3133d684c36a8b5cac51cdbf8df",
+      "createdAt": 1795641341070,
+      "era": "incident-window",
+      "owner": null,
+      "label": "Year 10 Maths"
+    }
+  ],
+  "rooms": [
+    {
+      "id": "room_79a6edc0ce784dadbaf31df0d9956671",
+      "createdAt": 1795641339414,
+      "era": "incident-window",
+      "owner": "amina_k",
+      "label": "GCSE Physics"
+    },
+    {
+      "id": "room_ec1b39e33be64103b51a345326098df0",
+      "createdAt": 1795641339670,
+      "era": "incident-window",
+      "owner": "zuri",
+      "label": "GCSE Physics (fork)"
+    }
+  ],
+  "ledgers": {
+    "now": 0,
+    "backedUp": false,
+    "note": "The old cleanup deleted every ledger in .openmind-data/evidence/ with rmSync and made no copy. Their COUNT can be reconstructed from its log; their CONTENTS cannot. This is the one deletion in the incident that is not recoverable from the preserved backup."
+  },
+  "personalPapers": []
+}

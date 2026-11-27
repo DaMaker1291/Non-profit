@@ -69,6 +69,7 @@ Decimals and percentages are the same idea in other notation: 3/4 = 0.75 = 75%. 
 - **"1/8 is bigger than 1/4 because 8 is bigger than 4."** The bottom number counts the pieces, so a bigger bottom means each piece is smaller. Cut the same bar into eight and every piece is half the size of the quarter you had before. Compare the slices, not the numbers.
 - **"2/3 is bigger than 3/4 because 2 and 3 are bigger than 3 and 4 in the other one."** Comparing tops alone only works when the bottoms match. Here the pieces are different sizes, so 2 of one size and 3 of another cannot be counted against each other until the sizes are made equal: 8/12 against 9/12.
 - **"3/4 + 1/4 = 4/8."** Adding the bottoms together changes the size of every piece in the answer, so the addition is no longer about the same wholes. Quarters and quarters are the same size, so the tops simply add: 3/4 + 1/4 = 1. (Different bottoms are next concept, and they need a common denominator first.)
+- **"3/5 is bigger than 1/5, so 3/5 of anything is bigger than 1/5 of anything."** That holds only while both fractions are taken from the SAME whole. 3/5 of a short bar can be a shorter piece than 1/5 of a long one — cut two bars of different lengths and check. A fraction describes a share of a particular whole, so the first question is always what the whole is; a comparison that never names its whole is not yet a comparison.
 
 ### Where it is used next
 
@@ -479,13 +480,13 @@ Curve sketching, where a line meets a curve, maximum-area and optimisation probl
 
 ### Questions for the reviewer to check
 
-**Q1.** Solve x² − 10x + 24 = 0. What is the LARGER root?
-  - A. 10
-  - B. 24
+**Q1.** Solve x² − 6x + 8 = 0. What is the LARGER root?
+  - A. 8
+  - B. 2
   - C. 4
   - D. 6
-  - **Key:** D
-  - **Explanation:** A quadratic is solved by writing it as a product, since a product is zero when either factor is: x² − 10x + 24 factorises to (x − 6)(x − 4), so x = 6 or x = 4. The question asks for the larger of the two, which is 6. The other root (4) is a real answer to the equation but not to the question — a quadratic normally has two roots, and the stem says which one it wants.
+  - **Key:** C
+  - **Explanation:** A quadratic is solved by writing it as a product, since a product is zero when either factor is: x² − 6x + 8 factorises to (x − 4)(x − 2), so x = 4 or x = 2. The question asks for the larger of the two, which is 4. The other root (2) is a real answer to the equation but not to the question — a quadratic normally has two roots, and the stem says which one it wants.
   - **Misconception tags:** lost-root
 
 **Q2.** The graph of y = x² + 5x + 4 crosses the x-axis at two points. What are the x-coordinates of those points?
@@ -564,7 +565,7 @@ What is the midpoint of the two markers?
   - C. (34, 20)
   - D. (17, 10)
   - **Key:** D
-  - **Explanation:** The midpoint averages each coordinate: x is (12 + 22) ÷ 2 = 17 and y is (4 + 16) ÷ 2 = 10, giving (17, 10). Adding the coordinates instead of averaging gives (34, 20).
+  - **Explanation:** The midpoint is halfway between the two points, so each coordinate is the AVERAGE of the two: x is (12 + 22) ÷ 2 = 17, and y is (4 + 16) ÷ 2 = 10, giving (17, 10). Adding the coordinates instead of averaging gives (34, 20), which is twice the midpoint and lies beyond both markers rather than between them.
   - **Misconception tags:** none
 
 **Reviewer decision:** approve for this scope / request revisions / reject.
@@ -588,13 +589,17 @@ Name the parts of an animal and a plant cell, and explain how each part's struct
 
 A brick wall and a living factory look equally solid from a distance, and only one of them is doing anything. A cell is the smallest piece of a living thing that can carry out all the processes of life: it takes in materials, releases energy, makes what it needs and gets rid of waste. Most cells are too small to see without a microscope, which is why the idea feels abstract until you look at one.
 
+### Figure
+
+Kind: `cell`. A plant cell, schematic and not to scale. 1 nucleus, holding the DNA; 2 cytoplasm, where many reactions happen; 3 large permanent vacuole, filled with cell sap; 4 chloroplast, containing chlorophyll; 5 mitochondrion, where aerobic respiration releases energy; 6 cellulose cell wall, outside the membrane. The wall gives shape and support; the membrane just inside it is the selectively permeable barrier that controls what enters and leaves.
+
 ### The idea
 
 A cell is the basic structural and functional unit of life. Every living organism is made of one cell (a bacterium) or many cells (a plant, an animal, you). The cell is not a container with parts floating in it by accident: each part, or organelle, has a job, and the shape of the part is tied to that job.
 
 An animal cell has a cell membrane around the outside, cytoplasm inside, a nucleus, and mitochondria. The membrane is a thin, flexible boundary that controls what enters and leaves. The cytoplasm is where many reactions happen. The nucleus holds the genetic material (DNA) and controls the cell's activities. Mitochondria are where aerobic respiration releases energy from glucose.
 
-A plant cell has the same four parts and three more that matter here: a cellulose cell wall outside the membrane, chloroplasts, and a large permanent vacuole. The wall is strong and gives the cell its shape; it is fully permeable, so the membrane underneath is still the gatekeeper. Chloroplasts contain chlorophyll and carry out photosynthesis. The vacuole is filled with cell sap and helps keep the cell firm.
+A plant cell has the same four parts and three more that matter here: a cellulose cell wall outside the membrane, chloroplasts, and a large permanent vacuole. The wall is strong and gives the cell its shape; it is freely permeable to water and small dissolved substances, but it is not the selective barrier — the membrane underneath is. Chloroplasts contain chlorophyll and carry out photosynthesis. The vacuole is filled with cell sap and helps keep the cell firm.
 
 Specialised cells show the same rule at a larger scale: structure serves function. A red blood cell has no nucleus and is packed with haemoglobin, leaving more room to carry oxygen. A root hair cell has a long, thin extension that increases the surface area for absorbing water and minerals. A sperm cell has many mitochondria to power its journey. A nerve cell is long so it can carry an electrical impulse from one part of the body to another.
 
@@ -631,7 +636,7 @@ Answer: **Chloroplasts (and a cellulose cell wall and large permanent vacuole). 
 ### Traps
 
 - **"Plant cells have no mitochondria because they get energy from sunlight."** Photosynthesis makes glucose; respiration releases energy from glucose, and plant cells carry out respiration day and night. Mitochondria are therefore present in plant cells too. Sunlight is the energy source for making the glucose, not a replacement for respiring it.
-- **"The cell wall controls what enters the cell."** The cellulose wall is strong and fully permeable: it gives shape and support, but it does not select substances. The cell membrane underneath is the selectively permeable boundary that does that job.
+- **"The cell wall controls what enters the cell."** The cellulose wall is strong and freely permeable to water and small dissolved substances: it gives shape and support, but it is not the cell's selective barrier. The cell membrane underneath is the selectively permeable boundary that controls what enters and leaves.
 - **"A red blood cell has a nucleus like every other cell."** A mature human red blood cell loses its nucleus during development. That leaves more space for haemoglobin, so each cell can carry more oxygen. The absence is a specialisation, not a mistake in the diagram.
 
 ### Where it is used next
@@ -785,6 +790,10 @@ Balance a chemical equation by counting atoms, add state symbols correctly, and 
 ### Intuition
 
 A chemical equation is a recipe written in symbols, and the recipe has a strict rule: atoms are not created or destroyed. You can rearrange the same atoms into new groups, but you cannot make a new atom appear. That is why the number of each kind of atom on the left must equal the number on the right — not approximately, exactly.
+
+### Figure
+
+Kind: `particles`. 2H₂ + O₂ → 2H₂O as particles. Left: two hydrogen molecules (four H atoms) and one oxygen molecule (two O atoms). Right: two water molecules, each with one O and two H — four H and two O again. The atoms are rearranged, not created; the coefficient 2 doubles the MOLECULE count, and that is why the atom count is unchanged.
 
 ### The idea
 

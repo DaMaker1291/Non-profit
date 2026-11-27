@@ -191,8 +191,14 @@ export const PILOT_TEST_APPROVALS: readonly PilotApproval[] = [
  *  empty registry; the fixture is reachable only from an explicit development
  *  test run. */
 export function pilotApprovals(): readonly PilotApproval[] {
+  // TWO KEYS, not one. The approvals flag alone was one shell line away from
+  // granting fixture approvals to a process that was also serving real
+  // learners; `OPENMIND_TEST_SCRATCH=1` is set only by the isolated runner,
+  // beside a scratch data directory it created and marked. Production is
+  // refused twice — by NODE_ENV, and by a flag it never sets.
   const testRun = process.env.NODE_ENV !== "production"
-    && process.env.OPENMIND_TEST_CONTENT_APPROVALS === "1";
+    && process.env.OPENMIND_TEST_CONTENT_APPROVALS === "1"
+    && process.env.OPENMIND_TEST_SCRATCH === "1";
   return testRun ? [...PILOT_APPROVALS, ...PILOT_TEST_APPROVALS] : PILOT_APPROVALS;
 }
 

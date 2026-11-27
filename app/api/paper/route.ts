@@ -4,7 +4,10 @@ import {
   paperAllowedFor, paperConceptsTested, paperById, PAPERS, papersForSubject, type BuiltPaperAnswerKey, type PaperBasis,
 } from "@/lib/papers";
 import { specById, specForProfile, levelOf, chosenSubjects, type ActiveSpec, type CourseFields } from "@/lib/specifications";
-import { cacheGet, cacheSet, getProfile, getStoredPaper, saveStoredPaper } from "@/lib/server/store";
+// EVERY READ AND WRITE HERE GOES THROUGH THE STORAGE PORT. These five were the
+// file backend's own functions, so on a deployment configured for Postgres a paper
+// was saved to a JSON file the learner's account knows nothing about.
+import { activeStorage } from "@/lib/server/storage-file";
 // The learner transaction, through the port-facing door (lib/server/transaction.ts).
 import { withLearnerState } from "@/lib/server/transaction";
 import { authorisedProfile } from "@/lib/server/auth";
@@ -104,7 +107,7 @@ export async function GET(req: Request): Promise<NextResponse> {
     // opening the picker never writes the learner's record, and read ONCE for
     // every subject rather than once per subject. The row's length is the
     // paper's real length, so the marks and minutes shown are the ones sat.
-    const record = profile ? await getProfile(profile.profile.id) : null;
+    const record = profile ? await activeStorage().getProfile(profile.profile.id) : null;
     const needs = record
       ? subjects
         .map((s) => ({ subject: s, reading: needsReading(record, active, s) }))
@@ -141,7 +144,7 @@ export async function GET(req: Request): Promise<NextResponse> {
   // recognised by its id, and when it is asked for the record is the only thing
   // that can say what the paper is about.
   const wantsNeeds = templateId !== null && templateId === needsPaperId(active, subject);
-  const book = wantsNeeds && profile ? await getProfile(profile.profile.id) : null;
+  const book = wantsNeeds && profile ? await activeStorage().getProfile(profile.profile.id) : null;
   const needsRead = book ? needsReading(book, active, subject) : null;
   if (wantsNeeds && (!needsRead || needsRead.weak.length === 0)) {
     // Asked for by name, but this record holds nothing to target. Refused rather
@@ -189,10 +192,10 @@ export async function GET(req: Request): Promise<NextResponse> {
 
     const cacheKey = `paper:${active.spec.id}:${active.level.id}:${subject}:${lang}:${seed}:${capped.length}`;
     let generated: Awaited<ReturnType<typeof llmExamQuestions>> =
-      ((await cacheGet(cacheKey)) as Awaited<ReturnType<typeof llmExamQuestions>> | null) ?? [];
+      ((await activeStorage().cacheGet(cacheKey)) as Awaited<ReturnType<typeof llmExamQuestions>> | null) ?? [];
     if (generated.length === 0) {
       generated = await llmExamQuestions(reqs);
-      if (generated.length) await cacheSet(cacheKey, generated);
+      if (generated.length) await activeStorage().cacheSet(cacheKey, generated);
     }
 
     // Pair each returned question with the first still-unclaimed slot for its
@@ -217,7 +220,7 @@ export async function GET(req: Request): Promise<NextResponse> {
 
   const refusal = storeWriteRefusalNow();
   if (refusal) return refusal;
-  await saveStoredPaper(built.key);
+  await activeStorage().saveStoredPaper(built.key);
 
   return NextResponse.json({
     paper: built.paper,
@@ -264,7 +267,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   }
   if (!body.paperId) return NextResponse.json({ error: "missing paperId" }, { status: 400 });
 
-  const key: BuiltPaperAnswerKey | null = await getStoredPaper(body.paperId);
+  const key: BuiltPaperAnswerKey | null = await activeStorage().getStoredPaper(body.paperId);
   if (!key) return NextResponse.json({ error: "paper not found" }, { status: 404 });
 
   const answers = body.answers && typeof body.answers === "object" ? body.answers : {};

@@ -185,7 +185,7 @@ distinct options, and 84 (0.009%) with a zero-valued distractor.
 
 ## 6. Quality of the rewritten items
 
-- `npm run verify:q` — 135 generators × 300 draws, **0 problems, 135 clean**; the
+- `npm run verify:q` — 136 generators × 300 draws, **0 problems, 136 clean**; the
   mathematics of every generated item is re-derived from its own prompt, and no
   concept lost variety. This is the check that the answer key still answers the
   question.
@@ -208,10 +208,10 @@ distinct options, and 84 (0.009%) with a zero-valued distractor.
 ## 7. What remains (the named backlog)
 
 Measured by `npm run gate:options` on the served@0.75 surface (60 draws each, 40
-attempts — the call `app/api/progress/route.ts` makes): **62 of 135 concepts are
+attempts — the call `app/api/progress/route.ts` makes): **62 of 136 concepts are
 still above the 35% reporting line**, and **21 are repaired and asserted
 absolutely** at their served level. Bank-wide, the best of the eight strategies
-is **25.14%** against a 25% chance line, so no single strategy beats chance
+is **25.15%** against a 25% chance line, so no single strategy beats chance
 across the bank; what remains is per concept.
 
 ### The 23 November pass: one concept fixed, two attempts reverted

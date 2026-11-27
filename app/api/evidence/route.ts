@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { getProfile } from "@/lib/server/store";
+// Through the STORAGE PORT: the learner whose evidence is being read is a record,
+// and a Postgres deployment keeps that record in the database.
+import { activeStorage } from "@/lib/server/storage-file";
 // The learner transaction. A route reaches it through this door rather than the
 // store's own function, so the configured backend decides where the record and
 // its evidence live (lib/server/transaction.ts).
@@ -46,7 +48,7 @@ export async function GET(req: Request) {
     const sinceRaw = url.searchParams.get("since");
     const since = sinceRaw && Number.isFinite(Number(sinceRaw)) ? Number(sinceRaw) : null;
 
-    const state = await getProfile(id);
+    const state = await activeStorage().getProfile(id);
     if (!state) return NextResponse.json({ error: "not_found" }, { status: 404 });
     // Two credentials are valid (lib/server/capability.ts#checkPresentedSecret);
     // `bind: false` keeps THIS door's older, stricter rule that a profile with no
@@ -104,7 +106,7 @@ export async function POST(req: Request) {
   try {
     const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
     const id = typeof body.id === "string" ? body.id : "";
-    const state = await getProfile(id);
+    const state = await activeStorage().getProfile(id);
     if (!state) return NextResponse.json({ error: "not_found" }, { status: 404 });
     checkPresentedSecret(state, body.secret, await classroomSessionFor(id, body.secret), { bind: false });
 

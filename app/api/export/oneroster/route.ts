@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { teacherOfClass } from "@/lib/server/authority";
-import { getClass, listProfileStates } from "@/lib/server/store";
+// A OneRoster export reads the class and every learner's record: both through the
+// port, or a Postgres deployment exports an empty file with a 200.
+import { activeStorage } from "@/lib/server/storage-file";
 import { isTeacherOf } from "@/lib/server/class-membership";
 import { resolveMembers } from "@/lib/server/class-view";
 import type { ProfileState } from "@/lib/types";
@@ -32,7 +34,7 @@ export async function GET(req: Request): Promise<NextResponse> {
   const classId = (searchParams.get("class") ?? "").trim();
   if (!classId) return NextResponse.json({ error: "class_required" }, { status: 400 });
 
-  const cls = await getClass(classId);
+  const cls = await activeStorage().getClass(classId);
   if (!cls) return NextResponse.json({ error: "not_found" }, { status: 404 });
   const who = await teacherOfClass(req, cls);
   if (!who.ok) return NextResponse.json({ error: who.error }, { status: who.status });
@@ -56,7 +58,7 @@ export async function GET(req: Request): Promise<NextResponse> {
   // of them (the authorisation above proved it), so they are named first and read
   // as the class's primary teacher; any co-teacher on the same roster follows.
   const teacherById = new Map<string, ProfileState>([[state.profile.id, state]]);
-  for (const s of await listProfileStates()) {
+  for (const s of await activeStorage().listProfiles()) {
     if (isTeacherOf(cls, s)) teacherById.set(s.profile.id, s);
   }
   const teachers = [...teacherById.values()].map((s) => ({

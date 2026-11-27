@@ -34,7 +34,9 @@ tsconfig.tsbuildinfo
 # published site.
 .next-check/
 .next-dev/
+.next-demo/
 .next-e2e/
+.next-test/
 .next-ui/
 .next-restart-*/
 

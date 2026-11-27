@@ -18,7 +18,7 @@ export const MATHS_FRACTION_OPS: AuthoredLesson = {
   version: "1.0.0",
   subject: "maths",
   curriculum: {
-    reference: "GCSE Mathematics, number: adding, subtracting, multiplying and dividing fractions",
+    reference: "GCSE Mathematics, number: adding, subtracting, multiplying and dividing fractions, including improper fractions and mixed numbers",
     level: "Key Stage 2 to Key Stage 3",
     note: "Objective phrased against the published subject content; no specification text is reproduced.",
   },
@@ -41,6 +41,12 @@ export const MATHS_FRACTION_OPS: AuthoredLesson = {
         "Divide by a fraction by asking how many of the divisor fit, and use that to justify inverting and multiplying.",
       evidence:
         "The learner answers two thirds divided by one sixth as 4, saying four sixths fit into two thirds, and confirms it with two thirds multiplied by six over one.",
+    },
+    {
+      statement:
+        "Convert between mixed numbers and improper fractions, and add, subtract, multiply or divide mixed numbers by converting first.",
+      evidence:
+        "The learner converts 2 3/4 to 11/4, adds 1 1/2 as 6/4 to get 17/4 = 4 1/4, and explains why the whole parts cannot simply be combined with an improper fraction part and left there.",
     },
   ],
 
@@ -98,6 +104,14 @@ export const MATHS_FRACTION_OPS: AuthoredLesson = {
       paragraphs: [
         "Two thirds of three fifths means a part of a part, so the answer must be smaller than either fraction, and it is found by multiplying the counts and the sizes: six fifteenths, which simplifies to two fifths. The picture is a rectangle cut into five columns and three rows, with two columns and three rows shaded. Reading multiplication as 'of' also explains why the answer can be tiny: half of a half is a quarter, not one.",
         "Division asks a different question: how many of the divisor fit inside the dividend. Two thirds divided by one sixth asks how many sixths fit in two thirds, and the answer is four, because two thirds is four sixths. That is why inverting the divisor and multiplying gives the same result — multiplying by six over one counts sixths directly. A division by a fraction below one therefore gives an answer larger than the dividend, which is a check a learner can apply before trusting the arithmetic.",
+      ],
+    },
+    {
+      heading: "A mixed number is a whole plus a fraction; an improper fraction counts the same parts",
+      paragraphs: [
+        "Two and three quarters means two wholes plus three quarters. Each whole is four quarters, so the two wholes are eight quarters, and eight quarters plus three quarters is eleven quarters. The mixed form tells you the size at a glance; the improper form gives one count of a single part size, which is what the four operations need. Neither form is more correct, and converting between them does not change the number.",
+        "To add two and three quarters to one and a half, convert both first: two and three quarters is eleven quarters, and one and a half is three halves, which is six quarters. The sum is seventeen quarters. Seventeen quarters is four wholes, because four wholes make sixteen quarters, plus one quarter, so the answer is four and a quarter. Adding the whole parts and the fraction parts separately gives three and five quarters; that is also four and a quarter, but only after the five quarters is converted. Stopping at three and five quarters leaves an improper fraction inside a mixed number.",
+        "Multiplication and division must also start from the improper form. One and a half multiplied by two and two thirds is three halves multiplied by eight thirds, which is twenty-four sixths, or four. Multiplying the whole parts and the fraction parts separately gives two and one third, which is not four. The mixed number is one number, not a whole number and a fraction that can be operated on independently.",
       ],
     },
   ],
@@ -175,6 +189,28 @@ export const MATHS_FRACTION_OPS: AuthoredLesson = {
       ],
       answer: "4",
     },
+    {
+      id: "w3",
+      prompt: "Work out 3 1/3 + 2 1/2.",
+      steps: [
+        {
+          move: "Convert both mixed numbers to improper fractions: 3 1/3 = 10/3 and 2 1/2 = 5/2.",
+          why:
+            "Each whole contributes the same denominator as the fraction part, so three wholes are nine thirds and two wholes are four halves. Writing one count of each part size makes the addition possible.",
+        },
+        {
+          move: "Use a common denominator of six: 10/3 = 20/6 and 5/2 = 15/6, so the sum is 35/6.",
+          why:
+            "Thirds and halves are different part sizes, and only counts of the same size can be added. Six is the smallest number both denominators divide into.",
+        },
+        {
+          move: "Convert 35/6 back to a mixed number: 35 ÷ 6 = 5 remainder 5, so the answer is 5 5/6.",
+          why:
+            "Six sixths make one whole, so thirty-six sixths would be six wholes. Thirty-five sixths is five wholes and five sixths, which is the same amount written in the form the question used.",
+        },
+      ],
+      answer: "5 5/6",
+    },
   ],
 
   misconceptions: [
@@ -200,6 +236,18 @@ export const MATHS_FRACTION_OPS: AuthoredLesson = {
       contrast: {
         wrong: "2/3 ÷ 1/6 = 2/18, dividing the tops and the bottoms",
         right: "2/3 ÷ 1/6 = 4, because four sixths fit into two thirds",
+      },
+    },
+    {
+      id: "m3",
+      belief: "Mixed numbers can be multiplied by multiplying the whole parts and the fraction parts separately: 1 1/2 × 2 2/3 = 2 1/3.",
+      whyItFails:
+        "A mixed number is one number, not a whole number plus a separate fraction to be multiplied independently. One and a half is three halves, and two and two thirds is eight thirds; their product is twenty-four sixths, which is four. Multiplying one by two and one half by two thirds gives two and one third, a much smaller number, because most of each factor has been left out of the multiplication.",
+      correction:
+        "Convert every mixed number to an improper fraction before multiplying or dividing. Then multiply the numerators and denominators, simplify, and convert back only if the question asks for a mixed number.",
+      contrast: {
+        wrong: "1 1/2 × 2 2/3 = 2 1/3, multiplying wholes and fractions separately",
+        right: "1 1/2 × 2 2/3 = 3/2 × 8/3 = 24/6 = 4",
       },
     },
   ],
@@ -238,6 +286,18 @@ export const MATHS_FRACTION_OPS: AuthoredLesson = {
           "Each quarter holds two eighths, so three quarters holds six, and six eighths is the whole of three quarters.",
       },
     },
+    {
+      id: "p4",
+      prompt: "Work out 2 1/4 × 1 1/3.",
+      hint: "Convert both mixed numbers to improper fractions before multiplying. Two and a quarter is nine quarters, and one and a third is four thirds.",
+      answer: "3, because 9/4 × 4/3 = 36/12 = 3",
+      feedback: {
+        correct:
+          "Both mixed numbers were converted first, so the whole parts could not be multiplied separately by mistake.",
+        incorrect:
+          "Two and a quarter is 9/4 and one and a third is 4/3. Multiplying gives 36/12, which simplifies to 3; multiplying the whole parts and fraction parts separately gives 2 1/12 and is not the same number.",
+      },
+    },
   ],
 
   assessment: [
@@ -264,6 +324,128 @@ export const MATHS_FRACTION_OPS: AuthoredLesson = {
         "Uses the size check: the sum must exceed either fraction.",
         "Rewrites both fractions in twelfths and gives seven twelfths.",
       ],
+    },
+    {
+      id: "a3",
+      kind: "short-answer",
+      prompt: "Work out 4 1/5 − 2 3/4. Give your answer as a mixed number.",
+      modelAnswer: "1 9/20",
+      marking: [
+        "Converts both mixed numbers to improper fractions: 21/5 and 11/4.",
+        "Uses a common denominator of 20 and subtracts 55/20 from 84/20 to get 29/20.",
+        "Converts 29/20 back to 1 9/20.",
+      ],
+      check: { accepted: ["1 9/20", "29/20", "1.45"] },
+    },
+    {
+      id: "a4",
+      kind: "structured",
+      prompt:
+        "A baker has 3 3/4 kg of flour. Each full batch of cakes uses 2/3 kg. Work out how many full batches can be made and how much flour is left over.",
+      modelAnswer:
+        "3 3/4 = 15/4. Dividing by 2/3 is the same as multiplying by 3/2: 15/4 × 3/2 = 45/8 = 5 5/8. So 5 full batches can be made. Five batches use 5 × 2/3 = 10/3 kg. The flour left is 15/4 − 10/3 = 45/12 − 40/12 = 5/12 kg. The 5/8 in 5 5/8 is five eighths of a batch, not five eighths of a kilogram.",
+      marking: [
+        "Converts 3 3/4 to the improper fraction 15/4 (M1).",
+        "Replaces division by 2/3 with multiplication by its reciprocal 3/2, or uses an equivalent common-denominator division (M1).",
+        "Gives 45/8 or 5 5/8 (A1).",
+        "Interprets the quotient as 5 full batches (A1).",
+        "Finds the remaining mass as 5/12 kg, distinguishing it from the fractional part of the batch count (A1).",
+      ],
+      structured: {
+        parts: [
+          {
+            id: "a",
+            prompt: "Write 3 3/4 as an improper fraction.",
+            marks: 1,
+            answer: 3.75,
+            accepted: ["15/4", "3.75"],
+            explanation:
+              "Three whole ones are twelve quarters, and the extra three quarters make fifteen quarters. So 3 3/4 = 15/4. The denominator stays four because the pieces are still quarters.",
+          },
+          {
+            id: "b",
+            prompt:
+              "Work out 3 3/4 ÷ 2/3. Show your working and give the answer as a mixed number.",
+            marks: 2,
+            answer: 5.625,
+            accepted: ["45/8", "5 5/8", "5.625"],
+            method: {
+              id: "b:M1",
+              marks: 1,
+              prompt: "Show the division changed into a multiplication by the reciprocal, or an equivalent common-denominator division.",
+              accept: [
+                "15/4 × 3/2",
+                "15/4 * 3/2",
+                "15/4 ÷ 2/3",
+                "45/12 ÷ 8/12",
+                "45/12 / 8/12",
+                "45 ÷ 8",
+                "3 3/4 ÷ 2/3",
+              ],
+              label: "a correct division by 2/3 (multiplying by 3/2 or dividing eighths into twelfths)",
+            },
+            explanation:
+              "15/4 ÷ 2/3 means how many two-thirds fit into fifteen quarters. Dividing by a fraction is multiplying by its reciprocal: 15/4 × 3/2 = 45/8. Forty-five eighths is five whole ones and five eighths, so 5 5/8. A common-denominator method gives the same count: 45/12 ÷ 8/12 = 45 ÷ 8 = 5 5/8. The reciprocal is 3/2, not 2/3: the question is not asking for two thirds of the flour.",
+          },
+          {
+            id: "c",
+            prompt: "How many FULL batches can the baker make?",
+            marks: 1,
+            answer: 5,
+            accepted: ["5", "5 batches", "five"],
+            explanation:
+              "The division gives 5 5/8 batches. Five full batches use 5 × 2/3 = 10/3 = 3 1/3 kg, and the remaining flour is not enough for another 2/3 kg batch. So the baker can make 5 full batches. The fractional part of the quotient is a fraction of a batch, not a number of kilograms.",
+          },
+          {
+            id: "d",
+            prompt:
+              "How much flour is left over? Give your answer in kilograms.",
+            marks: 1,
+            answer: 5 / 12,
+            tolerance: { abs: 0.0001 },
+            accepted: ["5/12", "5/12 kg", "5/12kg", "0.4167", "0.417"],
+            unit: "kg",
+            explanation:
+              "Five batches use 5 × 2/3 = 10/3 kg. Subtract that from the flour the baker started with: 15/4 − 10/3 = 45/12 − 40/12 = 5/12 kg. The 5/8 in 5 5/8 is five eighths of a batch, not five eighths of a kilogram. One batch is 2/3 kg, so the leftover part is 5/8 × 2/3 = 5/12 kg, which agrees with the subtraction.",
+          },
+        ],
+      },
+    },
+    {
+      id: "a5",
+      kind: "structured",
+      prompt:
+        "Work out 2 1/3 × 3/4. Show your working and give your answer as a mixed number in its simplest form.",
+      modelAnswer:
+        "2 1/3 = 7/3. Multiplying the numerators and the denominators gives 7/3 × 3/4 = 21/12. The common factor of 3 cancels: 21/12 = 7/4, which is 1 3/4. The answer is larger than 3/4, as multiplying by a number greater than one must be, and smaller than 2 1/3, as multiplying by a number less than one must be.",
+      marking: [
+        "Converts 2 1/3 to the improper fraction 7/3 (M1).",
+        "Multiplies the numerators and the denominators, then simplifies 21/12 to 7/4 or 1 3/4 (A1).",
+      ],
+      structured: {
+        parts: [
+          {
+            id: "a",
+            prompt: "Write 2 1/3 as an improper fraction.",
+            marks: 1,
+            answer: 7 / 3,
+            tolerance: { abs: 0.0001 },
+            accepted: ["7/3", "2.3333", "2.333"],
+            explanation:
+              "Two whole ones are six thirds, because each whole contains three thirds. Add the extra third: six thirds plus one third is seven thirds, so 2 1/3 = 7/3. The denominator stays three because the pieces are still thirds.",
+          },
+          {
+            id: "b",
+            prompt:
+              "Work out 2 1/3 × 3/4. Give your answer as a mixed number in its simplest form.",
+            marks: 1,
+            answer: 1.75,
+            accepted: ["7/4", "1 3/4", "1.75"],
+            explanation:
+              "Use the improper fraction: 7/3 × 3/4 = 21/12. Both 21 and 12 divide by three, so 21/12 = 7/4. Seven quarters is one whole and three quarters, written 1 3/4. The three in the numerator and the three in the denominator cancel before multiplying, which is the same simplification done earlier.",
+          },
+        ],
+      },
     },
   ],
 
@@ -304,6 +486,13 @@ export const MATHS_FRACTION_OPS: AuthoredLesson = {
         "1/2. One third is two sixths, and five sixths minus two sixths is three sixths, which simplifies to one half. Sixths work because the existing denominator is already a multiple of three.",
       when: "month-later",
     },
+    {
+      id: "x4",
+      prompt: "Convert 3 2/5 to an improper fraction, then multiply it by 5/17 and simplify.",
+      answer:
+        "3 2/5 = 17/5. Multiplying by 5/17 gives 85/85, which is 1. Converting first exposed the common factor 17 and 5.",
+      when: "month-later",
+    },
   ],
 
   summary: [
@@ -311,6 +500,7 @@ export const MATHS_FRACTION_OPS: AuthoredLesson = {
     "Counts can be added or subtracted only when the sizes match, so rewrite to a common denominator first.",
     "Multiplying fractions is finding a part of a part, so the answer is smaller than either fraction.",
     "Dividing asks how many of the divisor fit, which is why inverting the divisor and multiplying gives the same count.",
+    "A mixed number is a whole plus a fraction; convert it to an improper fraction before adding, subtracting, multiplying or dividing.",
   ],
 
   accessibility: [

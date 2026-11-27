@@ -124,6 +124,7 @@ const UK_GCSE_MATHS: ConceptMapping = {
     { conceptId: "negatives", ref: "Number", statement: "Negative numbers in context, and the four operations applied to them." },
     { conceptId: "fractions", ref: "Number", statement: "Fraction notation, equivalence, and fractions of quantities." },
     { conceptId: "fraction-ops", ref: "Number", statement: "Addition, subtraction, multiplication and division of fractions and mixed numbers." },
+    { conceptId: "factors-primes", ref: "Number", statement: "Prime numbers, factors, multiples, common factors, common multiples, HCF, LCM and prime factorisation." },
     { conceptId: "decimals", ref: "Number", statement: "Decimals, including recurring decimals and conversion between fractions, decimals and percentages." },
     { conceptId: "percentages", ref: "Number", statement: "Percentage change, reverse percentages, and percentage problems in context." },
     { conceptId: "rounding", ref: "Number", statement: "Rounding, estimation and checking answers to a required degree of accuracy." },

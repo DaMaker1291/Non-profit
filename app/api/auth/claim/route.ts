@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import {
   accountFromRequest, accountOwningProfile, ensureProfileSecretFor, publicAccount, setAccountProfile,
 } from "@/lib/server/auth";
-import { getProfile, publicProfileState } from "@/lib/server/store";
+// Claiming an account adopts a learner record — the record is read through the
+// port, because on Postgres the file store holds none.
+import { activeStorage } from "@/lib/server/storage-file";
+import { publicProfileState } from "@/lib/server/store";
 import { readBody, str } from "../_shared";
 // Adopting this device's guest profile onto the account writes to that profile
 // (it mints its capability secret if it has none), so a store that cannot keep
@@ -32,7 +35,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   const profileId = str(body.profileId);
   if (!profileId) return NextResponse.json({ error: "bad_profile" }, { status: 400 });
 
-  const candidate = await getProfile(profileId);
+  const candidate = await activeStorage().getProfile(profileId);
   if (!candidate) return NextResponse.json({ error: "not_found" }, { status: 404 });
   const proven = !candidate.secret || candidate.secret === str(body.secret);
   if (!proven) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
@@ -45,7 +48,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "profile_owned" }, { status: 409 });
   }
 
-  const current = await getProfile(account.profileId);
+  const current = await activeStorage().getProfile(account.profileId);
   const currentHasWork = current ? Object.keys(current.progress).length > 0 : false;
   if (currentHasWork && account.profileId !== profileId) {
     return NextResponse.json({ error: "account_has_progress" }, { status: 409 });

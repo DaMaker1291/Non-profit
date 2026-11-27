@@ -58,7 +58,9 @@
 import { pageFor, launchChrome, sleep } from "./browser.mjs";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
-const BASE = process.env.LESSON_WALK_BASE ?? "http://127.0.0.1:4173";
+import { requireIsolation } from "./test-isolation.mjs";
+const iso = requireIsolation({ suite: "lesson walk", baseEnv: "LESSON_WALK_BASE" });
+const BASE = iso.base;
 const PORT = 9333 + Math.floor(Math.random() * 600);
 const SHOTS = process.env.LESSON_WALK_SHOTS !== "0";
 const SHOT_DIR = "screenshots/lesson-walk";
@@ -89,6 +91,7 @@ const FIGURED = [
   ["multiplication", "rectangle"],
   ["decimals", null],
   ["fractions", "pie"],
+  ["factors-primes", null],
   ["fraction-ops", "pie"],
   ["percentages", null],
   ["negatives", "number-line"],
@@ -247,6 +250,7 @@ const AUTHORED_CONTRACT = [
   { concept: "what-is-code", subject: "computing" },
   { concept: "decimals", subject: "maths" },
   { concept: "fractions", subject: "maths" },
+  { concept: "factors-primes", subject: "maths" },
   { concept: "fraction-ops", subject: "maths" },
   { concept: "negatives", subject: "maths" },
   { concept: "order-ops", subject: "maths" },
@@ -397,6 +401,9 @@ async function main() {
     process.exit(2);
   }
   if (SHOTS) mkdirSync(SHOT_DIR, { recursive: true });
+
+  // The server must prove it writes the scratch store before Chrome opens.
+  await iso.proveServerIsolated();
 
   const { send, close } = await launchChrome({ port: PORT });
   const base = pageFor(send);
@@ -2297,6 +2304,7 @@ async function main() {
       note: "Browser-measured authored lesson pages and plan figures. The authoredCatalogue value is checked against audit/lesson-catalogue.json; a mismatch is a stale record, not a pass.",
     }, null, 2)}\n`,
   );
+  iso.assertLiveStoreUntouched("end of lesson walk");
   console.log(`\n${passed} passed, ${failed} failed`);
   if (SHOTS) console.log(`screenshots: ${SHOT_DIR}/`);
   process.exit(failed === 0 ? 0 : 1);

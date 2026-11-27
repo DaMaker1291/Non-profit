@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
-import { getClass } from "@/lib/server/store";
+// Through the port: an exported pack is a class's material, and the class is on the
+// configured backend.
+import { activeStorage } from "@/lib/server/storage-file";
 import { teacherOfClass } from "@/lib/server/authority";
 import { buildWeeklyPlan, classSubject } from "@/lib/teacher-plan";
 import { isMemberOf, isTeacherOf } from "@/lib/server/class-membership";
@@ -21,7 +23,7 @@ export async function GET(req: Request): Promise<NextResponse> {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
   if (!id) return NextResponse.json({ error: "missing id" }, { status: 400 });
-  const cls = await getClass(id);
+  const cls = await activeStorage().getClass(id);
   if (!cls) return NextResponse.json({ error: "not found" }, { status: 404 });
   // The pack carries the week's full question bank WITH its answer key, so it
   // answers only to a member of the class — the same rule the roster door

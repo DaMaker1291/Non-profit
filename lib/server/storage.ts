@@ -24,14 +24,12 @@
 // append travels on the transaction's own connection rather than beside it.
 //
 // WHAT IS STILL NOT HERE, and it is now a short list: every operation named below
-// is implemented by the FILE backend, so being on the port and being reached
-// THROUGH it are two different claims. The one that is still false is the second:
-// a few routes read and write a learner's profile with `store.ts`'s own functions
-// (signup's create path, `app/api/profile`, and the six doors that call
-// `getProfile`) rather than through the port. That is exactly why
-// `resolveStoreKind` still REFUSES `postgres` — on a second backend those doors
-// would read a store the configured backend never wrote, one learner's record in
-// two places, which is the failure this refusal exists to prevent.
+// is implemented by BOTH backends — the file backend in `storage-file.ts` and the
+// database in `storage-postgres.ts` — so "on the port" and "reached through it"
+// are two claims, and the second is the one that has to be finished route by
+// route. `activeStorage()` returns the backend the environment selects, and a
+// route that keeps calling `store.ts`'s own functions reads a store the
+// configured backend never wrote.
 //
 // WHAT ELSE IS NOT HERE, AND WHY THAT IS NOW A SHORT LIST: the CLASS/ROOM/PACK/
 // PAPER half of the store is implemented by the file backend's own functions, so
@@ -79,7 +77,7 @@ export const STORE_ENV = "OPENMIND_STORE";
 /** Thrown when the configuration names a backend this build cannot serve. */
 export class StoreConfigError extends Error {
   constructor(
-    readonly code: "unknown_store_kind" | "store_not_implemented",
+    readonly code: "unknown_store_kind" | "store_not_implemented" | "database_not_configured",
     message: string,
   ) {
     super(message);
@@ -343,6 +341,22 @@ export interface Storage {
   deleteEvents(learnerId: string): Promise<boolean>;
 
   // ── Classes and membership ───────────────────────────────────────────────
+  //
+  // `createClass`, `rotateJoinCode` and `reconcileClassIdentities` are on the
+  // port because the CLASS DOOR calls them, and a door that reaches into
+  // `store.ts` for them reads a store the configured backend never wrote. Each
+  // one is a decision about the whole class SET (a join code is unique across
+  // classes; a repair matches names against every learner), which is why they
+  // are operations here rather than the caller composing read-modify-write.
+  /** Create a class whose join code is chosen and inserted as ONE unit, so
+   *  "is this code free?" and "write it" cannot be separated by another
+   *  request. The callback receives the code that was checked. */
+  createClass(build: (joinCode: string) => ClassRoster): Promise<ClassRoster>;
+  /** Replace a class's join code in place, clearing a previous revocation. */
+  rotateJoinCode(id: string, ttlMs: number): Promise<ClassRoster | null>;
+  /** Bind the handle rows of rosters written before member ids existed. Explicit,
+   *  idempotent, and never a side effect of reading. */
+  reconcileClassIdentities(): Promise<{ classes: number; repaired: number }>;
   listClasses(): Promise<ClassRoster[]>;
   getClass(id: string): Promise<ClassRoster | null>;
   saveClass(cls: ClassRoster): Promise<void>;
@@ -446,6 +460,9 @@ export const STORAGE_METHODS: readonly (keyof Storage)[] = [
   "listClasses",
   "getClass",
   "saveClass",
+  "createClass",
+  "rotateJoinCode",
+  "reconcileClassIdentities",
   "updateClassByCode",
   "updateClassById",
   "listRooms",
@@ -476,12 +493,12 @@ export const STORAGE_METHODS: readonly (keyof Storage)[] = [
  * `undefined`, `""` and `"file"` all mean the file store — the deployment that
  * needs no configuration, which is this project's default and its mission.
  *
- * `"postgres"` THROWS, and that is the point of this function rather than a gap
- * in it. docs/STORAGE_SPEC.md specifies the Postgres backend and it is not built;
- * an operator who sets `OPENMIND_STORE=postgres` expecting a database must not
- * receive a file store, because the failure that produces is silent data in the
- * wrong place and a deployment that believes it is on Postgres. Refusing loudly
- * is the only honest answer until the backend exists.
+ * `"postgres"` asks for the database backend, and it is not honoured without a
+ * DATABASE_URL. An operator who sets `OPENMIND_STORE=postgres` expecting a
+ * database must not receive a file store, because the failure that produces is
+ * silent data in the wrong place and a deployment that believes it is on
+ * Postgres. A missing connection string is therefore a REFUSAL that names the
+ * variable, not a fallback.
  *
  * Anything else throws too, naming the accepted values, because a typo is not a
  * choice.
@@ -490,12 +507,17 @@ export function resolveStoreKind(env: Record<string, string | undefined> = proce
   const raw = (env[STORE_ENV] ?? "").trim().toLowerCase();
   if (raw === "" || raw === "file") return "file";
   if (raw === "postgres") {
-    throw new StoreConfigError(
-      "store_not_implemented",
-      `${STORE_ENV}=postgres is specified in docs/STORAGE_SPEC.md but NOT IMPLEMENTED in this build. ` +
-        `Refusing to start rather than serve a file store under a Postgres configuration: the file store is ` +
-        `single-process and would silently lose concurrent writes. Unset ${STORE_ENV} to run the file store.`,
-    );
+    // A DATABASE IS NOT SELECTABLE WITHOUT A DATABASE. Checked HERE rather than
+    // in the backend so the refusal is a sentence at the point of configuration,
+    // and so `storeKindReport` can report it to a readiness screen instead of
+    // letting a pool fail on the first request.
+    if (!(env["DATABASE_URL"] ?? "").trim()) {
+      throw new StoreConfigError(
+        "database_not_configured",
+        `${STORE_ENV}=postgres is specified but DATABASE_URL is not set, so there is no database to keep a learner's record in. This build will not fall back to the file store: point DATABASE_URL at the database, or unset ${STORE_ENV} to use the file store deliberately.`,
+      );
+    }
+    return "postgres";
   }
   throw new StoreConfigError(
     "unknown_store_kind",

@@ -201,7 +201,13 @@ export async function anonServeTransfer(conceptId: string, language: string): Pr
  *  is only whether it can be delivered yet. It names its own submission, so a
  *  replay after a dropped response is recorded once. */
 export async function anonAnswer(
-  conceptId: string, questionId: string, given: { choiceIndex: number } | { numericAnswer: string }, language: string,
+  conceptId: string, questionId: string,
+  given:
+    | { choiceIndex: number }
+    | { numericAnswer: string }
+    | { fractionAnswer: { numerator: string; denominator: string } }
+    | { pairAnswer: { x: string; y: string } },
+  language: string,
   meta?: { ms?: number },
 ): Promise<AnonAnswerOutcome> {
   const id = await ensureAnonProfile(language);

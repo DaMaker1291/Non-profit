@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { getClass, listClasses, newId, updateClassById } from "@/lib/server/store";
+// The class a piece of work is set on lives on the CONFIGURED backend; only the id
+// mint is a pure helper. On Postgres the file store held no classes at all, so this
+// route answered "no such class" for a class it had just created.
+import { activeStorage } from "@/lib/server/storage-file";
+import { newId } from "@/lib/server/store";
+import type { ClassRoster } from "@/lib/types";
 import { authorizeLearner } from "@/lib/server/capability";
 import { canAdminister, teacherOfClass, teachingAccountOf } from "@/lib/server/authority";
 import { storeWriteRefusal } from "@/lib/server/write-refusal";
@@ -87,8 +92,8 @@ export async function GET(req: Request): Promise<NextResponse> {
   // The administration check is the same `canAdminister` the write doors use, so
   // a listed class is one the server would accept work for.
   const administered = new Map<string, boolean>();
-  const mineClasses: Awaited<ReturnType<typeof listClasses>> = [];
-  for (const cls of await listClasses()) {
+  const mineClasses: ClassRoster[] = [];
+  for (const cls of await activeStorage().listClasses()) {
     const carries = isMemberOf(cls, me);
     const admin = await canAdminister(cls, teaching?.id ?? null);
     if (!carries && !admin) continue;
@@ -222,7 +227,7 @@ export async function POST(req: Request): Promise<NextResponse> {
 
     // SETTING OR REMOVING WORK IS TEACHER AUTHORITY, ON THE ACCOUNT. The
     // capability above names the caller; this decides whether they may act.
-    const target = await getClass(body.clsId);
+    const target = await activeStorage().getClass(body.clsId);
     if (!target) return NextResponse.json({ error: "not found" }, { status: 404 });
     const teacher = await teacherOfClass(req, target);
     if (!teacher.ok) return NextResponse.json({ error: teacher.error }, { status: teacher.status });
@@ -268,7 +273,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         return NextResponse.json({ error: "too many learners" }, { status: 400 });
       }
       if (requested.length > 0) {
-        const cls = await getClass(body.clsId);
+        const cls = await activeStorage().getClass(body.clsId);
         if (!cls) return NextResponse.json({ error: "not found" }, { status: 404 });
         const known = new Set((await resolveMembers(cls)).map((m) => m.handle));
         const unknown = requested.filter((h) => !known.has(h));
@@ -277,7 +282,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         }
       }
 
-      const upd = await updateClassById(body.clsId, (cls) => {
+      const upd = await activeStorage().updateClassById(body.clsId, (cls) => {
         if (!isTeacherOf(cls, teacher.profile) && !isClassAdministrator(cls, teacher.account.id)) {
           return { error: "not_the_teacher" as const, status: 403 as const };
         }
@@ -338,7 +343,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       if (typeof body.assignmentId !== "string" || !body.assignmentId) {
         return NextResponse.json({ error: "missing assignment" }, { status: 400 });
       }
-      const upd = await updateClassById(body.clsId, (cls) => {
+      const upd = await activeStorage().updateClassById(body.clsId, (cls) => {
         if (!isTeacherOf(cls, teacher.profile) && !isClassAdministrator(cls, teacher.account.id)) {
           return { error: "not_the_teacher" as const, status: 403 as const };
         }
@@ -365,7 +370,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       if (typeof body.assignmentId !== "string" || !body.assignmentId) {
         return NextResponse.json({ error: "missing assignment" }, { status: 400 });
       }
-      const upd = await updateClassById(body.clsId, (cls) => {
+      const upd = await activeStorage().updateClassById(body.clsId, (cls) => {
         if (!isTeacherOf(cls, teacher.profile) && !isClassAdministrator(cls, teacher.account.id)) {
           return { error: "not_the_teacher" as const, status: 403 as const };
         }

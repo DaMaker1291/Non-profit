@@ -333,6 +333,11 @@ export const STORE_BLOCKING_CODES: readonly string[] = [
   "durability_contradiction",
   "store_not_implemented",
   "unknown_store_kind",
+  // A DEPLOYMENT ASKED FOR A DATABASE AND WAS GIVEN NO CONNECTION STRING. It is
+  // not a backend this build cannot serve — the backend exists — but nothing can
+  // be written either, and the honest answer is the same refusal rather than a
+  // file store that would be lost when the host is replaced.
+  "database_not_configured",
 ];
 
 /** What an operator has DONE about persistence — configuration, never evidence.
@@ -660,9 +665,18 @@ export function envReport(env: Record<string, string | undefined> = {}, facts: E
   //    `dataDirOnOwnFilesystem`, where the drill's 4/30 is recorded). If it is
   //    not a volume, that is a problem, and the escapes are the same two as
   //    above.
+  //
+  // AND A DATABASE IS NOT A DIRECTORY. Every finding in this block is about a
+  // filesystem the host may replace, and none of them applies to a deployment
+  // whose learner records live in Postgres: `data_dir_undeclared` there would
+  // refuse writes on the one configuration that CANNOT lose a record to a
+  // redeploy, and would send an operator to declare a volume nothing uses. The
+  // question is asked of the same function the readiness route asks, so the two
+  // cannot disagree about which backend is in force.
+  const databaseBacked = storeKindReport(env).kind === "postgres";
   const dataDir = (env.OPENMIND_DATA_DIR ?? "").trim();
   const host = ephemeralHost(env);
-  const production = (env.NODE_ENV ?? "").trim() === "production" || Boolean(host);
+  const production = !databaseBacked && ((env.NODE_ENV ?? "").trim() === "production" || Boolean(host));
   const acceptsEphemeral = /^(1|true|yes)$/i.test((env.OPENMIND_ALLOW_EPHEMERAL_STORE ?? "").trim());
   const declaredDurable = /^(1|true|yes)$/i.test((env.OPENMIND_DATA_DIR_DURABLE ?? "").trim());
   // ── TWO CLAIMS AT ONCE IS NOT A CONFIGURATION, IT IS A CONTRADICTION ───────
@@ -680,7 +694,7 @@ export function envReport(env: Record<string, string | undefined> = {}, facts: E
   // Declaring a directory DURABLE while using the default one is the same
   // contradiction in a different dress: the default directory lives INSIDE the
   // application, which is the one place a deploy certainly replaces.
-  if (!dataDir && declaredDurable) {
+  if (!databaseBacked && !dataDir && declaredDurable) {
     problems.push({
       key: "OPENMIND_DATA_DIR",
       code: "data_dir_undeclared",
@@ -693,7 +707,10 @@ export function envReport(env: Record<string, string | undefined> = {}, facts: E
     // Already reported as a problem above when the durability was declared for
     // the default directory: the two findings are one mistake, and reporting the
     // same code twice would make the report look like two.
-    if (production && !acceptsEphemeral && !declaredDurable) {
+    if (databaseBacked) {
+      // Nothing to declare: the learner record lives in the database. The path
+      // still exists for the file backend's AI cache, and is never opened here.
+    } else if (production && !acceptsEphemeral && !declaredDurable) {
       problems.push({ key: "OPENMIND_DATA_DIR", code: "data_dir_undeclared", detail });
     } else {
       notes.push({ key: "OPENMIND_DATA_DIR", code: "data_dir_default", detail });

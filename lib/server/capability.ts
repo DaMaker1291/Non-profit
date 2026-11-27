@@ -35,7 +35,13 @@
 // cannot erase a record from a kiosk" a property of the system rather than a
 // promise made by four route files.
 import type { ProfileState } from "../types";
-import { getProfile, resolveKioskSession } from "./store";
+// THE CAPABILITY IS CHECKED AGAINST THE CONFIGURED BACKEND. This is the guard
+// every learner door calls, so reading the file store here answered 404 "not
+// found" for a learner who existed — in the database — and had just signed in.
+// Measured by the application smoke test: sign-up, sign-in and practice all
+// passed, and `join` answered 404 for a join code the class had.
+import { activeStorage } from "./storage-file";
+import { resolveKioskSession } from "./store";
 
 /** How the caller proved themselves. `classId` is present only for a classroom
  *  session, and names the class the PIN was issued for — a session is scoped to
@@ -68,7 +74,7 @@ export async function authorizeLearner(
   presented: unknown,
 ): Promise<Capability> {
   if (!id) return { ok: false, status: 400, error: "missing id" };
-  const state = await getProfile(id);
+  const state = await activeStorage().getProfile(id);
   if (!state) return { ok: false, status: 404, error: "not found" };
   if (typeof presented === "string" && presented.length >= 32) {
     const session = await resolveKioskSession(presented);

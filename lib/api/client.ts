@@ -555,6 +555,36 @@ export function lessonCheck(input: {
   });
 }
 
+/** Mark one Number checkpoint item.
+ *
+ *  A SEPARATE DOOR FROM `lessonCheck`, and the separation is the assessment
+ *  validity: checkpoint items are written for the paper and appear in no
+ *  lesson, and the server records the attempt as `assessment` evidence under a
+ *  `checkpoint:` id rather than incrementing the lesson's own counters. */
+export function checkpointCheck(input: {
+  id: string;
+  checkpointId: string;
+  itemId: string;
+  answer?: string;
+  answers?: readonly string[];
+  working?: readonly string[];
+  secret?: string | null;
+}): Promise<LessonCheckResult> {
+  return send<LessonCheckResult>("/api/progress", {
+    method: "POST",
+    body: {
+      action: "checkpointCheck",
+      id: input.id,
+      checkpointId: input.checkpointId,
+      itemId: input.itemId,
+      answer: input.answer,
+      answers: input.answers,
+      working: input.working,
+      secret: input.secret ?? undefined,
+    },
+  });
+}
+
 export interface ProbabilityActivityResult {
   correct: boolean;
   modelAnswer: string;

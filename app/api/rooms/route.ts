@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { getRoom, listRooms, newId, saveRoom, updateRoomById } from "@/lib/server/store";
+// A room is a record like a class: through the port, or a Postgres deployment keeps
+// rooms in a JSON file its own classes cannot see.
+import { activeStorage } from "@/lib/server/storage-file";
+import { newId } from "@/lib/server/store";
 // A store that cannot keep a learner record refuses the write and says why; this
 // route turns that refusal into the honest 503 instead of a bare 500.
 import { storeWriteRefusal } from "@/lib/server/write-refusal";
@@ -7,7 +10,7 @@ import { roomTutorTurn } from "@/lib/server/room-tutor";
 import type { StudyRoom } from "@/lib/types";
 
 export async function GET(): Promise<NextResponse> {
-  return NextResponse.json({ rooms: await listRooms() });
+  return NextResponse.json({ rooms: await activeStorage().listRooms() });
 }
 
 interface Body {
@@ -40,12 +43,12 @@ export async function POST(req: Request): Promise<NextResponse> {
           messages: [],
           nextMsgId: 1,
         };
-        await saveRoom(room);
+        await activeStorage().saveRoom(room);
         return NextResponse.json({ room });
       }
       case "join": {
         if (!body.id) return NextResponse.json({ error: "bad request" }, { status: 400 });
-        const upd = await updateRoomById(body.id, (room) => {
+        const upd = await activeStorage().updateRoomById(body.id, (room) => {
           if (!room.members.includes(handle)) room.members.push(handle);
           return { joined: handle };
         });
@@ -59,11 +62,11 @@ export async function POST(req: Request): Promise<NextResponse> {
         // room lock must not be held across a network call: members are writing
         // to the same room. So: read the room, take the turn, then append the
         // message and the reply together under the lock, atomically.
-        const current = await getRoom(body.id);
+        const current = await activeStorage().getRoom(body.id);
         if (!current) return NextResponse.json({ error: "not found" }, { status: 404 });
         const text = (body.text ?? "").slice(0, 500);
         const turn = await roomTutorTurn({ room: current, message: text });
-        const upd = await updateRoomById(body.id, (room) => {
+        const upd = await activeStorage().updateRoomById(body.id, (room) => {
           if (!room.members.includes(handle)) room.members.push(handle);
           room.messages.push({
             id: `${room.nextMsgId++}`,
@@ -86,7 +89,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         return NextResponse.json({ room: upd.room });
       }
       case "fork": {
-        const src = body.id ? await getRoom(body.id) : null;
+        const src = body.id ? await activeStorage().getRoom(body.id) : null;
         if (!src) return NextResponse.json({ error: "not found" }, { status: 404 });
         const copy: StudyRoom = {
           ...src,
@@ -99,7 +102,7 @@ export async function POST(req: Request): Promise<NextResponse> {
           nextMsgId: 1,
           forkOf: src.id,
         };
-        await saveRoom(copy);
+        await activeStorage().saveRoom(copy);
         return NextResponse.json({ room: copy });
       }
       default:

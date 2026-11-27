@@ -1,24 +1,26 @@
 import { NextResponse } from "next/server";
-import {
-  createClass,
-  findAccountByEmail,
-  getClass,
-  listClasses,
-  newId,
-  reconcileClassIdentities,
-  rotateJoinCode,
-  updateClassByCode,
-  updateClassById,
-} from "@/lib/server/store";
+// THE CLASS DOOR READS AND WRITES THE CLASS THROUGH THE STORAGE PORT.
+//
+// This import used to be the door's own: `createClass`, `getClass`,
+// `updateClassById` and the rest were taken from `lib/server/store`, which is the
+// FILE backend's implementation. On a deployment configured for Postgres that
+// meant this route created a class in a JSON file beside a database that held
+// every learner — one school's classes in two places, and the roster views
+// reading the wrong one. The port is what makes the door correct on whichever
+// backend the deployment selected.
+import { activeStorage } from "@/lib/server/storage-file";
+import { newId } from "@/lib/server/identity-crypto";
 import { authorizeLearner } from "@/lib/server/capability";
 import { authorisedProfile } from "@/lib/server/auth";
+// `newProfileState` is a PURE constructor (lib/learner-profile.ts) re-exported by
+// the store, and the kiosk helpers are credential primitives. Neither reads or
+// writes a store, so neither belongs on the port.
 import { canAdminister, isTeachingRole, teacherAccountIdOf, teacherCaller, teacherOfClass, teachingAccountOf } from "@/lib/server/authority";
-import { accountOwningProfile } from "@/lib/server/store";
 import { storeWriteRefusal } from "@/lib/server/write-refusal";
 import { freeHandle, handleOf, isClassAdministrator, isMemberOf, isTeacherOf, removeMember } from "@/lib/server/class-membership";
 import { clear as clearRateLimit, hit as hitRateLimit, peek as peekRateLimit, JOIN_PER_LEARNER } from "@/lib/server/rate-limit";
 import {
-  deleteKioskSessionsFor, kioskPinHash, makeSalt, mintKioskPin, mintUnshownSecret, newProfileState, saveProfile,
+  deleteKioskSessionsFor, kioskPinHash, makeSalt, mintKioskPin, mintUnshownSecret, newProfileState,
 } from "@/lib/server/store";
 import { liveRoster, memberEvidence, memberRoster, resolveMembers } from "@/lib/server/class-view";
 import { SUBJECT_IDS } from "@/lib/subjects";
@@ -51,6 +53,7 @@ function classroomForStore(raw: unknown): ClassRoster["classroom"] {
 
 export async function GET(req: Request): Promise<NextResponse> {
   const { searchParams } = new URL(req.url);
+  const storage = activeStorage();
   // THE LEGACY-ROSTER REPAIR, NAMED AT THE CALL SITE THAT WANTS IT (F-3).
   //
   // A roster written before member ids existed has to be reconciled ONCE, and it
@@ -65,7 +68,7 @@ export async function GET(req: Request): Promise<NextResponse> {
   // idempotent so the next read tries again, and it is not silent — the call names
   // what it is doing. An operator who wants it to be strict runs
   // `npm run data:repair-classes`.
-  await reconcileClassIdentities().catch(() => {});
+  await storage.reconcileClassIdentities().catch(() => {});
   // `me` is the profile asking; `id` (when present) is the CLASS being read.
   // Membership is the rule: a class carries its learners' handles, mastery and
   // join code, so it answers only a profile that is IN the class. (Two holes
@@ -84,7 +87,7 @@ export async function GET(req: Request): Promise<NextResponse> {
 
   const id = searchParams.get("id");
   if (id) {
-    const cls = await getClass(id);
+    const cls = await storage.getClass(id);
     if (!cls) return NextResponse.json({ error: "not found" }, { status: 404 });
     // MEMBERSHIP OR ADMINISTRATION — the same pair the listing uses. A class no
     // longer carries its teacher as a member (the creator is its OWNER), so a
@@ -137,7 +140,7 @@ export async function GET(req: Request): Promise<NextResponse> {
   // class reads the class they TEACH in full and the one they merely attend
   // sanitised. `teaching` is the answer to "is there a console here at all?",
   // which the teacher page needs before it renders one.
-  const all = await listClasses();
+  const all = await storage.listClasses();
   // A TEACHER ADMINISTERS CLASSES THEY MAY NOT BE A MEMBER OF (a class is a
   // roster of learners; the teacher's own profile is not required in it). The
   // listing therefore includes administrable classes as well as joined ones, and
@@ -221,11 +224,12 @@ interface Body {
 export async function POST(req: Request): Promise<NextResponse> {
   try {
     const body = (await req.json()) as Body;
+    const storage = activeStorage();
     // Same explicit repair as the read door, for the same reason and at the same
     // level: a JOIN is a membership decision, and a roster that still carries
     // pre-identity rows would decide it against a table that cannot name its own
     // members. Best-effort, as on the read path.
-    await reconcileClassIdentities().catch(() => {});
+    await storage.reconcileClassIdentities().catch(() => {});
     // WHICH CREDENTIAL THIS ACTION NEEDS DEPENDS ON WHAT IT IS.
     //
     //   learner actions (join, report)  the caller's own capability — as before.
@@ -289,7 +293,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         // `classes_join_code_live_key` unique index, and the same loop is where
         // that index's answer is honoured. See `newId`/`createClass` in
         // lib/server/store.ts, and F-4 of docs/STORAGE_SPEC.md §13.
-        const cls: ClassRoster = await createClass((joinCode) => ({
+        const cls: ClassRoster = await storage.createClass((joinCode) => ({
           id: newId("cls"),
           name: (classText(body.name, 60) ?? "Untitled class"),
           teacher: "teacher",
@@ -356,7 +360,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         // The refusal is named so an API client hears the reason rather than a
         // generic 403 — and it is checked HERE rather than in the console, so a
         // hidden button is not what enforces it.
-        const owner = await accountOwningProfile(caller.profile.id);
+        const owner = await storage.accountOwningProfile(caller.profile.id);
         if (owner && isTeachingRole(owner.role)) {
           return NextResponse.json({ error: "teacher_account_cannot_join" }, { status: 403 });
         }
@@ -371,7 +375,7 @@ export async function POST(req: Request): Promise<NextResponse> {
             { status: 429, headers: { "Retry-After": String(gate.retryAfterSec) } },
           );
         }
-        const upd = await updateClassByCode(body.joinCode ?? "", (cls) => {
+        const upd = await storage.updateClassByCode(body.joinCode ?? "", (cls) => {
           if (cls.joinCodeRevokedAt) return { error: "join_code_revoked" as const, status: 410 as const };
           if (cls.joinCodeExpiresAt !== undefined && cls.joinCodeExpiresAt <= Date.now()) {
             return { error: "join_code_expired" as const, status: 410 as const };
@@ -431,7 +435,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         if (!body.clsId) return NextResponse.json({ error: "missing class" }, { status: 400 });
         const email = typeof body.email === "string" ? body.email.trim() : "";
         if (!email) return NextResponse.json({ error: "missing teacher email" }, { status: 400 });
-        const existing = await getClass(body.clsId);
+        const existing = await storage.getClass(body.clsId);
         if (!existing) return NextResponse.json({ error: "not found" }, { status: 404 });
         const teacher = await teacherOfClass(req, existing);
         if (!teacher.ok) return NextResponse.json({ error: teacher.error }, { status: teacher.status });
@@ -441,13 +445,13 @@ export async function POST(req: Request): Promise<NextResponse> {
         if (owner !== teacher.account.id) {
           return NextResponse.json({ error: "not_the_owner" }, { status: 403 });
         }
-        const invited = await findAccountByEmail(email);
+        const invited = await storage.findAccountByEmail(email);
         if (!invited) return NextResponse.json({ error: "teacher_account_not_found" }, { status: 404 });
         if (!isTeachingRole(invited.role)) {
           return NextResponse.json({ error: "not_a_teacher_account" }, { status: 400 });
         }
         if (invited.id === owner) return NextResponse.json({ error: "already_the_owner" }, { status: 400 });
-        const upd = await updateClassById(body.clsId, (cls) => {
+        const upd = await storage.updateClassById(body.clsId, (cls) => {
           cls.coTeacherAccountIds ??= [];
           if (!cls.coTeacherAccountIds.includes(invited.id)) cls.coTeacherAccountIds.push(invited.id);
           return { invited: invited.id };
@@ -459,7 +463,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         if (!body.clsId) return NextResponse.json({ error: "missing class" }, { status: 400 });
         const accountId = typeof body.accountId === "string" ? body.accountId.trim() : "";
         if (!accountId) return NextResponse.json({ error: "missing teacher account" }, { status: 400 });
-        const existing = await getClass(body.clsId);
+        const existing = await storage.getClass(body.clsId);
         if (!existing) return NextResponse.json({ error: "not found" }, { status: 404 });
         const teacher = await teacherOfClass(req, existing);
         if (!teacher.ok) return NextResponse.json({ error: teacher.error }, { status: teacher.status });
@@ -468,7 +472,7 @@ export async function POST(req: Request): Promise<NextResponse> {
           return NextResponse.json({ error: "not_the_owner" }, { status: 403 });
         }
         if (accountId === owner) return NextResponse.json({ error: "cannot_remove_owner" }, { status: 400 });
-        const upd = await updateClassById(body.clsId, (cls) => {
+        const upd = await storage.updateClassById(body.clsId, (cls) => {
           cls.coTeacherAccountIds = (cls.coTeacherAccountIds ?? []).filter((id) => id !== accountId);
           return { removed: accountId };
         });
@@ -477,21 +481,21 @@ export async function POST(req: Request): Promise<NextResponse> {
       }
       case "rotate-code": {
         if (!body.clsId) return NextResponse.json({ error: "missing class" }, { status: 400 });
-        const existing = await getClass(body.clsId);
+        const existing = await storage.getClass(body.clsId);
         if (!existing) return NextResponse.json({ error: "not found" }, { status: 404 });
         const teacher = await teacherOfClass(req, existing);
         if (!teacher.ok) return NextResponse.json({ error: teacher.error }, { status: teacher.status });
-        const cls = await rotateJoinCode(existing.id, JOIN_CODE_TTL_MS);
+        const cls = await storage.rotateJoinCode(existing.id, JOIN_CODE_TTL_MS);
         if (!cls) return NextResponse.json({ error: "not found" }, { status: 404 });
         return NextResponse.json({ cls });
       }
       case "revoke-code": {
         if (!body.clsId) return NextResponse.json({ error: "missing class" }, { status: 400 });
-        const existing = await getClass(body.clsId);
+        const existing = await storage.getClass(body.clsId);
         if (!existing) return NextResponse.json({ error: "not found" }, { status: 404 });
         const teacher = await teacherOfClass(req, existing);
         if (!teacher.ok) return NextResponse.json({ error: teacher.error }, { status: teacher.status });
-        const upd = await updateClassById(body.clsId, (cls) => {
+        const upd = await storage.updateClassById(body.clsId, (cls) => {
           cls.joinCodeRevokedAt = Date.now();
           return { revoked: true as const };
         });
@@ -508,12 +512,12 @@ export async function POST(req: Request): Promise<NextResponse> {
         // by name when the subject is not part of it, so a class can never end
         // up taught a qualification it does not sit.
         if (!body.clsId) return NextResponse.json({ error: "missing class" }, { status: 400 });
-        const existing = await getClass(body.clsId);
+        const existing = await storage.getClass(body.clsId);
         if (!existing) return NextResponse.json({ error: "not found" }, { status: 404 });
         // The class's ADMINISTRATOR, on the account — not the caller's profile.
         const teacher = await teacherOfClass(req, existing);
         if (!teacher.ok) return NextResponse.json({ error: teacher.error }, { status: teacher.status });
-        const upd = await updateClassById(body.clsId, (cls) => {
+        const upd = await storage.updateClassById(body.clsId, (cls) => {
           if (!isTeacherOf(cls, teacher.profile) && !isClassAdministrator(cls, teacher.account.id)) {
             return { error: "not_the_teacher" as const, status: 403 as const };
           }
@@ -589,7 +593,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         // view — the teacher's table and the plan's data — is derived from the
         // ledger either way, so a client can flatter itself in `students`
         // without ever changing what the teacher sees.
-        const upd = await updateClassByCode(body.joinCode ?? "", (cls) => {
+        const upd = await storage.updateClassByCode(body.joinCode ?? "", (cls) => {
           // The handle is the CALLER'S OWN ROW, never a name from the request.
           // The old write merged `body.handle` into `cls.students`, so a member
           // who knew the class code could overwrite a classmate's self-report by
@@ -615,10 +619,10 @@ export async function POST(req: Request): Promise<NextResponse> {
       case "leave": {
         if (!caller) return NextResponse.json({ error: "missing id" }, { status: 400 });
         if (!body.clsId) return NextResponse.json({ error: "missing class" }, { status: 400 });
-        const existing = await getClass(body.clsId);
+        const existing = await storage.getClass(body.clsId);
         if (!existing) return NextResponse.json({ error: "not found" }, { status: 404 });
         if (!isMemberOf(existing, caller)) return NextResponse.json({ error: "not_a_member" }, { status: 403 });
-        const upd = await updateClassById(existing.id, (cls) => {
+        const upd = await storage.updateClassById(existing.id, (cls) => {
           if (!isMemberOf(cls, caller)) return { error: "not_a_member" as const, status: 403 as const };
           removeMember(cls, caller.profile.id);
           return { left: true as const };
@@ -631,11 +635,11 @@ export async function POST(req: Request): Promise<NextResponse> {
       case "remove-member": {
         if (!body.clsId) return NextResponse.json({ error: "missing class" }, { status: 400 });
         if (!body.learnerId) return NextResponse.json({ error: "missing learner" }, { status: 400 });
-        const existing = await getClass(body.clsId);
+        const existing = await storage.getClass(body.clsId);
         if (!existing) return NextResponse.json({ error: "not found" }, { status: 404 });
         const teacher = await teacherOfClass(req, existing);
         if (!teacher.ok) return NextResponse.json({ error: teacher.error }, { status: teacher.status });
-        const upd = await updateClassById(existing.id, (cls) => {
+        const upd = await storage.updateClassById(existing.id, (cls) => {
           if (!isTeacherOf(cls, teacher.profile) && !isClassAdministrator(cls, teacher.account.id)) {
             return { error: "not_the_teacher" as const, status: 403 as const };
           }
@@ -665,7 +669,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         // again. A PIN is not a secret anyone can reuse off the device: it is
         // exchanged at /api/kiosk/login for a session the server can end.
         if (!body.clsId) return NextResponse.json({ error: "missing class" }, { status: 400 });
-        const existing = await getClass(body.clsId);
+        const existing = await storage.getClass(body.clsId);
         if (!existing) return NextResponse.json({ error: "not found" }, { status: 404 });
         const teacher = await teacherOfClass(req, existing);
         if (!teacher.ok) return NextResponse.json({ error: teacher.error }, { status: teacher.status });
@@ -725,10 +729,10 @@ export async function POST(req: Request): Promise<NextResponse> {
           }
           // The record is written BEFORE the roster row, so a refused store
           // cannot leave a member the teacher can see and nobody can sign in as.
-          await saveProfile(state);
+          await storage.saveProfile(state);
           issued.push({ id, handle, pin: mintKioskPin(), reissued: false });
         }
-        const upd = await updateClassById(existing.id, (cls) => {
+        const upd = await storage.updateClassById(existing.id, (cls) => {
           cls.kiosk ??= {};
           for (const l of issued) {
             const salt = makeSalt();
@@ -769,11 +773,11 @@ export async function POST(req: Request): Promise<NextResponse> {
         if (typeof body.learnerId !== "string" || !body.learnerId) {
           return NextResponse.json({ error: "missing learner" }, { status: 400 });
         }
-        const existing = await getClass(body.clsId);
+        const existing = await storage.getClass(body.clsId);
         if (!existing) return NextResponse.json({ error: "not found" }, { status: 404 });
         const teacher = await teacherOfClass(req, existing);
         if (!teacher.ok) return NextResponse.json({ error: teacher.error }, { status: teacher.status });
-        const upd = await updateClassById(existing.id, (cls) => {
+        const upd = await storage.updateClassById(existing.id, (cls) => {
           if (!cls.kiosk?.[body.learnerId as string]) return { error: "not a classroom learner" as const, status: 404 as const };
           delete cls.kiosk[body.learnerId as string];
           return { revoked: body.learnerId as string };

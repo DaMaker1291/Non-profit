@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { getProfile, publicProfileState, resolveKioskSession } from "@/lib/server/store";
+// The learner's own record is read through the port; the public view and the kiosk
+// session lookup are helpers, not storage of a learner's data.
+import { activeStorage } from "@/lib/server/storage-file";
+import { publicProfileState, resolveKioskSession } from "@/lib/server/store";
 import { readEvidence } from "@/lib/server/evidence";
 import { accountFromRequest } from "@/lib/server/auth";
 import type { ProfileState } from "@/lib/types";
@@ -24,7 +27,7 @@ async function authorise(req: Request): Promise<{ state: ProfileState; id: strin
   const account = await accountFromRequest(req);
   const id = searchParams.get("id") ?? account?.profileId ?? null;
   if (!id) return null;
-  const state = await getProfile(id);
+  const state = await activeStorage().getProfile(id);
   // A profile that does not resolve is a 404 (as on the evidence doors) —
   // distinct from a 401, which names the CAPABILITY, not the record.
   if (!state) return { missing: true };

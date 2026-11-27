@@ -61,6 +61,34 @@ The 320 screenshots still show empty space to the right of the captured page. Th
 
 `assignableConcepts` now returns only lessons whose state is `approved-for-pilot`. With `PILOT_APPROVALS` empty, the teacher’s set-work picker is empty and `POST /api/assignments` refuses any unapproved concept. `curriculumConcepts` remains the broader course view used to report “not yet measured,” so the approval gate did not erase the teacher’s curriculum coverage.
 
+## 2026-11-25 — isolated re-verification (supersedes the run numbers above)
+
+Every suite below ran through `scripts/run-isolated-tests.mjs`: its own dev server,
+an OS-allocated port, a uniquely created scratch store, a canary learner proving
+the server wrote that store, and a sha256 fingerprint of `.openmind-data` taken
+before and after. The live store was unchanged in all three runs (18 files).
+
+| Command | Result |
+|---|---|
+| `npm run verify` | **pass** (the isolation self-test now runs first: 15 planted cases) |
+| `node scripts/run-isolated-tests.mjs --only e2e` | **895 passed, 0 failed** (20 s) |
+| `node scripts/run-isolated-tests.mjs --only ui` | **73 passed, 0 failed** (22 s) |
+| `node scripts/run-isolated-tests.mjs --only lesson` | **1,424 passed, 0 failed** (397 s) |
+| `npm run research-check` | **pass** — 50 sources: 45 inspected, 4 identified, 1 blocked |
+| `npm run educator:packs` | **9 packs, every one `STATUS: NOT REVIEWED`** |
+| `npx tsc --noEmit` | **pass** |
+
+The register gained three `asset`-depth records after the transcript pass: the
+starter and exit quizzes for electric current, atoms and elements, and animal
+cells, 12 items each, with every stem, key and feedback read. They are quizzes,
+not worksheets: no slide deck, worksheet or video frame was examined.
+
+The earlier note that `npm run e2e` "was not run" is superseded: it ran, isolated,
+895/0. The first UI attempt in this pass failed on `Loading…` because the test build
+cache had been left half-written by a command timeout; the runner now discards a
+cache with no clean-shutdown marker, and the re-run passed 73/0. That failure was a
+cache defect, not a product regression, and it is recorded rather than hidden.
+
 ## Not run / not passed
 
 - `npm run e2e` was not run. Its assignment section predates the approved-only gate and would need an approval fixture; that fixture does not exist and must not be manufactured.

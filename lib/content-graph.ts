@@ -127,13 +127,21 @@ export function skillCoverage(conceptId: string): SkillCoverage | null {
 export const TAG_SWEEP = 160;
 
 /** The misconception tags a concept's OWN items emit, over the sweep. Sorted,
- *  so the value is comparable across calls. */
+ *  so the value is comparable across calls.
+ *
+ *  A wrong OPTION can carry its own belief (`choiceMisconceptions`) without the
+ *  whole item being tagged: a factor question may offer one multiple, one
+ *  non-divisor and one near miss, and only the multiple is evidence of the
+ *  factor/multiple reversal. Those per-option tags are emitted by the item just
+ *  as surely as item-level tags are, so detection must count both. Reading only
+ *  `misconceptionTags` reported a genuine detector as missing. */
 export function measuredTags(conceptId: string, draws = TAG_SWEEP): string[] {
   const seen = new Set<string>();
   for (let i = 0; i < draws; i++) {
     const q = generateQuestion(conceptId, `tags:${i}`);
     if (!q) continue;
     for (const tag of q.misconceptionTags) seen.add(tag);
+    for (const tag of q.choiceMisconceptions ?? []) if (tag) seen.add(tag);
   }
   return [...seen].sort();
 }
@@ -407,6 +415,7 @@ function findCycle(): string[] | null {
  *  README. */
 export const SLICE_EXPECTATIONS: { conceptId: string; required: SkillId[] }[] = [
   // Number, algebra and geometry: the working ladder.
+  { conceptId: "factors-primes", required: ["recall", "application", "multi_step"] },
   { conceptId: "fractions", required: ["recall", "application", "multi_step"] },
   { conceptId: "fraction-ops", required: ["recall", "application", "multi_step"] },
   { conceptId: "percentages", required: ["recall", "application", "multi_step"] },

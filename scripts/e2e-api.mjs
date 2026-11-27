@@ -13,6 +13,9 @@ import { createRequire } from "node:module";
 // instructing each other across files to stay in step, which is the shape of a
 // rule that is about to drift.
 import { headroomSentence, measureHeadroom } from "./disk-headroom.mjs";
+// The target is chosen by the isolation guard, never by a default. See
+// docs/TEST-ISOLATION.md and the incident record it was written for.
+import { requireIsolation } from "./test-isolation.mjs";
 
 // One compiled fact the pack assertions need: which subject a concept belongs
 // to. Read from the genome rather than listed here, so "this week is physics"
@@ -20,20 +23,24 @@ import { headroomSentence, measureHeadroom } from "./disk-headroom.mjs";
 const require = createRequire(import.meta.url);
 const genome = require("../.verify/genome.js");
 
-// Overridable so the suite can run beside a server that already owns 4173 — the
-// documented NEXT_DIST_DIR workflow exists precisely so a production build and a
-// dev server can coexist, and a harness that can only find one of them forces
-// the wrong one to be stopped. Defaults to the dev port the repo documents.
-const BASE = process.env.OPENMIND_BASE ?? "http://localhost:4173";
+// ── THE TARGET IS CHOSEN BY A GUARD, NOT BY A DEFAULT ───────────────────────
+// This suite used to default to `http://localhost:4173` and to the repository's
+// own `.openmind-data`. On 2026-11-25 that default attached to a dev server that
+// was still holding the LIVE store, and the run wrote 23 files into real learner
+// data. `requireIsolation` refuses an undeclared store, a reserved port and a
+// store inside the repository; `proveServerIsolated` then creates a canary
+// learner and requires it to appear in the scratch store and in no live record.
+// The live store is fingerprinted before the first assertion and compared before
+// the result is printed.
+//
 // The store these file-level assertions READ has to be the store the server
-// WRITES. The routes resolve `OPENMIND_DATA_DIR` (lib/server/store.ts), so a
-// suite that hard-codes `.openmind-data` can only be run against the live local
-// store: point a server at a scratch directory and the file reads go to a
-// different tree, which reports a working product as broken. Same rule as the
-// server, so a scratch store proves the same claims without touching real data.
-const DATA_DIR = process.env.OPENMIND_DATA_DIR
-  ? path.resolve(process.env.OPENMIND_DATA_DIR)
-  : path.join(process.cwd(), ".openmind-data");
+// WRITES. The routes resolve `OPENMIND_DATA_DIR` (lib/server/store.ts), so the
+// guard hands the suite that same resolved path.
+const iso = requireIsolation({ suite: "API end-to-end", baseEnv: "OPENMIND_BASE" });
+const BASE = iso.base;
+const DATA_DIR = iso.dataDir;
+// Prove over HTTP that the server writes this store, before anything is graded.
+await iso.proveServerIsolated();
 // ── FREE SPACE BEFORE LINE ONE, OR SAY SO ────────────────────────────────────
 // A run that cannot write is not a passing run, and it does not LOOK like a
 // space problem either. Measured: on a volume with ~4 GB free this suite reached
@@ -335,7 +342,7 @@ if (s1.status === 200 && s1.body.question && !("answer" in s1.body.question)) {
   console.error(
     "\n  This suite drives the `reveal` test hook, which a production build strips.\n" +
     "  Run it against the development server:\n\n" +
-    "      npm run dev &   # → http://localhost:4173\n      npm run e2e\n\n" +
+    "      npm run test:isolated -- --only e2e\n\n" +
     "  A production build can still be checked with `npm run build`.\n",
   );
   process.exit(2);
@@ -3690,5 +3697,6 @@ console.log("▸ Curriculum pathways: two systems in one country");
     `a country with one recorded system never asks, and never blocks a course on the answer (${JSON.stringify(gb.body.courseGaps)})`);
 }
 
+iso.assertLiveStoreUntouched("end of e2e");
 console.log(`\nE2E: ${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

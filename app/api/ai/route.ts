@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { aiStatus, llmExplain, llmMarkWork } from "@/lib/llm";
-import { cacheGet, cacheSet } from "@/lib/server/store";
+// The AI result cache is disposable, but it is still storage: through the port, so a
+// Postgres deployment does not create a JSON file behind its operator's back.
+import { activeStorage } from "@/lib/server/storage-file";
 import { generateQuestion, serveView } from "@/lib/questions";
 import { termsFor } from "@/lib/specifications";
 import { authorisedProfile } from "@/lib/server/auth";
@@ -84,7 +86,7 @@ export async function POST(req: Request): Promise<NextResponse> {
 
   // task === "explain" (default)
   const cacheKey = `explain:${conceptId}:${language}:${board ?? ""}:${body.length ?? "full"}:${(body.question ?? "").slice(0, 80)}`;
-  const cached = (await cacheGet(cacheKey)) as string | null;
+  const cached = (await activeStorage().cacheGet(cacheKey)) as string | null;
   if (cached) return NextResponse.json({ explanation: cached, mode: "ai", cached: true, aiUnavailable: null });
 
   const outcome = await llmExplain({
@@ -95,7 +97,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     length: body.length,
     grounding: grounding ?? undefined,
   });
-  if (outcome.ok) await cacheSet(cacheKey, outcome.text);
+  if (outcome.ok) await activeStorage().cacheSet(cacheKey, outcome.text);
 
   // No model: hand back a real worked example from the engine instead of an
   // apology, so the learner still gets something to read — and name the reason

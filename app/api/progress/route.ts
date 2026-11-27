@@ -41,6 +41,10 @@ import { ANSWERS_PER_LEARNER } from "@/lib/server/rate-limit";
 // marked against criteria by a person, not scored by vocabulary.
 import { authoredLessonFor } from "@/lib/lessons/authored";
 import { gradeAuthoredAssessment, gradeStructuredAssessment } from "@/lib/lesson-assessment";
+// The Number checkpoint's own item bank. It is deliberately NOT an authored
+// lesson: these items appear on no lesson page, so sitting the checkpoint is
+// new evidence rather than a re-read of a model answer the learner could reveal.
+import { numberCheckpointItemFor } from "@/lib/number-checkpoint";
 import { gradeLessonInteraction } from "@/lib/lesson-interactions";
 // Structured lesson activities are marked from the same pure model the page
 // draws: a Venn selection, a region probability, or a completed tree. The client
@@ -106,6 +110,16 @@ interface LessonCheckBody {
   working?: string[];
   secret?: string;
 }
+interface CheckpointCheckBody {
+  action: "checkpointCheck"; id: string; checkpointId: string; itemId: string;
+  /** A single-answer item. */
+  answer?: string;
+  /** A structured item: one entry per part, in the item's own order. */
+  answers?: string[];
+  /** Optional working for each structured part; a missing entry is no working. */
+  working?: string[];
+  secret?: string;
+}
 interface ProbabilityActivityBody {
   action: "probabilityActivity"; id: string; conceptId: string; activityId: string;
   response: unknown; secret?: string;
@@ -155,7 +169,7 @@ export async function GET(req: Request): Promise<NextResponse> {
 /** POST /api/progress — serve a practice question, or grade an answer. */
 export async function POST(req: Request): Promise<NextResponse> {
   try {
-    const body = (await req.json()) as ServeBody | AnswerBody | HintBody | MicroBody | StarterBody | StarterPickBody | PeerBody | LessonCheckBody | ProbabilityActivityBody;
+    const body = (await req.json()) as ServeBody | AnswerBody | HintBody | MicroBody | StarterBody | StarterPickBody | PeerBody | LessonCheckBody | CheckpointCheckBody | ProbabilityActivityBody;
     if (!body?.id) return NextResponse.json({ error: "bad request" }, { status: 400 });
 
     // ── BOUND THE WORK BEFORE IT RUNS ──────────────────────────────────────
@@ -404,6 +418,37 @@ export async function POST(req: Request): Promise<NextResponse> {
           sinceLast: hadPriorEvidence ? at - (priorRecord?.lastSeen ?? at) : null,
         });
         const retained = wasDelayedRecall && correct;
+        // WHICH BELIEF THIS ANSWER IS EVIDENCE FOR, if any.
+        //
+        // The item's `misconceptionTags` are the slips it was BUILT to catch,
+        // not proof that every wrong option represents all of them. For a
+        // multiple-choice answer the bank can now name one belief per option
+        // (`choiceMisconceptions`, aligned after the shuffle). When that map
+        // exists, only the chosen option's belief is recorded; an untagged
+        // option is a slip, not a diagnosis. Questions without the map keep the
+        // old item-level behaviour rather than losing their existing repair.
+        // A TYPED ANSWER IS MATCHED TO THE OPTION IT EQUALS, not assumed to be
+        // the item's headline slip. Numeric draws still carry the same four
+        // authored values (the MCQ twin), so the chosen-option map can say which
+        // wrong value the learner actually produced. A wrong number that matches
+        // no authored distractor is an unexplained slip: the item-level tag says
+        // the question CAN reveal a belief, not that this answer did.
+        let diagnosedTags: string[] = [];
+        if (!correct && q.choiceMisconceptions) {
+          let attributed = typeof choiceIndex === "number" ? choiceIndex : -1;
+          if (attributed < 0 && givenValue !== null && Array.isArray(q.choiceValues)) {
+            attributed = q.choiceValues.findIndex(
+              (v) => typeof v === "number" && Number.isFinite(v) && Math.abs(v - givenValue) <= 1e-9,
+            );
+          }
+          const tag = attributed >= 0 ? q.choiceMisconceptions[attributed] : "";
+          diagnosedTags = tag ? [tag] : [];
+        } else if (!correct) {
+          // Legacy questions have no per-option map. Their item-level tag is the
+          // only evidence available and is kept, but it is not upgraded into a
+          // claim about a specific option.
+          diagnosedTags = q.misconceptionTags ?? [];
+        }
         const event = answerEvidence({
           learnerId: body.id,
           at,
@@ -424,7 +469,7 @@ export async function POST(req: Request): Promise<NextResponse> {
           mode,
           hints: hintCount,
           ms: ms ?? null,
-          tags: q.misconceptionTags ?? [],
+          tags: diagnosedTags,
         }) as EvidenceEvent;
 
         // ── THE CUTOVER: WRITE EVENT → CONFIRM APPEND → REPLAY → RESPOND ──
@@ -452,20 +497,20 @@ export async function POST(req: Request): Promise<NextResponse> {
         // towards that session's activity record (and only if it belongs to the
         // concept the session is about).
         if (sess.learnSession) noteActivity(sess.learnSession, { correct, mode, hints: hintCount, conceptId, ms });
-        const misc = !correct && q.misconceptionTags[0] ? MISCONCEPTIONS_BY_ID[q.misconceptionTags[0]] : undefined;
+        const misc = !correct && diagnosedTags[0] ? MISCONCEPTIONS_BY_ID[diagnosedTags[0]] : undefined;
         // Track the recent hit/miss window per tagged misconception — this is
         // what lets the system notice a *pattern* rather than one mistake.
         // An ANNOTATION the ledger does not carry, so the projection preserves
         // it and this is where the live answer keeps it current.
         const p = state.progress[conceptId];
-        if (p) for (const tag of q.misconceptionTags) pushRecentHit(p, tag, !correct);
+        if (p && !correct) for (const tag of diagnosedTags) pushRecentHit(p, tag, true);
         // §4–5: when a misconception flares, the response carries a named
         // pattern, the coaching line and a one-question micro-diagnostic —
         // the system asking "why", not just "wrong". Built AFTER the
         // projection, from the model the evidence just produced.
         const flare =
-          !correct && q.misconceptionTags[0]
-            ? buildFlare(state, conceptId, q.misconceptionTags[0], (body as { reveal?: boolean }).reveal === true, body.lang)
+          !correct && diagnosedTags[0]
+            ? buildFlare(state, conceptId, diagnosedTags[0], (body as { reveal?: boolean }).reveal === true, body.lang)
             : null;
         delete sess.practice![conceptId]; // one grading per served question
         // The hint ledger for this question has done its job.
@@ -696,6 +741,109 @@ export async function POST(req: Request): Promise<NextResponse> {
       if (!upd) return NextResponse.json({ error: "not found" }, { status: 404 });
       const r = upd.result as { error?: string };
       if (r.error) return NextResponse.json({ error: r.error }, { status: 400 });
+      return NextResponse.json(upd.result);
+    }
+
+    // ── A checkpoint item, marked but never counted as lesson evidence ─────
+    //
+    // The checkpoint has its OWN items (lib/number-checkpoint.ts), written for
+    // this paper and shown in no lesson. Marks are recorded as assessment
+    // evidence with a `checkpoint:` question id. Two things this branch must
+    // never do, because the previous version did both: mark a lesson's own item
+    // (whose model answer is on the lesson page) and increment
+    // `progress.<concept>.lessonCheck`. A sitting must not make a lesson look as
+    // though its own assessment had been attempted.
+    if (body.action === "checkpointCheck") {
+      const { checkpointId, itemId, answer } = body;
+      if (
+        typeof checkpointId !== "string" || !checkpointId ||
+        typeof itemId !== "string" || !itemId
+      ) {
+        return NextResponse.json({ error: "bad request" }, { status: 400 });
+      }
+      const record = numberCheckpointItemFor(checkpointId, itemId);
+      if (!record) return NextResponse.json({ error: "no such checkpoint item" }, { status: 404 });
+      const { item, conceptId } = record;
+
+      let graded = false;
+      let structuredGrade: ReturnType<typeof gradeStructuredAssessment> = null;
+      if (item.structured) {
+        // One answer per part and no more: a shorter or longer array would
+        // silently shift a correct part's mark onto its neighbour.
+        if (
+          !Array.isArray(body.answers) ||
+          body.answers.length !== item.structured.parts.length ||
+          body.answers.some((a) => typeof a !== "string")
+        ) {
+          return NextResponse.json({ error: "bad request" }, { status: 400 });
+        }
+        const working = Array.isArray(body.working)
+          ? body.working.slice(0, item.structured.parts.length).map((w) => typeof w === "string" ? w : "")
+          : [];
+        structuredGrade = gradeStructuredAssessment(item, body.answers, working);
+        // An all-blank submission is a client bug, not a zero-mark answer.
+        if (!structuredGrade || structuredGrade.answered === 0) {
+          return NextResponse.json({ error: "not gradable" }, { status: 400 });
+        }
+        graded = structuredGrade.awarded === structuredGrade.marks;
+      } else {
+        if (typeof answer !== "string") {
+          return NextResponse.json({ error: "bad request" }, { status: 400 });
+        }
+        const marked = gradeAuthoredAssessment(item, answer);
+        if (marked === null) return NextResponse.json({ error: "not gradable" }, { status: 400 });
+        graded = marked;
+      }
+
+      const upd = await withLearnerState(body.id, async (ctx, state) => {
+        checkPresentedSecret(state, body.secret, kioskFor);
+        // NO `p.lessonCheck` WRITE HERE, DELIBERATELY. The projection below
+        // still folds this answer into the concept's mastery as assessment
+        // evidence, but the lesson's own counter remains a record of the
+        // lesson's items alone.
+        const event = answerEvidence({
+          learnerId: body.id,
+          at: Date.now(),
+          // "assessment" MEASURES; it is not practice and not a lesson check.
+          // The impact report reads this source as a measured sitting.
+          source: "assessment",
+          subject: getConcept(conceptId)?.subject ?? null,
+          conceptId,
+          specificationId: state.profile.spec ?? null,
+          questionId: `checkpoint:${checkpointId}:${itemId}`,
+          correct: graded,
+          ...(structuredGrade
+            ? { score: { awarded: structuredGrade.awarded, max: structuredGrade.marks } }
+            : {}),
+          // −1 is "typed", never a real option index.
+          chosen: -1,
+          mode: "independent",
+          hints: 0,
+          tags: [],
+        }) as EvidenceEvent;
+        try {
+          await commitAndProjectIn(ctx, state, [event]);
+        } catch {
+          return { error: "evidence_not_recorded" as const };
+        }
+        return {
+          correct: graded,
+          modelAnswer: item.modelAnswer,
+          marking: item.marking,
+          ...(structuredGrade
+            ? {
+                awarded: structuredGrade.awarded,
+                marks: structuredGrade.marks,
+                parts: structuredGrade.parts,
+              }
+            : {}),
+        };
+      });
+      if (!upd) return NextResponse.json({ error: "not found" }, { status: 404 });
+      const r = upd.result as { error?: string };
+      if (r.error) {
+        return NextResponse.json({ error: r.error }, { status: r.error === "evidence_not_recorded" ? 503 : 400 });
+      }
       return NextResponse.json(upd.result);
     }
 

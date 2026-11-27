@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { teacherAnswerEvidence, type AnswerSubmitted } from "@/lib/evidence";
 import { authoredLessonFor } from "@/lib/lessons/authored";
-import { getClass } from "@/lib/server/store";
+// Through the port: the class a teacher paper belongs to lives on the configured
+// backend, and a teacher's assessment must not be orphaned from its class.
+import { activeStorage } from "@/lib/server/storage-file";
 import { teacherOfClass } from "@/lib/server/authority";
 import { storeWriteRefusal } from "@/lib/server/write-refusal";
 import { withLearnerState } from "@/lib/server/transaction";
@@ -27,7 +29,7 @@ export async function POST(req: Request): Promise<NextResponse> {
     const conceptId = typeof body.conceptId === "string" ? body.conceptId : "";
     if (!clsId || !learnerId || !conceptId) return NextResponse.json({ error: "class_learner_and_lesson_required" }, { status: 400 });
 
-    const cls = await getClass(clsId);
+    const cls = await activeStorage().getClass(clsId);
     if (!cls) return NextResponse.json({ error: "not_found" }, { status: 404 });
     const teacher = await teacherOfClass(req, cls);
     if (!teacher.ok) return NextResponse.json({ error: teacher.error }, { status: teacher.status });

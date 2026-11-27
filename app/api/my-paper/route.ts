@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { listPersonalPapers, newId, savePersonalPaper } from "@/lib/server/store";
+// A learner's personal papers are owner-scoped records: through the port, so the
+// scope is enforced by the same backend that holds the learner.
+import { activeStorage } from "@/lib/server/storage-file";
+import { newId } from "@/lib/server/store";
 // The learner transaction, through the port-facing door (lib/server/transaction.ts).
 import { withLearnerState } from "@/lib/server/transaction";
 // A store that cannot keep a learner record refuses the write and says why; this
@@ -78,7 +81,7 @@ export async function GET(req: Request): Promise<NextResponse> {
   } catch {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
-  const mine = await listPersonalPapers(id);
+  const mine = await activeStorage().listPersonalPapers(id);
   return NextResponse.json({
     papers: mine.map((p) => ({ id: p.id, title: p.title, board: p.board, year: p.year, questionCount: p.questions.length, createdAt: p.createdAt })),
     rights: rightsSummary(),
@@ -130,7 +133,7 @@ export async function POST(req: Request): Promise<NextResponse> {
         id: newId("pp"), owner: body.id, origin: "user_provided",
         createdAt: Date.now(), ...check.paper,
       };
-      await savePersonalPaper(paper);
+      await activeStorage().savePersonalPaper(paper);
       const analysis = analysePersonalPaper(paper);
       // Evidence into the learner model, inside the profile lock. One clock
       // for the sitting: the model writes and the ledger events below carry

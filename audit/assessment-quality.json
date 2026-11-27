@@ -1,26 +1,25 @@
 {
-  "generatedAt": "2026-11-23T18:19:34.918Z",
+  "generatedAt": "2026-11-27T20:30:41.530Z",
   "seedsPerConcept": 40,
-  "pilotConcepts": 20,
-  "conceptsWithNoTaggedDraw": [
-    "addition",
-    "division",
-    "fractions",
-    "multiplication",
-    "place-value",
-    "subtraction"
-  ],
-  "note": "A numeric draw has no options, so it cannot carry a misconception tag by construction. A concept whose MULTIPLE-CHOICE draws also carry none gives a wrong answer no diagnosis and fires no repair — that is the gap this file records.",
+  "pilotConcepts": 21,
+  "conceptsWithNoTaggedDraw": [],
+  "failures": [],
+  "note": "A numeric draw has no options; it can carry an item-level belief but not a per-option one. A per-option belief is accepted only when it sits on a wrong option, is catalogued for that concept, has a repair, and the explanation states the item's own answer. The six foundations are additionally checked against independent arithmetic and against the specific wrong values their distractors claim. Human subject review remains the authority.",
   "rows": [
     {
       "conceptId": "addition",
       "title": "Addition",
       "subject": "maths",
       "draws": 40,
-      "tagged": 0,
+      "tagged": 40,
       "numeric": 20,
       "multipleChoice": 20,
-      "repaired": false
+      "choiceTagged": 20,
+      "perOptionTags": 20,
+      "onKey": 0,
+      "withoutRepair": 0,
+      "missingAnswerInExplanation": 0,
+      "repaired": true
     },
     {
       "conceptId": "decimals",
@@ -30,6 +29,11 @@
       "tagged": 23,
       "numeric": 20,
       "multipleChoice": 20,
+      "choiceTagged": 0,
+      "perOptionTags": 0,
+      "onKey": 0,
+      "withoutRepair": 0,
+      "missingAnswerInExplanation": 0,
       "repaired": true
     },
     {
@@ -37,30 +41,45 @@
       "title": "Division",
       "subject": "maths",
       "draws": 40,
-      "tagged": 0,
+      "tagged": 40,
       "numeric": 20,
       "multipleChoice": 20,
-      "repaired": false
+      "choiceTagged": 20,
+      "perOptionTags": 20,
+      "onKey": 0,
+      "withoutRepair": 0,
+      "missingAnswerInExplanation": 0,
+      "repaired": true
     },
     {
       "conceptId": "fractions",
       "title": "Fractions",
       "subject": "maths",
       "draws": 40,
-      "tagged": 0,
+      "tagged": 13,
       "numeric": 20,
       "multipleChoice": 20,
-      "repaired": false
+      "choiceTagged": 1,
+      "perOptionTags": 1,
+      "onKey": 0,
+      "withoutRepair": 0,
+      "missingAnswerInExplanation": 0,
+      "repaired": true
     },
     {
       "conceptId": "multiplication",
       "title": "Multiplication",
       "subject": "maths",
       "draws": 40,
-      "tagged": 0,
+      "tagged": 40,
       "numeric": 20,
       "multipleChoice": 20,
-      "repaired": false
+      "choiceTagged": 20,
+      "perOptionTags": 20,
+      "onKey": 0,
+      "withoutRepair": 0,
+      "missingAnswerInExplanation": 0,
+      "repaired": true
     },
     {
       "conceptId": "negatives",
@@ -70,6 +89,11 @@
       "tagged": 40,
       "numeric": 20,
       "multipleChoice": 20,
+      "choiceTagged": 0,
+      "perOptionTags": 0,
+      "onKey": 0,
+      "withoutRepair": 0,
+      "missingAnswerInExplanation": 0,
       "repaired": true
     },
     {
@@ -80,6 +104,11 @@
       "tagged": 40,
       "numeric": 20,
       "multipleChoice": 20,
+      "choiceTagged": 0,
+      "perOptionTags": 0,
+      "onKey": 0,
+      "withoutRepair": 0,
+      "missingAnswerInExplanation": 0,
       "repaired": true
     },
     {
@@ -87,20 +116,30 @@
       "title": "Place value",
       "subject": "maths",
       "draws": 40,
-      "tagged": 0,
+      "tagged": 27,
       "numeric": 20,
       "multipleChoice": 20,
-      "repaired": false
+      "choiceTagged": 12,
+      "perOptionTags": 12,
+      "onKey": 0,
+      "withoutRepair": 0,
+      "missingAnswerInExplanation": 0,
+      "repaired": true
     },
     {
       "conceptId": "subtraction",
       "title": "Subtraction",
       "subject": "maths",
       "draws": 40,
-      "tagged": 0,
+      "tagged": 40,
       "numeric": 20,
       "multipleChoice": 20,
-      "repaired": false
+      "choiceTagged": 20,
+      "perOptionTags": 20,
+      "onKey": 0,
+      "withoutRepair": 0,
+      "missingAnswerInExplanation": 0,
+      "repaired": true
     },
     {
       "conceptId": "algebra-expressions",
@@ -110,6 +149,11 @@
       "tagged": 32,
       "numeric": 20,
       "multipleChoice": 20,
+      "choiceTagged": 0,
+      "perOptionTags": 0,
+      "onKey": 0,
+      "withoutRepair": 0,
+      "missingAnswerInExplanation": 0,
       "repaired": true
     },
     {
@@ -120,6 +164,26 @@
       "tagged": 8,
       "numeric": 20,
       "multipleChoice": 20,
+      "choiceTagged": 0,
+      "perOptionTags": 0,
+      "onKey": 0,
+      "withoutRepair": 0,
+      "missingAnswerInExplanation": 0,
+      "repaired": true
+    },
+    {
+      "conceptId": "factors-primes",
+      "title": "Factors, multiples & primes",
+      "subject": "maths",
+      "draws": 40,
+      "tagged": 6,
+      "numeric": 20,
+      "multipleChoice": 20,
+      "choiceTagged": 7,
+      "perOptionTags": 19,
+      "onKey": 0,
+      "withoutRepair": 0,
+      "missingAnswerInExplanation": 0,
       "repaired": true
     },
     {
@@ -130,6 +194,11 @@
       "tagged": 26,
       "numeric": 20,
       "multipleChoice": 20,
+      "choiceTagged": 0,
+      "perOptionTags": 0,
+      "onKey": 0,
+      "withoutRepair": 0,
+      "missingAnswerInExplanation": 0,
       "repaired": true
     },
     {
@@ -140,6 +209,11 @@
       "tagged": 4,
       "numeric": 20,
       "multipleChoice": 20,
+      "choiceTagged": 0,
+      "perOptionTags": 0,
+      "onKey": 0,
+      "withoutRepair": 0,
+      "missingAnswerInExplanation": 0,
       "repaired": true
     },
     {
@@ -150,6 +224,11 @@
       "tagged": 26,
       "numeric": 20,
       "multipleChoice": 20,
+      "choiceTagged": 0,
+      "perOptionTags": 0,
+      "onKey": 0,
+      "withoutRepair": 0,
+      "missingAnswerInExplanation": 0,
       "repaired": true
     },
     {
@@ -160,6 +239,11 @@
       "tagged": 27,
       "numeric": 20,
       "multipleChoice": 20,
+      "choiceTagged": 0,
+      "perOptionTags": 0,
+      "onKey": 0,
+      "withoutRepair": 0,
+      "missingAnswerInExplanation": 0,
       "repaired": true
     },
     {
@@ -170,6 +254,11 @@
       "tagged": 36,
       "numeric": 20,
       "multipleChoice": 20,
+      "choiceTagged": 0,
+      "perOptionTags": 0,
+      "onKey": 0,
+      "withoutRepair": 0,
+      "missingAnswerInExplanation": 0,
       "repaired": true
     },
     {
@@ -180,6 +269,11 @@
       "tagged": 39,
       "numeric": 20,
       "multipleChoice": 20,
+      "choiceTagged": 0,
+      "perOptionTags": 0,
+      "onKey": 0,
+      "withoutRepair": 0,
+      "missingAnswerInExplanation": 0,
       "repaired": true
     },
     {
@@ -190,6 +284,11 @@
       "tagged": 40,
       "numeric": 20,
       "multipleChoice": 20,
+      "choiceTagged": 0,
+      "perOptionTags": 0,
+      "onKey": 0,
+      "withoutRepair": 0,
+      "missingAnswerInExplanation": 0,
       "repaired": true
     },
     {
@@ -200,6 +299,11 @@
       "tagged": 40,
       "numeric": 20,
       "multipleChoice": 20,
+      "choiceTagged": 0,
+      "perOptionTags": 0,
+      "onKey": 0,
+      "withoutRepair": 0,
+      "missingAnswerInExplanation": 0,
       "repaired": true
     },
     {
@@ -210,6 +314,11 @@
       "tagged": 40,
       "numeric": 20,
       "multipleChoice": 20,
+      "choiceTagged": 0,
+      "perOptionTags": 0,
+      "onKey": 0,
+      "withoutRepair": 0,
+      "missingAnswerInExplanation": 0,
       "repaired": true
     }
   ]

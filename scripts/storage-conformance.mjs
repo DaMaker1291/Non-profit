@@ -196,20 +196,32 @@ console.log("▸ the harness cannot be fooled by a Promise");
 console.log("▸ which backends this build can serve");
 {
   const report = port.storeKindReport();
-  ok("an unconfigured deployment resolves to the file backend", report.kind === "file" && report.problem === null,
-    `kind ${report.kind}`);
-  const pg = port.storeKindReport({ OPENMIND_STORE: "postgres" });
-  ok("postgres is refused rather than served as a file store (not implemented — slice 4)",
-    pg.problem?.code === "store_not_implemented",
-    pg.problem ? pg.problem.code : `resolved to ${pg.kind}`);
-  if (pg.problem?.code === "store_not_implemented") {
-    skipped("postgres conformance", "no Postgres backend exists in this build — docs/STORAGE_SPEC.md slice 4; " +
-      "when it lands, its adapter goes in this file so there is still ONE suite");
-  } else if (!process.env.DATABASE_URL) {
-    skipped("postgres conformance", "DATABASE_URL is not set");
+  // WHICH BACKEND THIS RUN IS TESTING. There is no second suite: the sections
+  // below drive the PORT, so the same assertions run against whichever backend
+  // the environment selected (§6 — "a second backend that is tested with a second
+  // test suite is a second product").
+  const wantsPostgres = (process.env.OPENMIND_STORE ?? "").trim().toLowerCase() === "postgres";
+  if (wantsPostgres) {
+    ok("this run is against Postgres, and the configuration is complete",
+      report.kind === "postgres" && report.problem === null,
+      report.problem ? report.problem.code : `kind ${report.kind}`);
+    // A conformance run WRITES. It must never be pointed at a school's database,
+    // so the name has to say it is scratch. `docs/STORAGE_SPEC.md` §6.
+    const dbName = (() => {
+      try { return new URL(process.env.DATABASE_URL ?? "").pathname.replace(/^\//, ""); } catch { return ""; }
+    })();
+    ok("the database names itself as a scratch/test database", /(^|[_-])(test|conf|scratch)/i.test(dbName), dbName || "(unparseable)");
   } else {
-    skipped("postgres conformance", "a Postgres backend exists and DATABASE_URL is set, but this suite has no adapter " +
-      "for it — extend THIS file; a second suite is a second product (§6)");
+    ok("an unconfigured deployment resolves to the file backend", report.kind === "file" && report.problem === null,
+      `kind ${report.kind}`);
+    const noUrl = port.storeKindReport({ OPENMIND_STORE: "postgres" });
+    ok("postgres WITHOUT a connection string is REFUSED, never served as a file store",
+      noUrl.problem?.code === "database_not_configured",
+      noUrl.problem ? noUrl.problem.code : `resolved to ${noUrl.kind}`);
+    ok("and postgres WITH one is selectable — the backend exists in this build",
+      port.storeKindReport({ OPENMIND_STORE: "postgres", DATABASE_URL: "postgres://u@127.0.0.1/scratch_test" }).kind === "postgres");
+    skipped("postgres conformance", "OPENMIND_STORE is not postgres, so this run tested the file backend. The SAME suite " +
+      "runs the database backend: OPENMIND_STORE=postgres DATABASE_URL=postgres://…/openmind_test npm run storage-check");
   }
 }
 
@@ -217,7 +229,10 @@ console.log("▸ which backends this build can serve");
 console.log("\n▸ the port describes the backend that runs");
 const storage = activeStorage();
 {
-  ok("the active backend is the file backend", storage.kind === "file" && storage === fileStorage, storage.kind);
+  ok("the active backend is the one the environment selected",
+    storage.kind === ((process.env.OPENMIND_STORE ?? "file").trim().toLowerCase() || "file")
+    && (storage.kind !== "file" || storage === fileStorage),
+    storage.kind);
   const missing = port.STORAGE_METHODS.filter((m) => typeof storage[m] !== "function");
   ok(`every one of the port's ${port.STORAGE_METHODS.length} methods is implemented`,
     missing.length === 0, missing.length ? `missing: ${missing.join(", ")}` : "none missing");
@@ -264,8 +279,12 @@ const SAM = "conf_learner_sam";
   const logAt = () => (fs.existsSync(path.join(STORE_DIR, ERASURES_FILE))
     ? fs.readFileSync(path.join(STORE_DIR, ERASURES_FILE), "utf8")
     : "");
+  // `type` as well as `kind`: this fixture is also written through the DATABASE
+  // backend, whose `evidence_events.type` column is NOT NULL and checked against
+  // the schema's own list. A fixture that only the file backend accepts would
+  // make the parity run a test of the file backend twice.
   const ledgerEvent = (id, evId, at) => ({
-    id: evId, learnerId: id, at, schemaVersion: 1, kind: "answer_submitted",
+    id: evId, learnerId: id, at, schemaVersion: 1, type: "answer_submitted", kind: "answer_submitted",
     source: "practice", provenance: "server", conceptId: "quadratics",
   });
   await storage.savePersonalPaper({ id: "conf_pp_sam", owner: SAM, createdAt: Date.now(), origin: "user_provided" });
@@ -281,7 +300,13 @@ const SAM = "conf_learner_sam";
   ok("the ledger is gone", (await storage.readEvents(SAM)).length === 0);
   ok("the personal paper is gone — the artefact the live path used to leave on disk",
     (await storage.listPersonalPapers(SAM)).length === 0);
-  ok("the INSTRUCTION is recorded, which is what a restore re-applies", logAt().includes(SAM));
+  // ON DISK for the file backend (the stronger claim: the instruction survives a
+  // crash, so it is IN THE FILE), through the PORT for a database, where there is
+  // no file to read and the log table is the record.
+  const instructionRecorded = storage.kind === "file"
+    ? logAt().includes(SAM)
+    : (await storage.readErasures()).some((e) => e.learnerId === SAM && e.entry !== "completed");
+  ok("the INSTRUCTION is recorded, which is what a restore re-applies", instructionRecorded);
   // Two RECORDS, not one mutated one: the instruction, then the completion. The
   // log is append-only in both backends, so "finished" cannot be a field written
   // onto the first record (the SQL twin refuses UPDATE by trigger).
@@ -525,8 +550,17 @@ const TXN = "conf_learner_txn";
   ok("a transaction that throws propagates the failure to its caller", threw);
   ok("and leaves the RECORD byte-identical — the staged write was dropped, not committed",
     JSON.stringify(await storage.getProfile(TXN)) === beforeFail);
-  ok("while the event it appended stands, which is what makes the retry safe",
-    (await storage.readEvents(TXN)).length === 2);
+  // THE PORT'S CONTRACT IS DELIBERATELY WEAKER THAN THE FILE BACKEND'S
+  // BEHAVIOUR, and this assertion used to encode the stronger one: "the append
+  // stands". `lib/server/storage.ts#LearnerContext` says an append that already
+  // succeeded MAY stand (an append-only ledger is not an edit), and a backend
+  // that can roll it back with the record does — the caller must be correct
+  // under the weaker promise. What may never happen is the ledger REWINDING past
+  // what it already held, so the bracket is asserted and the file backend's
+  // stronger answer still satisfies it.
+  const afterFail = (await storage.readEvents(TXN)).length;
+  ok("while nothing the ledger already held is lost, whatever the backend did with the failed append",
+    afterFail >= 1 && afterFail <= 2, `${afterFail} event(s)`);
 
   // 3. THE RETRY IS IDEMPOTENT: the same event id again is a duplicate, so the
   //    answer counts ONCE. Retried requests are ordinary (a dropped response).
@@ -536,8 +570,14 @@ const TXN = "conf_learner_txn";
     tally = { accepted: res.accepted.length, duplicates: res.duplicates.length };
     return tally;
   });
-  ok("re-sending an event id is reported as a duplicate rather than double-counted",
-    retry?.result.accepted === 0 && retry.result.duplicates === 1, JSON.stringify(retry?.result));
+  // EXACTLY ONE OF THE TWO, and the answer counts ONCE either way: a backend that
+  // kept the failed append reports a duplicate, one that rolled it back accepts
+  // it now. `accepted + duplicates === 1` is the property, and the ledger holding
+  // exactly two events afterwards is the consequence that matters.
+  ok("re-sending an event id lands exactly once — a duplicate where it stood, an accept where it was rolled back",
+    retry?.result.accepted + retry?.result.duplicates === 1
+    && (await storage.readEvents(TXN)).length === 2,
+    JSON.stringify(retry?.result));
   ok("so the record still accounts for each answer exactly once",
     (await storage.getProfile(TXN))?.progress?.quadratics?.attempts === 2);
 
@@ -573,8 +613,13 @@ console.log("\n▸ the ledger (read side — the write side is the transaction a
 const LEDGED = "conf_learner_ledger";
 const UNLEDGED = "conf_learner_unledgered";
 {
+  // `type` IS the event's discriminator in the real schema (lib/evidence.ts#Base)
+  // and the database's `evidence_events.type` column is NOT NULL and checked. A
+  // fixture carrying only the older `kind` spelling is a shape the file backend
+  // accepts and the schema cannot, which would have made the parity run test the
+  // file backend's tolerance instead of the database's behaviour.
   const ev = (id, at) => ({
-    id, learnerId: LEDGED, at, schemaVersion: 1, kind: "answer_submitted",
+    id, learnerId: LEDGED, at, schemaVersion: 1, type: "answer_submitted", kind: "answer_submitted",
     source: "practice", provenance: "server", conceptId: "quadratics",
   });
   // Deliberately appended OUT of clock order: this is what an offline device

@@ -14,6 +14,29 @@ import { execSync } from "node:child_process";
 
 export const ENGINE_SOURCES = [
   "lib/genome.ts",
+  // THE INTERACTIVE MODELS AND THE RESEARCH REGISTER. Both are pure data/logic and
+  // both are ASSERTED (a model that draws a claim its arithmetic does not support,
+  // and a register that claims an inspection that did not happen). A module the
+  // suite requires must be compiled here, or the mirror on disk is stale.
+  "lib/interactive-models.ts",
+  "lib/learning-research.ts",
+  "lib/pilot-models.ts",
+  // THE FRACTION PAIR. Compiled with the models because their sentences — the
+  // half-benchmark, the common denominator, and the claim that the wrong sum is
+  // smaller than one of its parts — are arithmetic, and a bar that shades the sum
+  // can disagree with the paragraph beside it.
+  "lib/fraction-models.ts",
+  "lib/model-coverage.ts",
+  "lib/model-evidence.ts",
+  // WHAT EACH MODEL IS NOT. The assumptions an educator pack must print are data,
+  // compiled with the models so the pack cannot describe a model the product no
+  // longer ships and the gate can require every model to state its limits.
+  "lib/model-assumptions.ts",
+  // WHAT EACH MODEL IS FOR, per concept: the objective, the prediction the learner
+  // commits to first, and the teacher notes a review pack is built from. Compiled
+  // with the models because the suite asserts every modelled concept has one and
+  // that its prediction has exactly one right option.
+  "lib/model-teaching.ts",
   "lib/misconceptions.ts",
   // The demand ladder, on its own so the question SERVE and the diagnostic
   // REPORT read one definition rather than two that agree by luck.
@@ -254,6 +277,11 @@ export const ENGINE_SOURCES = [
   // than quietly given a file store.
   "lib/server/storage.ts",
   "lib/server/storage-file.ts",
+  // The DATABASE backend. Compiled and required with the rest because the port's
+  // completeness claim is about BOTH backends: a method declared in the interface
+  // and answered `undefined` by this object is the failure the port exists to
+  // prevent, and it is only visible if the object is loaded.
+  "lib/server/storage-postgres.ts",
   // THE DATABASE CONNECTION (docs/STORAGE_SPEC.md slice 4). Compiled with the rest
   // even though nothing serves from it yet, because the two claims it makes are
   // checkable NOW and are the ones a database deployment gets wrong quietly: a
@@ -457,6 +485,12 @@ export const ENGINE_SOURCES = [
   // and the gate drives that on the real resolver.
   "lib/right-level-serve.ts",
   "lib/teacher-guide.ts",
+  // The Number checkpoint's own item bank. Compiled because its public view is
+  // a security boundary: the page is allowed to show prompts and marks, and is
+  // never allowed to serialise the authored answer, accepted list or marking
+  // criteria into the browser payload. The gate walks that view and also checks
+  // that no item is an authored lesson's assessment item.
+  "lib/number-checkpoint.ts",
   "lib/probability-simulation.ts",
   "lib/probability-activities.ts",
   "lib/lessons/authored/maths-fractions.ts",

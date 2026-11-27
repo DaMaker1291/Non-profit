@@ -17,7 +17,7 @@ import { MISCONCEPTIONS_BY_ID, beliefName } from "./misconceptions";
 import { isRetentionEvidence } from "./proof";
 import { orderEvents, type AnswerSubmitted, type EvidenceEvent } from "./evidence";
 import { canTransfer } from "./transfer";
-import { coverageOf, specForProfile } from "./specifications";
+import { coverageOf, specForProfile, startConceptFor } from "./specifications";
 import type { ProfileState } from "./types";
 
 /** Translator shape (lib/i18n). Optional — callers without a language get
@@ -655,7 +655,11 @@ export function decideNext(
       const subj = state.profile.subjects[0] ?? "maths";
       const measuredBefore = Object.keys(state.diagnostics ?? {}).some((k) => k.split(":")[0] === subj);
       const course = specForProfile(state.profile, subj);
-      const courseFirst = coverageOf({ spec: course.spec, level: course.level })[0]?.id;
+      // The course's OPENING idea, not simply the first row of its coverage:
+      // Higher contains foundational arithmetic for remediation but must not
+      // tell an unplaced Year 10 learner to start at place value. The shared
+      // rule lives in specifications#startConceptFor so every surface agrees.
+      const courseFirst = startConceptFor(course, subj)?.id;
       const first = measuredBefore ? (courseFirst ?? bySubject(subj)[0]?.id) : undefined;
       if (first) {
         push({

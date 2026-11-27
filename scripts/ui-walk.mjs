@@ -45,7 +45,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import { pageFor, launchChrome, sleep } from "./browser.mjs";
 
-const BASE = process.env.UI_WALK_BASE ?? "http://127.0.0.1:4173";
+import { requireIsolation } from "./test-isolation.mjs";
+const iso = requireIsolation({ suite: "UI walk", baseEnv: "UI_WALK_BASE" });
+const BASE = iso.base;
 const PORT = 9333 + Math.floor(Math.random() * 400);
 
 let passed = 0;
@@ -96,6 +98,9 @@ async function main() {
     console.error(`The app is not answering at ${BASE}. Start it first:  npm run dev`);
     process.exit(2);
   }
+
+  // The server must prove it writes the scratch store before Chrome opens.
+  await iso.proveServerIsolated();
 
   const { send, close } = await launchChrome({ port: PORT });
   // The shared plumbing, plus what only this walk knows about this application.
@@ -531,8 +536,9 @@ async function main() {
     await close();
   }
 
+  iso.assertLiveStoreUntouched("end of UI walk");
   console.log(`\n════ UI walk: ${passed} passed, ${failed} failed ════`);
-  if (profileId) console.log(`Learner created by this walk: ${profileId} (clean up with scripts/cleanup-e2e-store.mjs)`);
+  if (profileId) console.log(`Learner created by this walk: ${profileId} (in the scratch store, discarded with the run)`);
   process.exit(failed === 0 ? 0 : 1);
 }
 
