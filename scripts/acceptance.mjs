@@ -883,10 +883,13 @@ ok((await post("/api/profile", { id: tAccount.id, school: "" })).body?.profile?.
   "and clearing it removes the field rather than storing an empty school");
 await post("/api/profile", { id: tAccount.id, school: "St Mary's College" });
 
-const mkClass = (name, specificationId) =>
-  post("/api/classes", { id: tAccount.id, action: "create", name, subject: "maths", specificationId });
-const tGcse = await mkClass("Year 10 Mathematics (GCSE)", "uk-gcse");
-const tAlevel = await mkClass("Year 12 Mathematics (A-Level)", "uk-alevel");
+// A tiered course is created WITH its tier: the door refuses the qualification
+// alone, because Foundation and Higher are different curricula and the first
+// level is not a default a teacher chose.
+const mkClass = (name, specificationId, levelId) =>
+  post("/api/classes", { id: tAccount.id, action: "create", name, subject: "maths", specificationId, levelId });
+const tGcse = await mkClass("Year 10 Mathematics (GCSE)", "uk-gcse", "higher");
+const tAlevel = await mkClass("Year 12 Mathematics (A-Level)", "uk-alevel", "a2");
 const tNoPaper = await mkClass("Year 9 Mathematics (no paper)", null);
 const threeOf = async () => (await getAuthed(`/api/assignments?me=${tAccount.id}`, tAccount.id)).body?.classes ?? [];
 const tThree = await threeOf();
@@ -905,11 +908,14 @@ ok(JSON.stringify(tPlanGcse?.focus) !== JSON.stringify(tPlanAlevel?.focus),
   "and the week each class is taught is drawn from its own qualification, not from its subject — the pack differs for a different course");
 // Refused BY NAME, never silently dropped or defaulted.
 const tBadCourse = await mkClass("Unknown course", "no-such-course");
+const tNoTier = await mkClass("GCSE with no tier", "uk-gcse");
 const tOrphan = await post("/api/classes", { id: tAccount.id, action: "create", name: "Course without subject", specificationId: "uk-gcse" });
 const tMismatch = await post("/api/classes", { id: tAccount.id, action: "create", name: "Physics class, maths paper", subject: "physics", specificationId: "us-sat" });
-show("refusals", `${tBadCourse.status} ${tBadCourse.body?.error} | ${tOrphan.status} ${tOrphan.body?.error} | ${tMismatch.status} ${tMismatch.body?.error}`);
+show("refusals", `${tBadCourse.status} ${tBadCourse.body?.error} | ${tNoTier.status} ${tNoTier.body?.error} | ${tOrphan.status} ${tOrphan.body?.error} | ${tMismatch.status} ${tMismatch.body?.error}`);
 ok(tBadCourse.status === 400 && tBadCourse.body?.error === "unknown_spec",
   `a course that means nothing is refused by name (${tBadCourse.status} ${tBadCourse.body?.error})`);
+ok(tNoTier.status === 400 && tNoTier.body?.error === "tier_required",
+  "…and a tiered qualification with NO tier is refused by name, never stored at levels[0]");
 ok(tOrphan.status === 400 && tOrphan.body?.error === "course_without_subject",
   "and a course with no subject to be a course of is refused rather than stored (it is not a maths class)");
 ok(tMismatch.status === 400 && tMismatch.body?.error === "spec_does_not_teach_physics",

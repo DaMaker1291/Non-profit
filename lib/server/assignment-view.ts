@@ -36,7 +36,7 @@
 // ...` and no tsconfig, so `@/...` does not resolve there.
 import { bySubject } from "../genome";
 import { hasGenerator } from "../questions";
-import { courseConceptIds, specById } from "../specifications";
+import { classCourseFor } from "../specifications";
 // A complete lesson is the gate on what may be set as work. See
 // `assignableConcepts`: a question bank entry without a lesson is not homework.
 import { lessonStatus } from "../pilot";
@@ -91,12 +91,17 @@ export function assignmentVisible(a: Assignment, now: number = Date.now()): bool
  *  keep naming the course's concepts even while none of them may be set as work.
  *  Keeping the two questions separate is what stopped the approval gate from
  *  silently emptying the teacher's coverage view. */
-export function curriculumConcepts(subject: SubjectId, specificationId?: string | null): string[] {
+export function curriculumConcepts(subject: SubjectId, specificationId?: string | null, levelId?: string | null): string[] {
   const servable = bySubject(subject).filter((c) => hasGenerator(c.id));
   if (!specificationId) return servable.map((c) => c.id);
-  const spec = specById(specificationId);
-  if (!spec) return servable.map((c) => c.id);
-  const inCourse = courseConceptIds(spec);
+  // THE TIER IS PART OF THE COURSE. A class that named a tier is drawn from
+  // that tier's coverage, not the union of every tier the qualification offers
+  // (GCSE Higher and Foundation share a subject but not a syllabus window).
+  // An invalid or incomplete declaration returns NOTHING rather than widening
+  // to the subject: the door above answers with the named refusal.
+  const course = classCourseFor(subject, specificationId, levelId ?? null);
+  if (!course.ok || !course.conceptIds) return [];
+  const inCourse = new Set(course.conceptIds);
   return servable.filter((c) => inCourse.has(c.id)).map((c) => c.id);
 }
 
@@ -107,8 +112,8 @@ export function curriculumConcepts(subject: SubjectId, specificationId?: string 
  *  there is no work to set rather than being handed unreviewed teaching.
  *  `PILOT_APPROVALS` is empty today, so this list is empty today: that is the
  *  truthful state, not a bug. */
-export function assignableConcepts(subject: SubjectId, specificationId?: string | null): string[] {
-  return curriculumConcepts(subject, specificationId)
+export function assignableConcepts(subject: SubjectId, specificationId?: string | null, levelId?: string | null): string[] {
+  return curriculumConcepts(subject, specificationId, levelId)
     .filter((id) => lessonStatus(id).state === "approved-for-pilot");
 }
 

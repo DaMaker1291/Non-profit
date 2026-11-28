@@ -24,7 +24,7 @@ import {
 } from "@/lib/server/store";
 import { liveRoster, memberEvidence, memberRoster, resolveMembers } from "@/lib/server/class-view";
 import { SUBJECT_IDS } from "@/lib/subjects";
-import { courseRefusal } from "@/lib/specifications";
+import { applyClassCoursePatch, classCourseFor, classYearRefusal } from "@/lib/specifications";
 import { classroomDeclared, normalizeClassroom } from "@/lib/classroom-context";
 import { getConcept } from "@/lib/genome";
 import { normalizeClassLevels } from "@/lib/right-level-serve";
@@ -282,15 +282,21 @@ export async function POST(req: Request): Promise<NextResponse> {
         // part of it. Both refusals are named, never a silent drop — a class
         // stored on a course its teacher did not choose would be taught, and
         // set work from, a curriculum nobody declared.
+        // THE COURSE IS RESOLVED, NOT JUST VALIDATED, AND THAT INCLUDES ITS
+        // TIER. A class that names a multi-tier qualification without a tier is
+        // refused by name here (tier_required) rather than stored in a state
+        // where its work would be drawn from the union of both tiers and its
+        // provisioned learners would be unable to practise. A single-tier course
+        // resolves to that tier, so the record states the course it actually is.
         const course = body.specificationId ?? null;
+        const resolved = classCourseFor(body.subject as SubjectId | undefined, course, body.levelId ?? null);
+        if (!resolved.ok) return NextResponse.json({ error: resolved.error }, { status: 400 });
+        // A YEAR THE COURSE DOES NOT SERVE IS REFUSED HERE, not inherited by a
+        // provisioned learner who would then be unable to practise. The class's
+        // year is the one the teachers and their kiosk learners share.
+        const yearRefusal = classYearRefusal(resolved, classText(body.yearGroup, 30));
+        if (yearRefusal) return NextResponse.json({ error: yearRefusal }, { status: 400 });
         const now = Date.now();
-        if (course !== null) {
-          if (!body.subject) {
-            return NextResponse.json({ error: "course_without_subject" }, { status: 400 });
-          }
-          const refusal = courseRefusal(body.subject as SubjectId, course);
-          if (refusal) return NextResponse.json({ error: refusal }, { status: 400 });
-        }
         // The join code is chosen AND inserted inside one lock, by the store
         // (`createClass`), so two teachers creating a class at the same moment
         // cannot end up with the same code on the board — the check-then-insert
@@ -309,6 +315,9 @@ export async function POST(req: Request): Promise<NextResponse> {
           conceptIds: (body.conceptIds ?? []).slice(0, 12),
           subject: body.subject as SubjectId | undefined,
           specificationId: course,
+          // ONLY A TIER THE TEACHER CHOSE IS STORED. A single-tier course needs
+          // no choice, and writing its implied level here would give the console
+          // a value its course picker has no option for (`spec|level`).
           levelId: body.levelId ?? null,
           school: classText(body.school, 80),
           academicYear: classText(body.academicYear, 20),
@@ -527,6 +536,55 @@ export async function POST(req: Request): Promise<NextResponse> {
           if (!isTeacherOf(cls, teacher.profile) && !isClassAdministrator(cls, teacher.account.id)) {
             return { error: "not_the_teacher" as const, status: 403 as const };
           }
+          // EVERY REFUSAL RUNS BEFORE THE FIRST ASSIGNMENT. `updateClassById`
+          // persists the class when the mutator returns — including when it
+          // returns an error — so a check placed after a write stores the value
+          // it just refused. The course merge below was exactly that shape when
+          // the year was assigned above it.
+          if (body.subject !== undefined && !(SUBJECT_IDS as string[]).includes(body.subject as string)) {
+            return { error: "unknown subject" as const, status: 400 as const };
+          }
+          // THE TIER FOLLOWS THE COURSE, INCLUDING WHEN THE COURSE IS CLEARED.
+          // The merge is pure and has its own regressions (lib/specifications#
+          // applyClassCoursePatch): clearing `specificationId` without naming a
+          // tier CLEARS `levelId` too, and changing course without a tier drops
+          // it rather than carrying Higher onto an A-level class. A course that
+          // needs a choice is refused by name.
+          const merged = applyClassCoursePatch(
+            {
+              subject: cls.subject,
+              specificationId: cls.specificationId ?? null,
+              levelId: cls.levelId ?? null,
+              yearGroup: cls.yearGroup,
+            },
+            {
+              ...(body.subject !== undefined ? { subject: body.subject as SubjectId } : {}),
+              ...(body.specificationId !== undefined ? { specificationId: body.specificationId } : {}),
+              ...(body.levelId !== undefined ? { levelId: body.levelId } : {}),
+              ...(body.yearGroup !== undefined ? { yearGroup: body.yearGroup } : {}),
+            },
+          );
+          if (!merged.ok) return { error: merged.error, status: 400 as const };
+          // The lesson being prepared is validated here too. Its refusal used to
+          // return AFTER the name, year and course had been assigned, and the
+          // store persists those assignments even when the mutator returns an
+          // error — so a 400 could leave the change it refused.
+          const nextSubject = merged.fields.subject ?? cls.subject;
+          let nextFocus: string | null | undefined;
+          if (body.focusConceptId !== undefined) {
+            if (body.focusConceptId === null) {
+              nextFocus = null;
+            } else {
+              const id = classText(body.focusConceptId, 80);
+              const concept = id ? getConcept(id) : undefined;
+              if (!concept) return { error: "unknown concept" as const, status: 400 as const };
+              if (nextSubject && concept.subject !== nextSubject) {
+                return { error: "concept_outside_subject" as const, status: 400 as const };
+              }
+              nextFocus = concept.id;
+            }
+          }
+
           if (body.name !== undefined) {
             const value = classText(body.name, 60);
             if (!value) return { error: "invalid class name" as const, status: 400 as const };
@@ -534,21 +592,15 @@ export async function POST(req: Request): Promise<NextResponse> {
           }
           if (body.school !== undefined) cls.school = classText(body.school, 80);
           if (body.academicYear !== undefined) cls.academicYear = classText(body.academicYear, 20);
+          // Stored trimmed and bounded, exactly the value the merge validated.
           if (body.yearGroup !== undefined) cls.yearGroup = classText(body.yearGroup, 30);
           if (body.description !== undefined) cls.description = classText(body.description, 500);
           if (body.colour !== undefined) cls.colour = classText(body.colour, 20);
-          if (body.subject !== undefined && !(SUBJECT_IDS as string[]).includes(body.subject as string)) {
-            return { error: "unknown subject" as const, status: 400 as const };
+          if (body.subject !== undefined) cls.subject = merged.fields.subject;
+          if (body.specificationId !== undefined || body.levelId !== undefined) {
+            cls.specificationId = merged.fields.specificationId ?? null;
+            cls.levelId = merged.fields.levelId ?? null;
           }
-          const subject = (body.subject as SubjectId | undefined) ?? cls.subject;
-          if (body.specificationId !== undefined && body.specificationId !== null) {
-            if (!subject) return { error: "course_without_subject" as const, status: 400 as const };
-            const refusal = courseRefusal(subject, body.specificationId);
-            if (refusal) return { error: refusal as string, status: 400 as const };
-          }
-          if (body.subject !== undefined) cls.subject = subject;
-          if (body.specificationId !== undefined) cls.specificationId = body.specificationId;
-          if (body.levelId !== undefined) cls.levelId = body.levelId;
           // THE CLASSROOM, as declared. `null` clears it back to "not declared";
           // any other value is normalised and stored only if it carries a fact.
           if (body.classroom !== undefined) {
@@ -570,22 +622,7 @@ export async function POST(req: Request): Promise<NextResponse> {
               cls.levelsUpdatedAt = next ? Date.now() : undefined;
             }
           }
-          // The lesson being prepared. Validated against the genome and the
-          // class's own subject, so a stale or mistyped id cannot become a
-          // teacher's saved plan for a lesson this class does not sit.
-          if (body.focusConceptId !== undefined) {
-            if (body.focusConceptId === null) {
-              cls.focusConceptId = null;
-            } else {
-              const id = classText(body.focusConceptId, 80);
-              const concept = id ? getConcept(id) : undefined;
-              if (!concept) return { error: "unknown concept" as const, status: 400 as const };
-              if (cls.subject && concept.subject !== cls.subject) {
-                return { error: "concept_outside_subject" as const, status: 400 as const };
-              }
-              cls.focusConceptId = concept.id;
-            }
-          }
+          if (nextFocus !== undefined) cls.focusConceptId = nextFocus;
           return { updated: true as const };
         });
         if (!upd) return NextResponse.json({ error: "not found" }, { status: 404 });
@@ -680,6 +717,29 @@ export async function POST(req: Request): Promise<NextResponse> {
         if (!existing) return NextResponse.json({ error: "not found" }, { status: 404 });
         const teacher = await teacherOfClass(req, existing);
         if (!teacher.ok) return NextResponse.json({ error: teacher.error }, { status: teacher.status });
+        // A LEARNER MUST NOT BE MINTED INTO A COURSE THAT CANNOT SERVE THEM.
+        // Provisioning used to inherit whatever was on the class, so a class
+        // holding a course with no tier produced PINs for learners whose every
+        // practice request would be refused. The teacher is told which field is
+        // missing BEFORE any credential is issued.
+        const classCourse = classCourseFor(existing.subject, existing.specificationId ?? null, existing.levelId ?? null);
+        if (existing.specificationId && !classCourse.ok) {
+          return NextResponse.json({ error: classCourse.error }, { status: 400 });
+        }
+        // AND THE YEAR MUST BE ONE THE COURSE SERVES. `grade_required` is only
+        // the absence; a present-but-foreign year ("Year 9" on a GCSE) would
+        // mint a learner the same way and fail on their first practice.
+        const classYear = classYearRefusal(classCourse, existing.yearGroup);
+        if (existing.specificationId && classYear) {
+          return NextResponse.json({ error: classYear }, { status: 400 });
+        }
+        // A COURSE ALSO NEEDS A YEAR. The strict resolver asks for one on every
+        // course-bound record (a GCSE course is Years 10–11, not "unspecified"),
+        // so minting a learner with no year would produce another credential
+        // that cannot practise. The class already carries the teacher's answer.
+        if (existing.specificationId && !existing.yearGroup) {
+          return NextResponse.json({ error: "grade_required" }, { status: 400 });
+        }
         const named = Array.isArray(body.learners)
           ? body.learners.map((l) => ({
               handle: typeof l?.handle === "string" ? l.handle.trim().slice(0, 24) : "",
@@ -740,6 +800,10 @@ export async function POST(req: Request): Promise<NextResponse> {
           if (existing.specificationId) {
             state.profile.spec = existing.specificationId;
             if (existing.levelId) state.profile.specLevel = existing.levelId;
+            // THE CLASS'S YEAR, INHERITED. Without it the learner's course is
+            // incomplete however correct its tier is, and every serve is refused
+            // for a field the teacher already declared on the class.
+            if (existing.yearGroup) state.profile.grade = existing.yearGroup;
           }
           // The record is written BEFORE the roster row, so a refused store
           // cannot leave a member the teacher can see and nobody can sign in as.

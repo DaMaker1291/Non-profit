@@ -33,7 +33,7 @@ import { MISCONCEPTIONS_BY_ID } from "../misconceptions";
 import { translator } from "../i18n";
 import { ctitle, mcName } from "../content-i18n";
 import { getConcept } from "../genome";
-import { specForProfile, difficultyFor, courseSummaryFor } from "../specifications";
+import { servingCourseFor, difficultyFor, courseSummaryFor } from "../specifications";
 import { practiceTarget } from "../question-bank";
 import { aiStatus, llmTutorReply, type AiUnavailableReason, type AiStatus } from "../llm";
 import { socraticReply } from "../socratic";
@@ -201,9 +201,17 @@ function decisionOf(top: DecisionAction, all: readonly DecisionAction[], languag
 function serveReasonOf(ctx: DecisionContext, conceptId: string): string | null {
   const concept = getConcept(conceptId);
   if (!concept) return null;
+  // THE TUTOR PITCHES AT THE COURSE THE LEARNER CAN ACTUALLY SIT. `specForProfile`
+  // answers with a display fallback (GCSE → Foundation) when the tier is
+  // unanswered; telling the model that reason would make it coach a Foundation
+  // learner who is not one. No resolved course means no serve reason — the
+  // system prompt still carries the course summary, which says the tier is
+  // unconfirmed.
+  const served = servingCourseFor(ctx.model.profile, concept.subject);
+  if (!served.ok) return null;
   const rec = ctx.model.progress[conceptId];
   const target = practiceTarget({
-    tier: difficultyFor(specForProfile(ctx.model.profile, concept.subject)),
+    tier: difficultyFor(served.active),
     attempts: (rec && rec.attempts) || 0,
     correct: (rec && rec.correct) || 0,
     streak: (rec && rec.streak) || 0,

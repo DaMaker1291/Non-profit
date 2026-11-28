@@ -13,6 +13,7 @@ import { resolveMembers } from "@/lib/server/class-view";
 import { assignmentVisible, assignableConcepts, curriculumConcepts, deriveAssignmentProgress, monitorFor } from "@/lib/server/assignment-view";
 import { readEvidence } from "@/lib/server/evidence";
 import { SUBJECT_IDS } from "@/lib/subjects";
+import { classCourseFor } from "@/lib/specifications";
 import type {
   Assignment,
   AssignmentMemberProgress,
@@ -112,13 +113,28 @@ export async function GET(req: Request): Promise<NextResponse> {
   const owned = mineClasses
     .filter((cls) => administered.get(cls.id) === true)
     .map((cls) => {
-      const assignable = cls.subject ? assignableConcepts(cls.subject, cls.specificationId ?? null) : [];
-      const curriculum = cls.subject ? curriculumConcepts(cls.subject, cls.specificationId ?? null) : [];
+      // THE CLASS'S COURSE IS RESOLVED ONCE, WITH ITS TIER. A course that is
+      // incomplete (a GCSE class with no tier) or wrong (a maths paper on a
+      // physics class) offers nothing and says why; it is never widened to the
+      // subject. The picker reads this answer rather than rebuilding the rule.
+      const course = cls.subject
+        ? classCourseFor(cls.subject, cls.specificationId ?? null, cls.levelId ?? null)
+        : null;
+      const usable = course?.ok === true;
+      const curriculum = usable && cls.subject
+        ? curriculumConcepts(cls.subject, cls.specificationId ?? null, cls.levelId ?? null)
+        : [];
+      const assignable = usable && cls.subject
+        ? assignableConcepts(cls.subject, cls.specificationId ?? null, cls.levelId ?? null)
+        : [];
       return {
         id: cls.id,
         name: cls.name,
         subject: cls.subject ?? null,
         specificationId: cls.specificationId ?? null,
+        levelId: cls.levelId ?? null,
+        /** Why this class's course cannot be set work from, or null. */
+        courseError: course && !course.ok ? course.error : null,
         assignable,
         // The difference between an empty course and a course held back by
         // review. The teacher's picker needs to say which one it is, or the
@@ -294,17 +310,23 @@ export async function POST(req: Request): Promise<NextResponse> {
         const declared = cls.subject ?? (body.subject as SubjectId | undefined);
         if (!declared) return { error: "declare this class's subject first" as const, status: 400 as const };
         const subject: SubjectId = declared;
+        // A COURSE THAT CANNOT BE RESOLVED HAS NO CURRICULUM TO SET WORK FROM.
+        // In particular a multi-tier course with no tier is refused here, before
+        // any concept is checked, because the union of its tiers is not the
+        // course this class sits.
+        const course = classCourseFor(subject, cls.specificationId ?? null, cls.levelId ?? null);
+        if (!course.ok) return { error: course.error as string, status: 400 as const };
         // Two different refusals, because they ask the teacher to do different
         // things. A concept outside the class's course is a curriculum error;
         // a concept inside it that has not completed educator review is a
         // CONTENT-REVIEW state, and naming it as a curriculum error would send
         // the teacher looking for the wrong problem.
-        const curriculum = curriculumConcepts(subject, cls.specificationId ?? null);
+        const curriculum = curriculumConcepts(subject, cls.specificationId ?? null, cls.levelId ?? null);
         const outside = conceptIds.filter((c) => !curriculum.includes(c));
         if (outside.length > 0) {
           return { error: `not in this class's curriculum: ${outside.join(", ")}` as const, status: 400 as const };
         }
-        const allowed = assignableConcepts(subject, cls.specificationId ?? null);
+        const allowed = assignableConcepts(subject, cls.specificationId ?? null, cls.levelId ?? null);
         const awaitingReview = conceptIds.filter((c) => !allowed.includes(c));
         if (awaitingReview.length > 0) {
           return { error: `not yet approved for a class: ${awaitingReview.join(", ")}` as const, status: 400 as const };
@@ -316,6 +338,7 @@ export async function POST(req: Request): Promise<NextResponse> {
           title,
           subject,
           specificationId: cls.specificationId ?? null,
+          levelId: cls.levelId ?? null,
           conceptIds: [...new Set(conceptIds)],
           // Absent for the whole class, which is what an empty list means — the
           // record stays the shape it always was for ordinary work.

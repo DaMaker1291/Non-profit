@@ -1370,18 +1370,22 @@ console.log("▸ Learning path");
 // defect look like a curriculum choice rather than a wrong lookup.
 {
   const specs = require("../.verify/specifications.js");
-  const unplaced = (spec, level) => ({
-    profile: { country: "GB", subjects: ["maths"], spec, specLevel: level, grade: "Year 10" },
+  // THE YEAR IS PART OF THE COURSE. This fixture used to hold "Year 10" for an
+  // AS learner — a year the qualification does not serve — so the strict gate
+  // refuses it (correctly). Each case declares a year its own course serves, so
+  // the assertion below is about the opening idea and not about the year gate.
+  const unplaced = (spec, level, grade) => ({
+    profile: { country: "GB", subjects: ["maths"], spec, specLevel: level, grade },
     progress: {},
     diagnostics: { [`maths:${spec}`]: { at: 1, measured: 0, items: [] } },
   });
   const tiers = [
-    ["uk-gcse", "foundation", "place-value"],
-    ["uk-gcse", "higher", "fractions"],
-    ["uk-alevel", "as", "standard-form"],
+    ["uk-gcse", "foundation", "place-value", "Year 11"],
+    ["uk-gcse", "higher", "fractions", "Year 11"],
+    ["uk-alevel", "as", "standard-form", "Year 12"],
   ];
-  for (const [spec, level, expected] of tiers) {
-    const state = unplaced(spec, level);
+  for (const [spec, level, expected, grade] of tiers) {
+    const state = unplaced(spec, level, grade);
     const action = nextEngine.decideNext(state, 1)[0];
     const course = specs.specForProfile(state.profile, "maths");
     const covered = specs.coverageOf({ spec: course.spec, level: course.level }).map((c) => c.id);
@@ -1393,7 +1397,7 @@ console.log("▸ Learning path");
     ok(action?.conceptId === expected,
       `which for ${spec}/${level} is ${expected} (got ${action?.conceptId})`);
   }
-  const higher = nextEngine.decideNext(unplaced("uk-gcse", "higher"), 1)[0];
+  const higher = nextEngine.decideNext(unplaced("uk-gcse", "higher", "Year 11"), 1)[0];
   ok(higher?.conceptId !== "place-value",
     "a senior course never opens on foundational arithmetic, even when it contains it for remediation");
 }
@@ -2876,11 +2880,10 @@ console.log("▸ Teacher weekly plan");
 
   // ── THE CLASS'S OWN QUALIFICATION IS A CURRICULUM, NOT A LABEL ────────────
   // A class declares the subject it is taught and, optionally, the qualification
-  // it sits. The picker has always narrowed by the course; the week did not, so
-  // two classes of one subject at different qualifications planned the SAME week
-  // and the declaration was decoration. Both now read one rule —
-  // lib/specifications#courseConceptIds — and a class that declares no course is
-  // still its whole subject.
+  // AND TIER it sits. The picker always narrowed by the course; the week did not,
+  // so two classes of one subject at different qualifications planned the SAME
+  // week. Both now read one rule — lib/specifications#classCourseFor — and a
+  // class that declares no course is still its whole subject.
   const specs = require("../.verify/specifications.js");
   ok(specs.courseRefusal("maths", "uk-gcse") === null,
     "a qualification the subject is part of is accepted for a class");
@@ -2888,20 +2891,22 @@ console.log("▸ Teacher weekly plan");
     "an id that means nothing is refused by name, never defaulted to a course");
   ok(specs.courseRefusal("physics", "us-sat") === "spec_does_not_teach_physics",
     `and a real qualification the subject is not part of is refused, naming the subject (${specs.courseRefusal("physics", "us-sat")})`);
-  const withCourse = (specificationId) => ({ ...declaring("maths"), specificationId });
-  const pGcse = teacherPlan.buildWeeklyPlan(withCourse("uk-gcse"));
-  const pAlevel = teacherPlan.buildWeeklyPlan(withCourse("uk-alevel"));
+  const withCourse = (specificationId, levelId = null) => ({ ...declaring("maths"), specificationId, levelId });
+  const pGcse = teacherPlan.buildWeeklyPlan(withCourse("uk-gcse", "higher"));
+  const pAlevel = teacherPlan.buildWeeklyPlan(withCourse("uk-alevel", "a2"));
   const pNone = teacherPlan.buildWeeklyPlan(withCourse(null));
+  ok(teacherPlan.buildWeeklyPlan(withCourse("uk-gcse")) === null,
+    "a GCSE class with NO tier gets no week at all: the union of both tiers is not a course");
   ok(JSON.stringify(pGcse.focus) !== JSON.stringify(pAlevel.focus),
     `two classes of one subject at different qualifications plan different weeks (${pGcse.focus.join(",")} vs ${pAlevel.focus.join(",")})`);
-  const gcseCourse = specs.courseConceptIds(specs.specById("uk-gcse"));
+  const gcseCourse = new Set(specs.classCourseFor("maths", "uk-gcse", "higher").conceptIds);
   ok(pGcse.focus.every((cid) => gcseCourse.has(cid)),
     `and every concept the GCSE week names is in the GCSE course (${pGcse.focus.join(",")})`);
   ok(JSON.stringify(pNone.focus) === JSON.stringify(teacherPlan.buildWeeklyPlan(declaring("maths")).focus),
     "while a class that declares no qualification is planned against its whole subject, unchanged");
   const assignView = require("../.verify/server/assignment-view.js");
-  const setOf = (course) => new Set(assignView.assignableConcepts("maths", course));
-  ok(pGcse.focus.every((cid) => setOf("uk-gcse").has(cid)) || pGcse.fromCurriculum,
+  const setOf = (course, level) => new Set(assignView.assignableConcepts("maths", course, level));
+  ok(pGcse.focus.every((cid) => setOf("uk-gcse", "higher").has(cid)) || pGcse.fromCurriculum,
     "what the week teaches is a subset of what the class may be set — one curriculum, two readers");
 
   // ── ABSENCE IS NOT A LOW SCORE ────────────────────────────────────────────
@@ -4098,7 +4103,11 @@ console.log("▸ A diagnostic that measured nothing is not a reason to sit it ag
     secret: "beg-secret", progress: {}, diagnostics: {}, masteries: {},
     ...over,
     profile: {
+      // A COMPLETE COURSE, because this block is about the diagnostic that
+      // measured nothing, not about a learner who has not chosen a course: the
+      // next-step engine now (correctly) sends the latter to /curriculum.
       id: "beg", handle: "beg", country: "GB", birthYear: null, language: "en", goal: "",
+      spec: "uk-gcse", specLevel: "foundation", grade: "Year 11",
       intent: "", subjects: ["maths"], createdAt: 0, ...(over.profile ?? {}),
     },
   });
@@ -4515,7 +4524,12 @@ console.log("▸ The evidence contract");
       ok(!text.includes("undefined") && !text.includes("NaN"), `${label}/${a.kind}: no undefined/NaN`);
       ok(a.kind === "REST" ? a.minutes === 0 : a.minutes > 0, `${label}/${a.kind}: an honest duration (${a.minutes})`);
       // A route that cannot record evidence is a dead end in the loop.
-      const routed = a.href === "/dashboard" || a.href.startsWith("/diagnostic/")
+      // `/curriculum` is a legitimate first step for a learner who has not
+      // declared a course: it is the one screen that makes evidence possible,
+      // and the strict gates now send them there rather than inventing a course
+      // and a diagnostic for it.
+      const routed = a.href === "/dashboard" || a.href === "/curriculum"
+        || a.href.startsWith("/diagnostic/")
         || /^\/learn\/[a-z]+\/[a-z0-9-]+$/.test(a.href);
       ok(routed, `${label}/${a.kind}: routes somewhere that produces evidence (${a.href})`);
       if (a.href.startsWith("/learn/") && a.conceptId) {
@@ -4606,8 +4620,11 @@ console.log("▸ Evidence drives the experience");
   // ── STATE A: no evidence → find your starting point (the diagnostic). ──
   const sA = fresh();
   const aA = top(sA, []);
-  ok(aA.conceptId === null && aA.href === "/diagnostic/maths",
-    `no evidence → the diagnostic ("${aA.title}")`);
+  // With no declared course the honest first step is the course screen: a
+  // diagnostic cannot be "in maths" for a learner who has not said they sit
+  // maths, and the old /diagnostic/maths default was that assumption.
+  ok(aA.conceptId === null && aA.href === "/curriculum",
+    `no evidence → the course screen ("${aA.title}")`);
   ok(aA.evidenceIds.length === 0,
     "a decision with no evidence cites none — never an invented id");
   ok(aA.expectedOutcome.trim().length > 0 && !/\{\w+\}|undefined|NaN/.test(aA.expectedOutcome),
@@ -9810,11 +9827,13 @@ console.log("▸ Assigned work is derived, not counted");
     "the class's curriculum view still names its concepts while assignment is closed");
   ok(maths.every((c) => questions.hasGenerator(c)),
     "every assignable concept is one the bank can actually serve (an unanswerable assignment is not work)");
-  const narrowed = av.assignableConcepts("maths", "uk-gcse");
+  const narrowed = av.assignableConcepts("maths", "uk-gcse", "higher");
   ok(narrowed.every((c) => maths.includes(c)),
     `naming a course narrows the candidates to that course (${narrowed.length} of ${maths.length})`);
-  ok(av.assignableConcepts("maths", "no-such-spec").length === maths.length,
-    "an unknown course falls back to the declared subject rather than to nothing");
+  ok(av.curriculumConcepts("maths", "no-such-spec").length === 0,
+    "an unknown course yields NO candidates: a class is never widened to its subject because its course could not be read");
+  ok(av.curriculumConcepts("maths", "uk-gcse").length === 0,
+    "a tiered course with no tier yields no candidates either — the class is told which field is missing, not handed both tiers");
 
   // 2. THE WINDOW IS THE LEDGER'S CLOCK.
   const asg = {
@@ -10400,6 +10419,8 @@ console.log("▸ AI explains, never records");
   const OFF_CONCEPT = "quadratics"; // a concept this learner has NO evidence on
   const AI_LEARNER = "ai-grounded-1";
   const COURSE = {
+    country: "GB",
+    grade: "Year 11",
     spec: "uk-gcse",
     specLevel: specsMod.specForProfile({ spec: "uk-gcse" }).level.id,
     exam: "GCSE Maths", examDate: "2027-06-05", timePerDay: 20,
@@ -19606,6 +19627,133 @@ console.log("▸ The Number checkpoint uses unseen items and never ships their k
     "an unknown qualification is refused, never silently replaced by the learner's own");
   ok(specs.explicitCourse("us-sat", undefined, "maths").ok === true,
     "a genuinely single-tier qualification still resolves with no tier named");
+
+  // ── A CLASS'S COURSE, RESOLVED WITH ITS TIER ──────────────────────────
+  // The class door used `specificationId` alone, so a GCSE class's work was
+  // drawn from the UNION of Foundation and Higher coverage and its week could
+  // teach a Higher-only concept to a Foundation class. `classCourseFor` is the
+  // one owner of that question now; these are its refusals and its windows.
+  const classHigher = specs.classCourseFor("maths", "uk-gcse", "higher");
+  const classFoundation = specs.classCourseFor("maths", "uk-gcse", "foundation");
+  ok(classHigher.ok && classFoundation.ok && Array.isArray(classHigher.conceptIds) && Array.isArray(classFoundation.conceptIds),
+    "a class's tiered course resolves to its tier's coverage");
+  ok(classHigher.ok && classFoundation.ok &&
+    JSON.stringify([...classHigher.conceptIds].sort()) !== JSON.stringify([...classFoundation.conceptIds].sort()),
+    "…and Higher's window is not Foundation's: the tier is part of the course, not a difficulty label");
+  ok(classHigher.ok && classFoundation.ok &&
+    classHigher.conceptIds.some((id) => !classFoundation.conceptIds.includes(id)),
+    "Higher's window holds concepts Foundation's does not: the two classes are not the same course");
+  ok(specs.classCourseFor("maths", "uk-gcse", null).error === "tier_required",
+    "a GCSE class with no tier is refused rather than planned from both tiers at once");
+  ok(specs.classCourseFor("maths", "uk-gcse", "foundation-plus").error === "unknown_tier",
+    "a tier the course does not offer is refused by name, never clamped");
+  ok(specs.classCourseFor("physics", "us-sat", null).error === "spec_does_not_teach_physics",
+    "a class cannot be taught a course that does not teach its subject");
+  ok(specs.classCourseFor(null, "uk-gcse", "higher").error === "course_without_subject",
+    "a course with no subject is refused, not assumed to be maths");
+  ok(specs.classCourseFor("maths", null, "higher").error === "level_without_course",
+    "a tier with no course is refused: there is nothing for it to be the tier OF");
+  const classWhole = specs.classCourseFor("maths", null, null);
+  ok(classWhole.ok && classWhole.spec === null && classWhole.conceptIds === null,
+    "a class that declares only a subject resolves to the WHOLE subject, explicitly");
+  ok(specs.classCourseFor("computing", "uk-gcse", null).ok === true,
+    "an untiered course needs no tier and resolves with its single level");
+
+  // ── A CLASS'S COURSE AND ITS YEAR MOVE TOGETHER ──────────────────────
+  // Clearing a course used to write only `specificationId: null`, leaving the
+  // old tier on the record: the class then said "whole subject" while still
+  // carrying Higher, and a later course declaration could inherit a tier that
+  // belonged to a different qualification.
+  const gcseClass = { subject: "maths", specificationId: "uk-gcse", levelId: "higher", yearGroup: "Year 11" };
+  const cleared = specs.applyClassCoursePatch(gcseClass, { specificationId: null });
+  ok(cleared.ok && cleared.fields.specificationId === null && cleared.fields.levelId === null,
+    "clearing a class's course clears its TIER too — a Higher choice is not a fact about 'whole subject'");
+  const clearedWithTier = specs.applyClassCoursePatch(gcseClass, { specificationId: null, levelId: "higher" });
+  ok(!clearedWithTier.ok && clearedWithTier.error === "level_without_course",
+    "…and a tier sent alongside the cleared course is refused, never written as an orphan");
+  const moved = specs.applyClassCoursePatch(gcseClass, { specificationId: "uk-alevel", levelId: "a2", yearGroup: "Year 13" });
+  ok(moved.ok && moved.fields.specificationId === "uk-alevel" && moved.fields.levelId === "a2",
+    "a class can move course and tier together");
+  const movedNoTier = specs.applyClassCoursePatch(gcseClass, { specificationId: "uk-alevel" });
+  ok(!movedNoTier.ok && movedNoTier.error === "tier_required",
+    "and moving to a tiered course WITHOUT a tier drops the old one and is refused, rather than carrying Higher onto A-level");
+  const sameCourse = specs.applyClassCoursePatch(gcseClass, { specificationId: "uk-gcse" });
+  ok(sameCourse.ok && sameCourse.fields.levelId === "higher",
+    "re-sending the SAME course (a partial update) keeps the tier — only an actual course change drops it");
+  const wrongYear = specs.applyClassCoursePatch(gcseClass, { yearGroup: "Year 9" });
+  ok(!wrongYear.ok && wrongYear.error === "grade_not_in_course",
+    "a year the class's course does not serve is refused at declaration, not inherited by a provisioned learner");
+  const rightYear = specs.applyClassCoursePatch(gcseClass, { yearGroup: "Year 10" });
+  ok(rightYear.ok && rightYear.fields.yearGroup === "Year 10",
+    "a year the course DOES serve is accepted and stored");
+  const yearOnWrongCourse = specs.applyClassCoursePatch(gcseClass, { yearGroup: "Year 13" });
+  ok(!yearOnWrongCourse.ok && yearOnWrongCourse.error === "grade_not_in_course",
+    "a Year 13 label on a GCSE class is refused by name (the course serves Years 10–11)");
+
+  // ── THE REFUSAL NAMES THE YEARS THE COURSE ACCEPTS ───────────────────
+  // The console message is only truthful if it reads the same list the server
+  // refused with, so both come from `classYearOptions`.
+  const gcseYears = specs.classYearOptions("maths", "uk-gcse", "higher");
+  ok(gcseYears.includes("Year 10") && gcseYears.includes("Year 11"),
+    `a GCSE class is told its course accepts Years 10–11 (${gcseYears.join(", ")})`);
+  ok(!gcseYears.includes("Year 9") && !gcseYears.includes("Year 13"),
+    "and the list does not offer a year the course does not serve");
+  ok(JSON.stringify(specs.classYearOptions("maths", "uk-alevel", "a2")) === JSON.stringify(["Year 13"]),
+    "an A-level A2 class is told its course accepts Year 13");
+  ok(specs.classYearOptions("maths", null, null).length === 0,
+    "a class with no course gets no invented year list");
+
+  // The message itself: authored in every dictionary, and it carries the list.
+  const i18nSrc = fs.readFileSync("lib/i18n.ts", "utf8");
+  const yearStrings = [...i18nSrc.matchAll(/"teach\.errYear": "((?:[^"\\]|\\.)*)"/g)].map((m) => m[1]);
+  ok(yearStrings.length === 15 && yearStrings.every((s) => s.includes("{years}")),
+    `the year message is authored in all 15 dictionaries and carries the accepted years (${yearStrings.length})`);
+  ok(new Set(yearStrings).size === 15,
+    "and it is translated, not the English sentence in fifteen places");
+
+  // Every personalised serving path reads that one resolver.
+  const servingSources = {
+    "app/api/assignments/route.ts": fs.readFileSync("app/api/assignments/route.ts", "utf8"),
+    "lib/teacher-plan.ts": fs.readFileSync("lib/teacher-plan.ts", "utf8"),
+    "lib/server/tutor.ts": fs.readFileSync("lib/server/tutor.ts", "utf8"),
+    "lib/next-engine.ts": fs.readFileSync("lib/next-engine.ts", "utf8"),
+  };
+  ok(/classCourseFor\(subject, cls\.specificationId/.test(servingSources["app/api/assignments/route.ts"]),
+    "the assignment door resolves the class's course WITH its tier before drawing work");
+  ok(/classCourseFor\(subject, cls\.specificationId/.test(servingSources["lib/teacher-plan.ts"]),
+    "the teacher plan resolves the class's course WITH its tier before planning the week");
+  ok(servingSources["lib/server/tutor.ts"].includes("servingCourseFor") &&
+    !/specForProfile\(ctx\.model\.profile/.test(servingSources["lib/server/tutor.ts"]),
+    "the tutor pitches at the SERVING course and no longer at the display fallback");
+  ok(servingSources["lib/next-engine.ts"].includes("servingCourseFor") &&
+    !/startConceptFor\(specForProfile/.test(servingSources["lib/next-engine.ts"]),
+    "the next-step engine names an opening idea only from a resolved course");
+  const classesGate = fs.readFileSync("app/api/classes/route.ts", "utf8");
+  ok(classesGate.includes("A LEARNER MUST NOT BE MINTED INTO A COURSE THAT CANNOT SERVE THEM"),
+    "provisioning refuses an unresolved class course before a PIN is minted");
+  ok(classesGate.includes('"grade_required"') && classesGate.includes("state.profile.grade = existing.yearGroup"),
+    "and it inherits the class's declared YEAR, because a course-bound learner with no year is refused too");
+  ok(classesGate.includes("classYearRefusal(classCourse, existing.yearGroup)"),
+    "provisioning also refuses a PRESENT year the course does not serve, not only a missing one");
+  // The refusal is only actionable if the console can answer it after creation.
+  const teacherSrc = fs.readFileSync("app/teacher/page.tsx", "utf8");
+  ok(/function ClassYear\(/.test(teacherSrc) && /action: "update", id: meId\(\), clsId: cls\.id, yearGroup/.test(teacherSrc),
+    "the teacher console can set a class's YEAR after creation, where the server refuses without one");
+  ok(/\{canAdmin \? \(\s*<ClassYear/.test(teacherSrc) && /\{canAdmin && \([\s\S]{0,300}<CoursePicker/.test(teacherSrc),
+    "and only a class's administrator is offered those controls — the server refuses everyone else");
+  ok(/classYearOptions\(classSubject\(cls\)/.test(teacherSrc) && teacherSrc.includes('fill(t("teach.errYear")'),
+    "a rejected year reports through its OWN message, naming the field and the course's accepted years");
+  const yearHandler = teacherSrc.slice(
+    teacherSrc.indexOf("async function declareYear"),
+    teacherSrc.indexOf("async function declareYear") + 1400,
+  );
+  ok(yearHandler.length > 0 && !yearHandler.includes("courseErrText"),
+    "and it no longer borrows the qualification message, which sent the teacher to the wrong control");
+  ok(classesGate.includes("cls.levelId = merged.fields.levelId ?? null;"),
+    "the update writes the tier the merge resolved, including null when the course is cleared");
+  ok(classesGate.indexOf("if (!merged.ok)") > 0 &&
+    classesGate.indexOf("if (!merged.ok)") < classesGate.indexOf("cls.yearGroup = classText(body.yearGroup"),
+    "course/year refusals run before any assignment, because the store persists a mutator's writes even when it returns an error");
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);

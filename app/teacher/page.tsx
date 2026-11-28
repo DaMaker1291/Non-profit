@@ -12,7 +12,7 @@ import { MISCONCEPTIONS_BY_ID } from "@/lib/misconceptions";
 import { buildWeeklyPlan, classSubject } from "@/lib/teacher-plan";
 import { describeClassroom } from "@/lib/classroom-context";
 import { SUBJECT_IDS, SUBJECT_LABELS } from "@/lib/subjects";
-import { specOptionsFor } from "@/lib/specifications";
+import { classYearOptions, specOptionsFor, tiersForSubject } from "@/lib/specifications";
 import HubStatus from "@/components/hub-status";
 // The four dimensions and their meter, rendered by the SAME component the
 // learner's own screens use (components/dims.tsx): a teacher reading "Strong"
@@ -201,9 +201,11 @@ export default function TeacherPage() {
     try {
       // The class declares the curriculum it is taught. Assigned work is drawn
       // from that declaration, never from a default subject.
+      const picked = parseCourseValue(course);
       const j = await api.classAction({
         action: "create", id: meId(), name: name.trim(), subject,
-        specificationId: course || null, handle: state?.profile.handle ?? "teacher",
+        specificationId: picked.specificationId, levelId: picked.levelId,
+        handle: state?.profile.handle ?? "teacher",
         school: school || undefined, yearGroup: yearGroup || undefined,
       });
       const made = j.cls as ClassRoster;
@@ -295,10 +297,13 @@ export default function TeacherPage() {
     }
   }
 
-  async function declareCourse(clsId: string, specificationId: string | null) {
+  async function declareCourse(clsId: string, specificationId: string | null, levelId: string | null) {
     setErr("");
     try {
-      await api.classAction({ action: "update", id: meId(), clsId, specificationId });
+      // COURSE AND TIER ARE ONE DECISION. The server refuses a tiered course
+      // with no tier, so the console sends both in the same write; the picker
+      // below encodes them into one control for exactly that reason.
+      await api.classAction({ action: "update", id: meId(), clsId, specificationId, levelId });
     } catch (e) {
       setErr(e instanceof ApiError ? courseErrText(e.code, e.status) : t("common.error"));
       return;
@@ -306,6 +311,36 @@ export default function TeacherPage() {
     await refresh();
     // What the class may be set changed with its curriculum, so the picker is
     // re-read from the server rather than patched in place.
+    await refreshWork();
+  }
+
+  /** THE CLASS'S YEAR, SET WHERE THE CLASS IS.
+   *  Provisioning now refuses a course-bound class with no year (and one whose
+   *  year the course does not serve), because the learner inherits it and the
+   *  strict resolver asks for it on every serve. The creation form collects it;
+   *  without this control a class created before that field existed could never
+   *  be provisioned, and a typo could never be corrected. */
+  async function declareYear(cls: ClassRoster, yearGroup: string) {
+    setErr("");
+    try {
+      await api.classAction({ action: "update", id: meId(), clsId: cls.id, yearGroup });
+    } catch (e) {
+      // A REJECTED YEAR IS NOT A REJECTED COURSE. Sharing the course toast sent
+      // a teacher to the qualification picker when the year was the problem.
+      // This names the year field and the years THIS class's course accepts,
+      // computed by the same resolver the server refuses with.
+      if (e instanceof ApiError && e.code === "grade_not_in_course") {
+        const years = classYearOptions(classSubject(cls), cls.specificationId ?? null, cls.levelId ?? null);
+        if (years.length > 0) {
+          setErr(fill(t("teach.errYear"), { years: years.join(" · ") }));
+          return;
+        }
+      }
+      setErr(failureText(e));
+      return;
+    }
+    await refresh();
+    // Provisioning reads the class's year from the server, so re-read it.
     await refreshWork();
   }
 
@@ -691,19 +726,35 @@ export default function TeacherPage() {
                 profile: it is one school, however many classes are held in it. */}
             <p className="small muted" style={{ margin: "2px 0 10px", display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
               {(cls.school ?? state?.profile.school) ? <span>{cls.school ?? state?.profile.school} ·</span> : null}
-              {cls.yearGroup ? <span>{cls.yearGroup} ·</span> : null}
+              {/* THE COURSE AND YEAR ARE ADMINISTRATION, NOT A READING.
+                  They were rendered for every teacher who could open the class,
+                  including one who only teaches in it; the server refuses their
+                  write, so the controls were a dead end for them. */}
+              {canAdmin ? (
+                <ClassYear cls={cls} onSave={(v) => void declareYear(cls, v)} />
+              ) : cls.yearGroup ? (
+                <span>{cls.yearGroup}</span>
+              ) : null}
+              <span>·</span>
               {cls.academicYear ? <span>{cls.academicYear} ·</span> : null}
               {cls.coTeacherAccountIds && cls.coTeacherAccountIds.length > 0 ? (
                 <span>{cls.coTeacherAccountIds.length} co-teacher{cls.coTeacherAccountIds.length === 1 ? "" : "s"} ·</span>
               ) : null}
-              <span>{t("teach.course")}:</span>
-              <CoursePicker
-                country={state?.profile.country ?? ""}
-                subject={classSubject(cls)}
-                value={cls.specificationId ?? ""}
-                onChange={(v) => void declareCourse(cls.id, v)}
-                label={t("teach.pickCourse")}
-              />
+              {canAdmin && (
+                <>
+                  <span>{t("teach.course")}:</span>
+                  <CoursePicker
+                    country={state?.profile.country ?? ""}
+                    subject={classSubject(cls)}
+                    value={courseValue(cls.specificationId, cls.levelId)}
+                    onChange={(v) => {
+                      const picked = parseCourseValue(v);
+                      void declareCourse(cls.id, picked.specificationId, picked.levelId);
+                    }}
+                    label={t("teach.pickCourse")}
+                  />
+                </>
+              )}
               <span>· {t("teach.prov")}</span>
               {" · "}
               {/* THE ROOM, WHERE THE CLASS IS. A teacher reading the class should
@@ -1046,6 +1097,47 @@ function TeacherHome({ classes, monitors }: { classes: ClassRoster[]; monitors: 
  * a class teaching no single paper is a real class, not an incomplete one. A
  * class with no subject has no course to sit, so the control renders nothing
  * until the subject is declared. */
+/** THE CLASS'S YEAR, as an editable field beside its course.
+ *  A provisioned learner inherits this value, so it is not decoration: it is
+ *  part of the course declaration the strict resolver validates. Saving an empty
+ *  value clears it, and the server then refuses provisioning with
+ *  `grade_required` until the teacher supplies one. */
+function ClassYear({ cls, onSave }: { cls: ClassRoster; onSave: (value: string) => void }) {
+  const { t } = useI18n();
+  const [year, setYear] = useState(cls.yearGroup ?? "");
+  useEffect(() => { setYear(cls.yearGroup ?? ""); }, [cls.id, cls.yearGroup]);
+  const changed = year.trim() !== (cls.yearGroup ?? "");
+  return (
+    <span style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
+      <input
+        type="text"
+        value={year}
+        placeholder={t("onb.grade")}
+        aria-label={t("onb.grade")}
+        onChange={(e) => setYear(e.target.value)}
+        style={{ width: 120 }}
+      />
+      <button className="btn ghost small" disabled={!changed} onClick={() => onSave(year.trim())}>
+        {t("common.save")}
+      </button>
+    </span>
+  );
+}
+
+/** The picker's single value: `spec|level` for a course with tiers, `spec` for
+ *  one without. One control rather than two, because the two choices are one
+ *  decision — and the server refuses half of it. */
+function courseValue(specificationId: string | null | undefined, levelId: string | null | undefined): string {
+  if (!specificationId) return "";
+  return levelId ? `${specificationId}|${levelId}` : specificationId;
+}
+
+function parseCourseValue(value: string): { specificationId: string | null; levelId: string | null } {
+  if (!value) return { specificationId: null, levelId: null };
+  const [specificationId, levelId] = value.split("|");
+  return { specificationId, levelId: levelId || null };
+}
+
 function CoursePicker({
   country,
   subject,
@@ -1064,11 +1156,22 @@ function CoursePicker({
   return (
     <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={label}>
       <option value="">{t("teach.wholeSubject")}</option>
-      {specOptionsFor(country, subject).map((s) => (
+      {specOptionsFor(country, subject).map((s) => {
+        const tiers = tiersForSubject(s, subject);
+        // A TIERED COURSE IS OFFERED PER TIER. "GCSE" alone is the silent
+        // Foundation default the learner's own gate refuses; a teacher choosing
+        // it here would set work from a course the class does not sit.
+        if (tiers.length > 1) {
+          return tiers.map((l) => (
+            <option key={`${s.id}|${l.id}`} value={`${s.id}|${l.id}`}>
+              {s.name}{s.board ? ` · ${s.board}` : ""} · {l.name}
+            </option>
+          ));
+        }
         // The board travels with the name: "GCSE · aqa" is the qualification a
         // teacher recognises, and two boards in one country share a name.
-        <option key={s.id} value={s.id}>{s.name}{s.board ? ` · ${s.board}` : ""}</option>
-      ))}
+        return <option key={s.id} value={s.id}>{s.name}{s.board ? ` · ${s.board}` : ""}</option>;
+      })}
     </select>
   );
 }

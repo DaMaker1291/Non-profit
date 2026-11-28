@@ -726,6 +726,152 @@ export function courseRefusal(subject: SubjectId, specId: string): string | null
   return coversSubject(spec, subject) ? null : `spec_does_not_teach_${subject}`;
 }
 
+/** A CLASS'S COURSE, RESOLVED WITH ITS TIER — the class-side twin of
+ *  `servingCourseFor`, and the one owner of "what curriculum is this class
+ *  taught?".
+ *
+ *  A class used to resolve through `specificationId` alone, so a GCSE class's
+ *  work was drawn from the UNION of Foundation and Higher coverage and its week
+ *  could teach a Higher-only concept to a Foundation class. The tier is part of
+ *  the course (it selects a `coverageOf` window), so it is resolved here with
+ *  the same rules the learner's own gate applies:
+ *
+ *    · no course                  → the whole subject (`conceptIds` null);
+ *    · a course with no subject   → refused, never assumed;
+ *    · a course that does not teach the subject → refused by name;
+ *    · a tier the course does not offer → refused, never clamped;
+ *    · a multi-tier course with no tier → `tier_required`, never levels[0].
+ *
+ *  `conceptIds` is the tier's own coverage. A caller that needs the whole
+ *  subject's course (a legacy class with no tier) gets a REFUSAL, not a union:
+ *  the union is exactly the silent widening this function exists to stop. */
+export type ClassCourse =
+  | { ok: true; spec: Specification | null; level: SpecLevel | null; conceptIds: string[] | null }
+  | { ok: false; error: string };
+
+export function classCourseFor(
+  subject: SubjectId | null | undefined,
+  specificationId: string | null | undefined,
+  levelId: string | null | undefined,
+): ClassCourse {
+  if (!specificationId) {
+    return levelId
+      ? { ok: false, error: "level_without_course" }
+      : { ok: true, spec: null, level: null, conceptIds: null };
+  }
+  if (!subject) return { ok: false, error: "course_without_subject" };
+  const refusal = courseRefusal(subject, specificationId);
+  if (refusal) return { ok: false, error: refusal };
+  const spec = specById(specificationId)!;
+  const tiers = tiersForSubject(spec, subject);
+  if (levelId) {
+    const level = tiers.find((l) => l.id === levelId);
+    if (!level) return { ok: false, error: "unknown_tier" };
+    return { ok: true, spec, level, conceptIds: coverageOf({ spec, level }).map((c) => c.id) };
+  }
+  if (tiers.length > 1) return { ok: false, error: "tier_required" };
+  const level = tiers[0] ?? null;
+  return {
+    ok: true,
+    spec,
+    level,
+    conceptIds: level ? coverageOf({ spec, level }).map((c) => c.id) : [...courseConceptIds(spec)],
+  };
+}
+
+/** The class fields a course declaration is made of. */
+export interface ClassCourseFields {
+  subject?: SubjectId;
+  specificationId?: string | null;
+  levelId?: string | null;
+  yearGroup?: string;
+}
+
+/** Is this school year one the class's course serves? Null when it is, or when
+ *  the course declares no years to judge against. */
+export function classYearRefusal(
+  course: ClassCourse,
+  yearGroup: string | null | undefined,
+): string | null {
+  if (!course.ok || !yearGroup) return null;
+  const years = yearOptionsOf(course);
+  return years.length > 0 && !years.includes(yearGroup) ? "grade_not_in_course" : null;
+}
+
+/** THE YEARS A CLASS'S COURSE ACCEPTS — one owner, so the refusal and the
+ *  message that explains it cannot disagree.
+ *
+ *  BOTH RULES THE SERVING GATE APPLIES: the qualification's pathway must offer
+ *  the year (a "Year 13" on a GCSE is outside the system), and the tier's own
+ *  declared years must include it where the tier declares any. Where both
+ *  declare years the answer is the INTERSECTION; where only one does, that one
+ *  is the answer. Checking only the tier would accept a foreign label on an
+ *  untiered course, and the learner inheriting it would be refused on their
+ *  first practice. */
+function yearOptionsOf(course: { spec: Specification | null; level: SpecLevel | null }): string[] {
+  const spec = course.spec;
+  if (!spec) return [];
+  const route = routeForPathwayId(spec.country, pathwayForSpec(spec.country, spec.id)?.id) ??
+    curriculumFor(spec.country);
+  const routeYears = route?.grades ?? [];
+  const tierYears = course.level?.schoolYears ?? [];
+  if (routeYears.length > 0 && tierYears.length > 0) {
+    return routeYears.filter((y) => tierYears.includes(y));
+  }
+  return tierYears.length > 0 ? [...tierYears] : [...routeYears];
+}
+
+/** The same answer as a public list, for the console's year message. */
+export function classYearOptions(
+  subject: SubjectId | null | undefined,
+  specificationId: string | null | undefined,
+  levelId: string | null | undefined,
+): string[] {
+  const course = classCourseFor(subject, specificationId, levelId);
+  return course.ok ? yearOptionsOf(course) : [];
+}
+
+/** MERGE A CLASS-COURSE WRITE, and make the tier follow the course.
+ *
+ *  Clearing a course used to leave `levelId` on the record, because only the
+ *  fields the request named were written: the class then said "whole subject"
+ *  while still carrying Higher, and a later course declaration could inherit a
+ *  tier that belonged to a different qualification. The rule is the same one the
+ *  learner's record follows: a tier is a fact about ONE course, so a write that
+ *  changes or clears `specificationId` without naming a tier CLEARS it, and the
+ *  resolver then reports `tier_required` if the new course needs a choice.
+ *
+ *  `yearGroup` is validated against the resolved course's declared years here,
+ *  before it is stored or inherited by a provisioned learner. */
+export function applyClassCoursePatch(
+  current: ClassCourseFields,
+  patch: ClassCourseFields,
+): { ok: true; fields: ClassCourseFields } | { ok: false; error: string } {
+  const subject = patch.subject !== undefined ? patch.subject : current.subject;
+  const currentSpec = current.specificationId ?? null;
+  const specificationId = patch.specificationId !== undefined
+    ? patch.specificationId
+    : currentSpec;
+  // A TIER BELONGS TO ONE COURSE, SO IT IS DROPPED WHEN THE COURSE CHANGES —
+  // and only then. Re-sending the SAME course without a tier (a partial update
+  // from an older client, or a retry) must keep the tier the class already has;
+  // treating every write as a change would refuse a valid record.
+  const courseChanged = specificationId !== currentSpec;
+  const levelId = patch.levelId !== undefined
+    ? patch.levelId
+    : courseChanged
+      ? null
+      : (current.levelId ?? null);
+  const yearGroup = patch.yearGroup !== undefined
+    ? (patch.yearGroup.trim() || undefined)
+    : current.yearGroup;
+  const course = classCourseFor(subject, specificationId, levelId);
+  if (!course.ok) return { ok: false, error: course.error };
+  const yearError = classYearRefusal(course, yearGroup);
+  if (yearError) return { ok: false, error: yearError };
+  return { ok: true, fields: { subject, specificationId, levelId, yearGroup } };
+}
+
 export function specById(id: string | undefined): Specification | null {
   if (!id) return null;
   return SPECIFICATIONS.find((s) => s.id === id) ?? null;

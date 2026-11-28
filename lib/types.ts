@@ -1350,6 +1350,11 @@ export interface Assignment {
    *  course change cannot silently reinterpret the work. */
   subject: SubjectId;
   specificationId: string | null;
+  /** The tier the work was drawn from, recorded when the class named one. The
+   *  tier selects a coverage window, so it is part of the curriculum the work
+   *  came from — not a display detail. Absent on work set before the field
+   *  existed, and on classes that declared only a subject. */
+  levelId?: string | null;
   conceptIds: string[];
   /** WHO the work is for, by the class's own row labels. Absent or empty means
    *  the WHOLE CLASS — the ordinary case, and the only shape the first version

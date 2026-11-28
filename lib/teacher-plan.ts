@@ -18,7 +18,7 @@
 
 import { ancestorsOf, bySubject, getConcept } from "./genome";
 import { MISCONCEPTIONS_BY_ID } from "./misconceptions";
-import { courseConceptIds, specById } from "./specifications";
+import { classCourseFor } from "./specifications";
 import type { ClassRoster, SubjectId } from "./types";
 
 export type DayKind = "explain" | "diagnose" | "practice" | "activity" | "mastery";
@@ -83,13 +83,20 @@ const DAY_PLAN: Array<{ kind: DayKind; minutes: number; count: number }> = [
  * from one shared rule (lib/specifications#courseConceptIds), so what may be SET
  * for a class and what is TAUGHT to it cannot disagree.
  */
-function curriculum(cls: ClassRoster, subject: SubjectId): string[] {
+function curriculum(cls: ClassRoster, subject: SubjectId): string[] | null {
   const order = bySubject(subject).map((c) => c.id);
-  const spec = specById(cls.specificationId ?? undefined);
-  if (!spec) return order;
-  const inCourse = courseConceptIds(spec);
-  const narrowed = order.filter((id) => inCourse.has(id));
-  return narrowed.length > 0 ? narrowed : order;
+  if (!cls.specificationId) return order;
+  // THE CLASS'S COURSE, WITH ITS TIER. A tier selects a coverage window, so a
+  // Foundation class must not be planned from Higher-only concepts (which the
+  // union of the qualification's tiers used to include). An unresolved course
+  // returns null: there is no week to plan from a course the class cannot
+  // actually sit, and widening to the subject would be the silent default this
+  // rule exists to stop.
+  const course = classCourseFor(subject, cls.specificationId, cls.levelId ?? null);
+  if (!course.ok) return null;
+  if (!course.conceptIds) return order;
+  const inCourse = new Set(course.conceptIds);
+  return order.filter((id) => inCourse.has(id));
 }
 
 /** The per-member mastery map the plan reads: the LIVE projection view when
@@ -143,7 +150,11 @@ export function classSubject(cls: ClassRoster): SubjectId | null {
  */
 function weakestConcepts(cls: ClassRoster, subject: SubjectId): Array<{ id: string; weak: number; mean: number }> {
   const students = Object.values(memberMaps(cls)).filter((m) => Object.keys(m).length > 0);
-  const candidates = (cls.conceptIds.length ? cls.conceptIds : curriculum(cls, subject)).filter((id) => getConcept(id));
+  // `curriculum` is NULL when the class's declared course cannot be resolved
+  // (a tiered course with no tier). There is no candidate list to rank in that
+  // state; the plan itself refuses to build, so this is only the "nothing to
+  // choose from" answer rather than a widened subject.
+  const candidates = (cls.conceptIds.length ? cls.conceptIds : (curriculum(cls, subject) ?? [])).filter((id) => getConcept(id));
   return candidates
     .map((id) => {
       const vals = students.map((m) => m[id]).filter((v): v is number => typeof v === "number");
@@ -172,7 +183,7 @@ export function buildWeeklyPlan(cls: ClassRoster, subject?: SubjectId): WeeklyPl
   const subj = subject ?? classSubject(cls);
   if (!subj) return null;
   const order = curriculum(cls, subj);
-  if (order.length === 0) return null;
+  if (!order || order.length === 0) return null;
   const now = Date.now();
 
   // ── Focus: weakest concepts, re-ordered foundations-first so the plan

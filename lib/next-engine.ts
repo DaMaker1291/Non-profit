@@ -17,7 +17,7 @@ import { MISCONCEPTIONS_BY_ID, beliefName } from "./misconceptions";
 import { isRetentionEvidence } from "./proof";
 import { orderEvents, type AnswerSubmitted, type EvidenceEvent } from "./evidence";
 import { canTransfer } from "./transfer";
-import { coverageOf, specForProfile, startConceptFor } from "./specifications";
+import { coverageOf, servingCourseFor, startConceptFor } from "./specifications";
 import type { ProfileState } from "./types";
 
 /** Translator shape (lib/i18n). Optional — callers without a language get
@@ -654,13 +654,18 @@ export function decideNext(
       // fallback for a subject whose course resolves to no covered concept.
       const subj = state.profile.subjects[0] ?? "maths";
       const measuredBefore = Object.keys(state.diagnostics ?? {}).some((k) => k.split(":")[0] === subj);
-      const course = specForProfile(state.profile, subj);
+      // THE COURSE THIS LEARNER CAN ACTUALLY BE TAUGHT. `specForProfile` keeps a
+      // display fallback (the first tier), and naming its first concept as "the
+      // first idea in your course" is the same lie the cover version told: for
+      // GCSE that fallback is Foundation. An incomplete course has no opening
+      // idea to recommend, so the card asks for the missing choice instead.
+      const served = servingCourseFor(state.profile, subj);
       // The course's OPENING idea, not simply the first row of its coverage:
       // Higher contains foundational arithmetic for remediation but must not
       // tell an unplaced Year 10 learner to start at place value. The shared
       // rule lives in specifications#startConceptFor so every surface agrees.
-      const courseFirst = startConceptFor(course, subj)?.id;
-      const first = measuredBefore ? (courseFirst ?? bySubject(subj)[0]?.id) : undefined;
+      const courseFirst = served.ok ? startConceptFor(served.active, subj)?.id : undefined;
+      const first = measuredBefore && served.ok ? (courseFirst ?? bySubject(subj)[0]?.id) : undefined;
       if (first) {
         push({
           kind: "EXPLAIN", conceptId: first,
@@ -680,7 +685,9 @@ export function decideNext(
         // The diagnostic the card promises, in the learner's own subject — this
         // was the literal "/diagnostic/maths" for every learner, so a physics
         // student's "find your starting point" opened a maths sitting.
-        out[0].href = `/diagnostic/${subj}`;
+        // An incomplete course is fixed on the curriculum screen, not by
+        // sitting the diagnostic again.
+        out[0].href = served.ok ? `/diagnostic/${subj}` : "/curriculum";
       }
     } else {
       push({ kind: "REST", conceptId: null, title: t("next.title.caughtUp"), reason: t("next.reason.rest"), evidence: `${snap.strong} ${t("next.ev.strong")} · ${snap.dueCount} ${t("next.ev.due")}`, minutes: 0 });
